@@ -13,96 +13,121 @@ import pandas
 
 import platedesign.math
 
-class Inducer(object):
+class InducerBase(object):
     """
-    Generic class that represents an inducer.
+    Generic class that represents one or more doses of an inducer.
+
+    This class is meant to be inherited by a class representing a concrete
+    inducer type. Functions that don't save files here raise a
+    NotImplementedError to force the child class to implement its own
+    version. Functions that save files are implemented as empty functions,
+    such that a child class only needs to redefine the necessary functions
+    depending on which files it has to save.
+
+    Attributes
+    ----------
+    name : str
+        Name of the inducer.
+    doses_table : DataFrame
+        Table with information of each inducer dose.
+
+    Methods
+    -------
+    set_vol_from_shots
+        Set volume to prepare from number of shots and replicates.
+    shuffle
+        Apply random shuffling to the dose table.
+    save_exp_setup_instructions
+        Save instructions for the Experiment Setup stage.
+    save_exp_setup_files
+        Save additional files for the Experiment Setup stage.
+    save_rep_setup_instructions
+        Save instructions for the Replicate Setup stage.
+    save_rep_setup_files
+        Save additional files for the Replicate Setup stage.
 
     """
-    def __init__(self, name, units, id_prefix=None, id_offset=0):
-        # Store name and units
+    def __init__(self, name):
+        # Store name
         self.name = name
-        self.units = units
 
-        # Store ID modifiers for dilutions table
-        if id_prefix is None:
-            id_prefix=name[0]
-        self.id_prefix=id_prefix
-        self.id_offset=id_offset
+        # Initialize dose table
+        self.doses_table = pandas.DataFrame()
 
-    @property
-    def conc(self):
+    def set_vol_from_shots(self,
+                           n_shots,
+                           n_replicates=1):
         """
-        Inducer concentration of each dilution.
+        Set volume to prepare from number of shots and replicates.
 
         """
         raise NotImplementedError
 
-    def set_gradient(self,
-                     min,
-                     max,
-                     n,
-                     scale='linear',
-                     use_zero=False,
-                     n_repeat=1):
+    def shuffle(self):
         """
-        Set the dilutions concentrations from a specified gradient.
+        Apply random shuffling to the dose table.
 
         """
         raise NotImplementedError
 
-    def calculate_vol(self,
-                      n_samples,
-                      n_replicates=1,
-                      safety_factor=1.2):
+    def save_exp_setup_instructions(self, file_name=None, workbook=None):
         """
-        Calculate inducer total and per-aliquot volumes.
+        Calculate and save instructions for the Experiment Setup stage.
 
-        """
-        raise NotImplementedError
-
-    def calculate_recipe(self):
-        """
-        Calculate instructions to prepare each inducer dilution.
+        Parameters
+        ----------
+        file_name : str, optional
+            Name of the Excel file to save.
+        workbook : Workbook, optional
+            If not None, `file_name` is ignored, and a sheet with the
+            instructions is directly added to workbook `workbook`.
 
         """
-        raise NotImplementedError
+        pass
 
-    def save_files(self,
-                   file_name,
-                   sheet_name=None,
-                   path='.',
-                   ):
+    def save_exp_setup_files(self, path='.'):
         """
-        Save the (unshuffled) dilutions table into an Excel file.
+        Save additional files required for the experiment setup stage.
 
-        """
-        raise NotImplementedError
-
-    def generate_shufflings(self, n_shufflings):
-        """
-        Generate and store random shufflings for the dilutions table.
+        Parameters
+        ----------
+        path : str
+            Folder in which to save files.
 
         """
-        raise NotImplementedError
+        pass
 
-    def shuffle(self, shuffling=None):
+    def save_rep_setup_instructions(self, file_name=None, workbook=None):
         """
-        Apply random shuffling to the dilutions table.
+        Calculate and save instructions for the Replicate Setup stage.
+
+        Parameters
+        ----------
+        file_name : str, optional
+            Name of the Excel file to save.
+        workbook : Workbook, optional
+            If not None, `file_name` is ignored, and a sheet with the
+            instructions is directly added to workbook `workbook`.
 
         """
-        raise NotImplementedError
+        pass
 
-    def split(self, n_splits, split_shuffled=False):
+    def save_rep_setup_files(self, path='.'):
         """
-        Create inducer objects from a subset of this object's dilutions.
+        Save additional files required for the experiment setup stage.
+
+        Parameters
+        ----------
+        path : str
+            Folder in which to save files.
 
         """
-        raise NotImplementedError
+        pass
 
 
-class ChemicalInducer(Inducer):
+class ChemicalInducer(InducerBase):
     """
-    Object that represents a series of dilutions of a chemical inducer.
+    Object that represents different concentrations of a chemical inducer.
 
     Parameters
     ----------
@@ -114,38 +139,59 @@ class ChemicalInducer(Inducer):
     id_prefix : str, optional
         Prefix to be used for the ID that identifies each inducer dilution.
         If None, use the first letter of the inducer's name.
-    if_offset : int, optional
+    id_offset : int, optional
         Offset from which to generate the ID that identifies each inducer
         dilution. Default: 0 (no offset).
 
     Attributes
     ----------
     name : str
-        Name of the inducer, to be used in generated files.
+        Name of the inducer.
     units : str
         Units in which the inducer's concentration is expressed.
     id_prefix : str
-        Prefix to be used for the ID that identifies each inducer dilution.
+        Prefix to be used for the ID that identifies each inducer
+        concentration.
     id_offset : int
         Offset from which to generate the ID that identifies each inducer
-        dilution.
+        concentration.
     stock_conc : float
         Concentration of the stock solution of the inducer.
-    sample_vol : float
-        Volume of cell sample in which the inducer will be inoculated.
-    inoculation_vol : float
-        Volume of inducer to inoculate in each cell sample.
+    media_vol : float
+        Volume of sample media in which the inducer will be added.
+    shot_vol : float
+        Volume of inducer to add to each sample.
     total_vol : float
-        Total volume of inducer to make per dilution.
+        Total volume of inducer to make per dose.
     replicate_vol : float
-        Volume of inducer to make for each experiment replicate, per
-        dilution.
+        Volume of inducer to make for each experiment replicate, per dose.
+    concentrations : array
+        Inducer concentrations.
+    doses_table : DataFrame
+        Table containing information of all the inducer concentrations.
+
+    Methods
+    -------
+    set_gradient
+        Set inducer concentrations from a specified gradient.
+    set_vol_from_shots
+        Set volume to prepare from number of shots and replicates.
+    shuffle
+        Apply random shuffling to the dose table.
+    save_exp_setup_instructions
+        Save instructions for the Experiment Setup stage.
+
+    Other Attributes
+    ----------------
+    vol_safety_factor : float
+        Safety factor used when calculating the total inducer volume to
+        prepare.
     min_stock_vol : float
-        Minimum volume of stock inducer to use when preparing the
-        dilutions.
+        Minimum volume of stock inducer to use when preparing dilutions
+        during the experiment setup stage.
     max_stock_vol : float
-        Maximum volume of stock inducer to use when preparing the
-        dilutions.
+        Maximum volume of stock inducer to use when preparing dilutions
+        during the experiment setup stage.
     stock_dilution_step : float
         Dilution ratio to make from the stock solution on each dilution
         step.
@@ -153,34 +199,9 @@ class ChemicalInducer(Inducer):
         Number of decimals to use for the volume of stock inducer.
     water_decimals : int
         Number of decimals to use for the volume of water.
-    dilutions : DataFrame
-        Table containing information of all the inducer dilutions.
-    shufflings : list
-        List of randomized indices to use when shuffling the dilutions
-        table.
-    current_shuffling : list
+    shuffled_idx : list
         Randomized indices that result in the current shuffling of
         dilutions.
-
-    Methods
-    -------
-    reset
-        Delete the dilutions table and shufflings.
-    set_gradient
-        Set inducer concentrations from a specified gradient.
-    calculate_vol
-        Calculate inducer total and per-aliquot volumes.
-    calculate_recipe
-        Calculate instructions to prepare each inducer dilution.
-    save_dilutions_table
-        Save the dilutions table into an Excel file.
-    generate_shufflings
-        Generate and store random shufflings for the dilutions table.
-    shuffle
-        Apply random shuffling to the dilutions table.
-    split
-        Create inducer objects from a subset of this object's dilutions.
-
 
     """
     def __init__(self, name, units, id_prefix=None, id_offset=0):
@@ -188,94 +209,74 @@ class ChemicalInducer(Inducer):
         self.name = name
         self.units = units
 
-        # Store ID modifiers for dilutions table
+        # Store ID modifiers for dose table
         if id_prefix is None:
             id_prefix=name[0]
         self.id_prefix=id_prefix
         self.id_offset=id_offset
 
         # Initialize main properties used for calculations
-        # Stock concentration of inducer
         self.stock_conc = None
-        # Volume of cell sample
-        self.sample_vol = None
-        # Volume of inducer dilution that will go into each cell sample
-        self.inoculation_vol = None
-
-        # Total volume of inducer to make
+        self.media_vol = None
+        self.shot_vol = None
         self.total_vol = None
-        # Volume to aliquot
         self.replicate_vol = None
 
         # Initialize secondary properties used for calculations
+        self.vol_safety_factor = 1.2
         self.min_stock_vol = 1.5
         self.max_stock_vol = 20.
         self.stock_dilution_step = 10.
         self.stock_decimals = 2
         self.water_decimals = 1
 
-        # Reset all structures
-        self.reset()
-
-    def __str__(self):
-        return "{}, {} different concentration(s)".format(
-            self.name,
-            len(self.dilutions))
+        # The following initializes an empty dose table
+        self.dose = [0]
+        # Remove shuffling
+        self.shuffled_idx = None
 
     @property
-    def conc_header(self):
+    def concentrations_header(self):
         """
-        Header to be used in the dilutions table to specify concentration.
+        Header to be used in the dose table to specify concentration.
 
         """
-        return "Concentration ({})".format(self.units)
+        return "{} Concentration ({})".format(self.name, self.units)
 
     @property
-    def conc(self):
+    def concentrations(self):
         """
-        Inducer concentration of each dilution.
+        Inducer concentrations.
 
         Reading from this attribute will return the contents of the
-        "Concentration" column from the dilutions table. Writing to this
-        attribute will reinitialize the dilutions table with the specified
+        "Concentration" column from the dose table. Writing to this
+        attribute will reinitialize the doses table with the specified
         concentrations. Any columns that are not the concentrations or
         IDs will be lost.
 
         """
-        return self.dilutions[self.conc_header].values
+        return self.doses_table[self.concentrations_header].values
 
-    @conc.setter
-    def conc(self, value):
-        # Initialize dataframe with dilutions info
+    @concentrations.setter
+    def concentrations(self, value):
+        # Initialize dataframe with doses info
         ids = ['{}{:03d}'.format(self.id_prefix, i)
                for i in range(self.id_offset + 1,
                               len(value) + self.id_offset + 1)]
-        self._dilutions = pandas.DataFrame({'ID': ids})
-        self._dilutions.set_index('ID', inplace=True)
-        self._dilutions[self.conc_header] = value
+        self._doses_table = pandas.DataFrame({'ID': ids})
+        self._doses_table.set_index('ID', inplace=True)
+        self._doses_table[self.concentrations_header] = value
 
     @property
-    def dilutions(self):
+    def doses_table(self):
         """
-        Table containing information of all the inducer dilutions.
+        Table containing information of all the inducer concentrations.
 
         """
-        if self.current_shuffling is None:
-            return self._dilutions
+        if self.shuffled_idx is None:
+            return self._doses_table
         else:
-            return self._dilutions.iloc[self.shufflings[self.current_shuffling]]
-
-    def reset(self):
-        """
-        Delete the dilutions table and shufflings.
-
-        """
-        # The following initializes an empty dilutions table
-        self.conc = [0]
-        # Shuffling indices
-        self.shufflings = None
-        # Remove current shuffling
-        self.current_shuffling = None
+            return self._doses_table.iloc[self.shuffled_idx]
 
     def set_gradient(self,
                      min,
@@ -287,7 +288,7 @@ class ChemicalInducer(Inducer):
         """
         Set inducer concentrations from a specified gradient.
 
-        Using this function will reset the dilutions table and populate the
+        Using this function will reset the dose table and populate the
         "Concentration" column with the specified gradient.
 
         Parameters
@@ -313,48 +314,50 @@ class ChemicalInducer(Inducer):
 
         # Calculate gradient
         if scale == 'linear':
-            self.conc = numpy.linspace(min, max, n/n_repeat)
-            self.conc = numpy.repeat(self.conc, n_repeat)
+            self.concentrations = numpy.linspace(min, max, n/n_repeat)
+            self.concentrations = numpy.repeat(self.concentrations, n_repeat)
         elif scale == 'log':
             if use_zero:
-                self.conc = numpy.logspace(numpy.log10(min),
-                                           numpy.log10(max),
-                                           (n/n_repeat - 1))
-                self.conc = numpy.concatenate(([0], self.conc))
+                self.concentrations = numpy.logspace(numpy.log10(min),
+                                                     numpy.log10(max),
+                                                     (n/n_repeat - 1))
+                self.concentrations = \
+                    numpy.concatenate(([0], self.concentrations))
             else:
-                self.conc = numpy.logspace(numpy.log10(min),
-                                           numpy.log10(max),
-                                           n/n_repeat)
-            self.conc = numpy.repeat(self.conc, n_repeat)
+                self.concentrations = numpy.logspace(numpy.log10(min),
+                                                     numpy.log10(max),
+                                                     n/n_repeat)
+            self.concentrations = numpy.repeat(self.concentrations, n_repeat)
         else:
             raise ValueError("scale {} not recognized".format(scale))
 
-    def calculate_vol(self,
-                      n_samples,
-                      n_replicates=1,
-                      safety_factor=1.2):
+    def set_vol_from_shots(self,
+                           n_shots,
+                           n_replicates=1):
         """
-        Calculate inducer total and per-aliquot volumes.
+        Set volume to prepare from number of shots and replicates.
 
-        This calculation is based on a specified number of samples and
+        This calculation is based on a specified number of shots and
         replicates. Results are stored in the ``replicate_vol`` and
-        ``total_vol`` attributes.
+        ``total_vol`` attributes. The attribute ``vol_safety_factor``
+        should be set for this function.
 
         Parameters
         ----------
-        n_samples : int
-            Number of samples per replicate.
+        n_shots : int
+            Number of samples in which to add inducer, per dose, per
+            replicate.
         n_replicates : int, optional
             Number of experimental replicates. Default is one.
-        safety_factor : float, optional
-            Should be greater than one. The calculated volumes will be
-            multiplied by this number to have a little excess liquid when
-            pipetting.
 
         """
+        # Check for the presence of required attributes
+        if self.vol_safety_factor is None:
+            raise AttributeError("vol_safety_factor should be set")
+
         # Calculate volume with safety factor for a replicate
-        inducer_rep_vol = n_samples*self.inoculation_vol
-        inducer_rep_vol = inducer_rep_vol*safety_factor
+        inducer_rep_vol = n_shots*self.shot_vol
+        inducer_rep_vol = inducer_rep_vol*self.vol_safety_factor
         inducer_rep_vol = platedesign.math._ceil_log(inducer_rep_vol)
 
         if n_replicates > 1:
@@ -362,7 +365,7 @@ class ChemicalInducer(Inducer):
             self.total_vol = inducer_rep_vol*n_replicates
             # Apply safety factor and round again
             self.total_vol = platedesign.math._ceil_log(
-                self.total_vol*safety_factor)
+                self.total_vol*self.vol_safety_factor)
             # Store aliquot volume
             self.replicate_vol = inducer_rep_vol
         else:
@@ -370,62 +373,85 @@ class ChemicalInducer(Inducer):
             self.total_vol = inducer_rep_vol
             self.replicate_vol = None
 
-    def calculate_recipe(self):
+    def shuffle(self):
         """
-        Calculate instructions to prepare each inducer dilution.
+        Apply random shuffling to the dose table.
 
-        The indicated concentrations are achieved when pipetting a volume
-        "inoculation_vol" of dilution into a sample with a volume of
-        "sample_vol". Additional attributes that need to be set are
-        "stock_conc" and "total_vol". Instructions are stored in the
-        dilutions table, in columns "Stock dilution",
-        "Inducer volume (uL)", and "Water volume (uL)". To prepare the
-        dilutions, the stock solution is expected to be diluted by the
-        factor specified in "Stock dilution". Next, a volume of this
-        indicated in the column "Inducer volume (uL)" is expected to be
-        mixed with water, as specified in "Water volume (uL)". In addition,
-        the concentrations are updated to reflect the finite resolution of
-        the pipettes, as specified by the properties "stock_decimals" and
+        """
+        # Create list of indices, shuffle, and store.
+        shuffled_idx = range(len(self.doses_table))
+        random.shuffle(shuffled_idx)
+        self.shuffled_idx = shuffled_idx
+
+    def save_exp_setup_instructions(self, file_name=None, workbook=None):
+        """
+        Calculate and save instructions for the Experiment Setup stage.
+
+        During the replicate setup stage, the indicated concentrations of
+        inducer will be achieved by pipetting a volume "shot_vol" of
+        intermediate inducer dilution into a sample with a volume of
+        "media_vol". These intermediate dilutions are to be prepared during
+        the experiment setup stage, according to the instructions generated
+        by this function.
+
+        The instructions are saved to a single Excel sheet, named after
+        the inducer. To prepare the dilutions, the stock solution should be
+        diluted by the factor specified in "Stock dilution". Next, the
+        volume of stock dilution indicated in "Inducer volume (uL)" should
+        be mixed with a volume of water specified in "Water volume (uL)".
+
+        Additional class properties that need to be set are "stock_conc"
+        and "total_vol". This function modifies the specified
+        concentrations to reflect the finite resolution of the pipettes, as
+        specified by the class properties "stock_decimals" and
         "water_decimals".
+
+        Parameters
+        ----------
+        file_name : str, optional
+            Name of the Excel file to save.
+        workbook : Workbook, optional
+            If not None, `file_name` is ignored, and a sheet with the
+            instructions is directly added to workbook `workbook`.
 
         """
         # Check for the presence of required attributes
         if self.stock_conc is None:
             raise AttributeError("stock_conc should be set")
-        if self.sample_vol is None:
-            raise AttributeError("sample_vol should be set")
-        if self.inoculation_vol is None:
-            raise AttributeError("inoculation_vol should be set")
+        if self.media_vol is None:
+            raise AttributeError("media_vol should be set")
+        if self.shot_vol is None:
+            raise AttributeError("shot_vol should be set")
         if self.total_vol is None:
             raise AttributeError("total_vol should be set")
 
         # Initialize relevant arrays
-        concentrations = self._dilutions[self.conc_header].values
-        inducer_vols = numpy.zeros_like(concentrations)
-        inducer_dils = numpy.zeros_like(concentrations)
-        water_vols = numpy.zeros_like(concentrations)
-        actual_concs = numpy.zeros_like(concentrations)
+        target_concs = self.concentrations
+        stock_dils = numpy.zeros_like(target_concs)
+        inducer_vols = numpy.zeros_like(target_concs)
+        water_vols = numpy.zeros_like(target_concs)
+        actual_concs = numpy.zeros_like(target_concs)
 
         # Iterate over concentrations
-        for i, conc in enumerate(concentrations):
+        for i, target_conc in enumerate(target_concs):
             # If concentration is zero, skip
-            if conc == 0:
-                inducer_dils[i] = 0
+            if target_conc == 0:
+                stock_dils[i] = 0
                 inducer_vols[i] = 0
                 water_vols[i] = self.total_vol
                 continue
             # Determine the appropriate dilution to use
             # We start with a high dilution, and scale down until we reach a
             # volume that is acceptable (lower than max_stock_volume)
-            dilution = self.stock_dilution_step**10
+            stock_dil = self.stock_dilution_step**10
             while True:
-                inducer_vol = (conc*self.sample_vol/self.inoculation_vol) * \
-                    self.total_vol / (self.stock_conc/dilution)
+                inducer_vol = (target_conc*self.media_vol/self.shot_vol) * \
+                    self.total_vol / (self.stock_conc/stock_dil)
                 if (inducer_vol < self.max_stock_vol):
                     break
-                if dilution/self.stock_dilution_step < 1:
+                if stock_dil/self.stock_dilution_step < 1:
                     break
-                dilution = dilution/self.stock_dilution_step
+                stock_dil = stock_dil/self.stock_dilution_step
             # Round inducer volume to the specified precision
             inducer_vol = numpy.round(inducer_vol,
                                       decimals=self.stock_decimals)
@@ -433,159 +459,51 @@ class ChemicalInducer(Inducer):
             water_vol = numpy.round(self.total_vol - inducer_vol,
                                     decimals=self.water_decimals)
             # Actual concentration achieved
-            actual_conc = self.stock_conc/dilution * \
+            actual_conc = self.stock_conc/stock_dil * \
                           inducer_vol/(inducer_vol + water_vol) * \
-                          (self.inoculation_vol/self.sample_vol)
+                          (self.shot_vol/self.media_vol)
             # Accumulate
-            inducer_dils[i] = dilution
+            stock_dils[i] = stock_dil
             inducer_vols[i] = inducer_vol
             water_vols[i] = water_vol
             actual_concs[i] = actual_conc
 
-        # Append to dilutions table
-        self._dilutions[self.conc_header] = actual_concs
-        self._dilutions['Stock dilution'] = inducer_dils
-        self._dilutions['Inducer volume (uL)'] = inducer_vols
-        self._dilutions['Water volume (uL)'] = water_vols
+        # Build table with instructions
+        instructions = self._doses_table.copy()
 
-    def save_files(self,
-                   file_name,
-                   sheet_name=None,
-                   path='.',
-                   ):
-        """
-        Save the (unshuffled) dilutions table into an Excel file.
+        instructions[self.concentrations_header] = actual_concs
+        instructions['Stock dilution'] = stock_dils
+        instructions['Inducer volume (uL)'] = inducer_vols
+        instructions['Water volume (uL)'] = water_vols
 
-        Parameters
-        ----------
-        file_name : str
-            Name of the Excel file on which to save the dilutions table.
-        sheet_name : str, optional
-            Name of the sheet on which to save the dilutions table. If not
-            specified, use the inducer's name.
-        path : str, optional
-            Path of the directory in which to save the dilutions file.
-
-        """
-        # Autogenerate sheet name if necessary
-        if sheet_name is None:
+        if workbook is not None:
+            # First, check that a sheet with the inducer name doesn't exist
             sheet_name = self.name
-        # Generate full file name
-        full_file_name = os.path.join(path, file_name)
-        # Generate pandas writer
-        writer = pandas.ExcelWriter(full_file_name, engine='openpyxl')
-        # If file already exists, open and copy all previous data
-        if os.path.isfile(full_file_name):
-            workbook = openpyxl.load_workbook(full_file_name)
+            if sheet_name in [ws.title for ws in workbook.worksheets]:
+                raise ValueError("sheet \"{}\"already present in workbook".\
+                    format(sheet_name))
+            # Generate pandas writer and reassign workbook
+            writer = pandas.ExcelWriter('temp', engine='openpyxl')
             writer.book = workbook
-            writer.sheets = dict((ws.title, ws)
-                                 for ws in workbook.worksheets)
-        # Convert dilutions table to excel sheet
-        self._dilutions.to_excel(writer, sheet_name=sheet_name)
+        else:
+            # Generate pandas writer to a new file
+            writer = pandas.ExcelWriter(file_name, engine='openpyxl')
+
+        # Save instructions table
+        instructions.to_excel(writer, sheet_name=sheet_name)
         # Add message about aliquots
         if self.replicate_vol is not None:
             message = "Distribute in aliquots of {}uL." \
                 .format(self.replicate_vol)
             worksheet = writer.sheets[sheet_name]
-            worksheet.cell(row=len(self._dilutions) + 3,
+            worksheet.cell(row=len(instructions) + 3,
                            column=1,
                            value=message)
-        # Actually save
-        writer.save()
 
-    def generate_shufflings(self, n_shufflings):
-        """
-        Generate and store random shufflings for the dilutions table.
+        # Save file if necessary
+        if workbook is None:
+            # Actually save
+            writer.save()
 
-        Each shuffling is stored as a list of randomized indices for the
-        dilutions table.
-
-        Parameters
-        ----------
-        n_shufflings : int
-            Number of shufflings to generate.
-
-        """
-        # Generate random shufflings
-        self.shufflings = []
-        for i in range(n_shufflings):
-            l = range(len(self.dilutions))
-            random.shuffle(l)
-            self.shufflings.append(l)
-
-    def shuffle(self, shuffling=None):
-        """
-        Apply random shuffling to the dilutions table.
-
-        Does nothing if `generate_shufflings()` hasn't been called yet.
-
-        Parameters
-        ----------
-        shuffling : int
-            Index of the random shuffling to use. Values are from 0 to
-            ``n_shufflings - 1``, where ``n_shufflings`` is the argument of
-            ``generate_shufflings()``. If None, use the unshuffled
-            dilutions table.
-
-        """
-        # If shufflings has not been initialized, shuffling is not possible.
-        if self.shufflings is None:
-            return
-        # Check for range of shuffling
-        if (shuffling is not None) and \
-                ((shuffling >= len(self.shufflings)) or (shuffling < 0)):
-            raise ValueError("shuffling should be between zero and {}".format(
-                len(self.shufflings) - 1))
-
-        self.current_shuffling = shuffling
-
-    def split(self, n_splits, split_shuffled=False):
-        """
-        Create inducer objects from a subset of this object's dilutions.
-
-        The resulting objects are identical to the current one, but contain
-        a subset of the dilutions made by splitting the dilutions table
-        into ``n_splits`` parts. The "id_offset" attribute is not
-        preserved.
-
-        Parameters
-        ----------
-        n_splits : int
-            Number of split inducer objects to create.
-        split_shuffled : bool
-            Whether to split the shuffled or unshuffled table.
-
-        Returns
-        -------
-        splits : list
-            List of chemical inducer objects, made from splitting the
-            dilutions of this object.
-
-        """
-        # Trivial case: one split
-        if n_splits==1:
-            return [copy.deepcopy(self)]
-
-        # Initialize list to accumulate splits
-        splits = []
-        # length of dilutions table per split
-        split_length = len(self.dilutions)/n_splits
-        for i in range(n_splits):
-            # Copy inducer object
-            split = copy.deepcopy(self)
-            # Slice dilutions table
-            if split_shuffled:
-                split._dilutions = \
-                    split.dilutions.iloc[i*split_length:(i+1)*split_length]
-            else:
-                split._dilutions = \
-                    split._dilutions.iloc[i*split_length:(i+1)*split_length]
-            # Shuffling information is no longer valid, delete
-            split.current_shuffling = None
-            split.shufflings = None
-            # Delete id_offset
-            split.id_offset = None
-            # Accumulate
-            splits.append(split)
-
-        return splits
+        # Update concentration array in class
+        self._doses_table[self.concentrations_header] = actual_concs
