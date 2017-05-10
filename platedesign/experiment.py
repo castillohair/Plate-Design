@@ -5,13 +5,9 @@ Module that contains the experiment class.
 
 import copy
 import os
-import random
 
-import numpy
 import openpyxl
 import pandas
-
-import platedesign.math
 
 class Experiment(object):
     """
@@ -81,24 +77,46 @@ class Experiment(object):
         self.plates = []
         self.inducers = []
         self.ind_applications = []
-        # Spreadsheet to append to replicate spreadsheets: Sheets other than
+        # Template for table of samples for measurement: Sheets other than
         # "Samples" will be copied unmodified. If a "Samples" sheet is present,
         # all columns will be added to the final "Samples" sheet, and filled
         # with the values present in the first row.
-        self.spreadsheet_to_append = None
+        self.measurement_template = None
 
     def add_plate(self, plate):
         """
+        Add plate to experiment.
+
+        Parameters
+        ----------
+        plate : Plate
+            Plate to add.
+
         """
         self.plates.append(plate)
 
     def add_inducer(self, inducer):
         """
+        Add inducer to experiment.
+
+        Parameters
+        ----------
+        inducer : Inducer
+            Inducer to add.
+
         """
         self.inducers.append(inducer)
 
     def apply_inducer(self, inducer, plate, apply_to='wells'):
         """
+        Apply inducer to plate.
+
+        This function adds the inducer/plate pair to the attribute
+        `ind_applications`, along with the `apply_to` argument. If
+        `inducer` is not in the experiment's inducer list, it will be
+        added. The same applied for `plate`. Inducers are actually applied
+        to plates when `generate()` is called.
+
         """
         # Check across argument
         if apply_to not in ['rows', 'cols', 'wells', 'media']:

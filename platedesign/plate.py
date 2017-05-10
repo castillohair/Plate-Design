@@ -4,15 +4,10 @@ Module that contains plate classes.
 """
 
 import collections
-import copy
-import os
-import random
 
 import numpy
 import openpyxl
 import pandas
-
-import platedesign.math
 
 # Create cell styles for the plate area
 plate_fill = [openpyxl.styles.PatternFill(fill_type='solid',
@@ -195,10 +190,8 @@ class Plate(PlateBase):
     ----------
     name : str
         Name of the plate, to be used in generated files.
-    n_rows : int
-        Number of rows in the plate, optional.
-    n_cols : int
-        Number of columns in the plate, optional.
+    n_rows, n_cols : int, optional
+        Number of rows and columns in the plate.
     id_prefix : str, optional
         Prefix to be used for the ID that identifies each sample. Default:
         'S'.
@@ -210,10 +203,8 @@ class Plate(PlateBase):
     ----------
     name : str
         Name of the plate, to be used in generated files.
-    n_rows : int
-        Number of rows in the plate.
-    n_cols : int
-        Number of columns in the plate.
+    n_rows, n_cols : int
+        Number of rows and columns in the plate.
     id_prefix : str
         Prefix to be used for the ID that identifies each sample.
     id_offset : int
@@ -243,6 +234,10 @@ class Plate(PlateBase):
         Apply an inducer to the plate.
     save_rep_setup_instructions
         Calculate and save instructions for the Replicate Setup stage.
+    add_inducer_setup_instructions
+        Add sheet with inducer pipetting instructions to specified workbook.
+    add_cell_setup_instructions
+        Add sheet with cell inoculation instructions to specified workbook.
 
     """
     def __init__(self,
@@ -461,7 +456,7 @@ class Plate(PlateBase):
             "Inducers for Plate {}".format(self.name))
         self.add_cell_setup_instructions(
             workbook,
-            "Inducers for Plate {}".format(self.name))
+            "Cells for Plate {}".format(self.name))
 
         # Save
         if save_workbook:
@@ -580,8 +575,79 @@ class Plate(PlateBase):
 
 class PlateArray(Plate):
     """
+    Object that represents an array of plates.
+
+    This class manages inducers that can be applied to individual rows,
+    columns, wells, or to all the media in the array. These are used to
+    generate instructions for inducer inoculation during the Replicate
+    Setup stage. In addition, a list of samples with the corresponding
+    inducer concentrations are generated for the Replicate Measurement
+    stage.
+
+    Parameters
+    ----------
+    name : str
+        Name of the plate array, to be used in generated files.
+    array_n_rows, array_n_cols : int
+        Number of rows and columns in the plate array.
+    plate_names : list
+        Names of the plates, to be used in generated files.
+    plate_n_rows, plate_n_cols : int, optional
+        Number of rows and columns in each plate.
+    id_prefix : str, optional
+        Prefix to be used for the ID that identifies each sample. Default:
+        'S'.
+    id_offset : int, optional
+        Offset from which to generate the ID that identifies each sample.
+        Default: 0 (no offset).
+
+    Attributes
+    ----------
+    name : str
+        Name of the plate array, to be used in generated files.
+    array_n_rows, array_n_cols : int
+        Number of rows and columns in the plate array.
+    plate_names : list
+        Names of the plates, to be used in generated files.
+    plate_n_rows, plate_n_cols : int
+        Number of rows and columns in each plate.        
+    n_rows, n_cols : int
+        Total number of rows and columns in the plate array.
+    id_prefix : str
+        Prefix to be used for the ID that identifies each sample.
+    id_offset : int
+        Offset from which to generate the ID that identifies each sample.
+    samples_to_measure : int
+        Number of samples to be measured.
+    sample_vol : float
+        Volume of media per sample (well).
+    media_vol : float
+        Starting total volume of media, to be added to the plate.
+    metadata : OrderedDict
+        A column in the samples table will be created for each ``(key,
+        value)`` pair in this dictionary. ``key`` will be the name of the
+        column, with all rows set to ``value``.
+    samples_table : DataFrame
+        Table containing information of all samples.
+
+    Methods
+    -------
+    start_replicate
+        Initialize an empty samples table and inducers dictionary.
+    apply_inducer_media_vol
+        Get the media volume to which an inducer will be applied.
+    apply_inducer_n_shots
+        Get number of samples that each inducer dose will be applied to.
+    apply_inducer
+        Apply an inducer to the plate.
+    save_rep_setup_instructions
+        Calculate and save instructions for the Replicate Setup stage.
+    add_inducer_setup_instructions
+        Add sheet with inducer pipetting instructions to specified workbook.
+    add_cell_setup_instructions
+        Add sheet with cell inoculation instructions to specified workbook.
+
     """
-    pass
     def __init__(self,
                  name,
                  array_n_rows,
@@ -622,10 +688,18 @@ class PlateArray(Plate):
 
     @property
     def n_rows(self):
+        """
+        Total number of rows in the plate array.
+
+        """
         return self.array_n_rows*self.plate_n_rows
 
     @property
     def n_cols(self):
+        """
+        Total number of columns in the plate array.
+        
+        """
         return self.array_n_cols*self.plate_n_cols
 
     def start_replicate(self):
@@ -704,7 +778,7 @@ class PlateArray(Plate):
             "Inducers for Plate Array {}".format(self.name))
         self.add_cell_setup_instructions(
             workbook,
-            "Inducers for Plate Array {}".format(self.name))
+            "Cells for Plate Array {}".format(self.name))
 
         # Save
         if save_workbook:
