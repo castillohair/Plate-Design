@@ -3,8 +3,6 @@ Module that contains inducer classes.
 
 """
 
-import copy
-import os
 import random
 
 import numpy
