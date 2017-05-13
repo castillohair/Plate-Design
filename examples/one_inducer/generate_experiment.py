@@ -22,16 +22,16 @@ plate.samples_to_measure = 12
 plate.media_vol = 16000.
 plate.sample_vol = 500.
 plate.metadata['Strain'] = 'Test Strain 1'
+plate.apply_inducer(inducer=iptg, apply_to='wells')
 exp.add_plate(plate)
-exp.apply_inducer(plate=plate, inducer=iptg, apply_to='wells')
 
 plate = platedesign.plate.Plate('P2', n_rows=4, n_cols=6)
 plate.samples_to_measure = 12
 plate.media_vol = 16000.
 plate.sample_vol = 500.
 plate.metadata['Strain'] = 'Test Strain 2'
+plate.apply_inducer(inducer=iptg, apply_to='wells')
 exp.add_plate(plate)
-exp.apply_inducer(plate=plate, inducer=iptg, apply_to='wells')
 
 # Plate 3: autofluorescence control strain
 plate = platedesign.plate.Plate('P3', n_rows=4, n_cols=6)

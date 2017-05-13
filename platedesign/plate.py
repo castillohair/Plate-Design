@@ -40,13 +40,15 @@ class PlateBase(object):
     ----------
     name : str
         Name of the inducer.
+    inducers : OrderedDict
+        Keys in this dictionary represent how each inducer is applied
+        ("rows", "cols", "wells", "media"), and the values are lists of
+        inducers to be applied as specified by the key.
     samples_table : DataFrame
         Table with information of each sample in the plate.
 
     Methods
     -------
-    start_replicate
-        Initialize an empty samples table and inducers dictionary.
     apply_inducer_media_vol
         Get the media volume to which an inducer will be applied.
     apply_inducer_n_shots
@@ -55,21 +57,16 @@ class PlateBase(object):
         Apply an inducer to the plate.
     save_rep_setup_instructions
         Calculate and save instructions for the Replicate Setup stage.
+    update_samples_table
+        Update samples table.
 
     """
     def __init__(self, name):
         # Store name
         self.name = name
 
-        # Initialize dose table
+        # Initialize samples table
         self.samples_table = pandas.DataFrame()
-
-    def start_replicate(self):
-        """
-        Initialize an empty samples table and inducers dictionary.
-
-        """
-        raise NotImplementedError
 
     def apply_inducer_media_vol(self, apply_to):
         """
@@ -175,6 +172,13 @@ class PlateBase(object):
         """
         pass
 
+    def update_samples_table(self):
+        """
+        Update samples table.
+
+        """
+        pass
+
 class Plate(PlateBase):
     """
     Object that represents a plate.
@@ -219,13 +223,15 @@ class Plate(PlateBase):
         A column in the samples table will be created for each ``(key,
         value)`` pair in this dictionary. ``key`` will be the name of the
         column, with all rows set to ``value``.
+    inducers : OrderedDict
+        Keys in this dictionary represent how each inducer is applied
+        ("rows", "cols", "wells", "media"), and the values are lists of
+        inducers to be applied as specified by the key.
     samples_table : DataFrame
         Table containing information of all samples.
 
     Methods
     -------
-    start_replicate
-        Initialize an empty samples table and inducers dictionary.
     apply_inducer_media_vol
         Get the media volume to which an inducer will be applied.
     apply_inducer_n_shots
@@ -238,6 +244,8 @@ class Plate(PlateBase):
         Add sheet with inducer pipetting instructions to specified workbook.
     add_cell_setup_instructions
         Add sheet with cell inoculation instructions to specified workbook.
+    update_samples_table
+        Update samples table.
 
     """
     def __init__(self,
@@ -264,42 +272,11 @@ class Plate(PlateBase):
         # Initialize metadata dictionary
         self.metadata = collections.OrderedDict()
 
-        # Initialize samples table and inducers dictionary
-        self.start_replicate()
-
-    def start_replicate(self):
-        """
-        Initialize an empty samples table and inducers dictionary.
-
-        """
-        # Initialize dataframe with sample IDs
-        ids = ['{}{:03d}'.format(self.id_prefix, i)
-               for i in range(self.id_offset + 1,
-                              self.n_rows*self.n_cols + self.id_offset + 1)]
-        self.samples_table = pandas.DataFrame({'ID': ids})
-        self.samples_table.set_index('ID', inplace=True)
-        # Add metadata
-        for k, v in self.metadata.iteritems():
-            self.samples_table[k] = v
-        # Add plate name
-        self.samples_table['Plate'] = self.name
-        # Add row and column numbers
-        self.samples_table['Row'] = numpy.nan
-        self.samples_table['Column'] = numpy.nan
-        for i in range(self.n_rows):
-            for j in range(self.n_cols):
-                self.samples_table.set_value(
-                    self.samples_table.index[i*self.n_cols + j],
-                    'Row',
-                    i + 1)
-                self.samples_table.set_value(
-                    self.samples_table.index[i*self.n_cols + j],
-                    'Column',
-                    j + 1)
-        # Only preserve table rows that will be measured
-        self.samples_table = self.samples_table.iloc[:self.samples_to_measure]
-        # Start list of inducers to apply
+        # Initialize list of inducers
         self.inducers = {'rows': [], 'cols': [], 'wells': [], 'media': []}
+
+        # Calling this with no inducers will initialize an empty samples table
+        self.update_samples_table()
 
     def apply_inducer_media_vol(self, apply_to):
         """
@@ -366,7 +343,7 @@ class Plate(PlateBase):
         Apply an inducer to the plate.
 
         This function stores the specified inducer in the `inducers`
-        attribute and updates the `samples_table` attribute.
+        attribute, after verifying consistency.
 
         Parameters
         ----------
@@ -397,31 +374,11 @@ class Plate(PlateBase):
                 raise ValueError('inducer does not have the appropriate' + \
                     ' number of doses')
 
-        # Fill well info
-        if apply_to=='rows':
-            for column in inducer.doses_table.columns:
-                for i in range(self.n_rows):
-                    for j in range(self.n_cols):
-                        self.samples_table.set_value(
-                            self.samples_table.index[i*self.n_cols + j],
-                            column,
-                            inducer.doses_table.iloc[j][column])
-        elif apply_to=='cols':
-            for column in inducer.doses_table.columns:
-                for i in range(self.n_rows):
-                    for j in range(self.n_cols):
-                        self.samples_table.set_value(
-                            self.samples_table.index[i*self.n_cols + j],
-                            column,
-                            inducer.doses_table.iloc[i][column])
-        elif apply_to=='wells':
-            for column in inducer.doses_table.columns:
-                self.samples_table[column] = inducer.doses_table[column].values
-        elif apply_to=='media':
-            for column in inducer.doses_table.columns:
-                self.samples_table[column] = inducer.doses_table[column].value
+        # Check that the inducer is not repeated
+        if inducer in self.inducers[apply_to]:
+            raise ValueError("inducer already in plate's inducer list")
 
-        # Store inducer to apply
+        # Store inducer
         self.inducers[apply_to].append(inducer)
 
     def save_rep_setup_instructions(self, file_name=None, workbook=None):
@@ -566,12 +523,71 @@ class Plate(PlateBase):
             Name to give to the new sheet.
 
         """
-
         # Check that a sheet with the specified name doesn't exist
         if sheet_name in [ws.title for ws in workbook.worksheets]:
             raise ValueError("sheet \"{}\"already present in workbook".\
                 format(sheet_name))
         pass
+
+    def update_samples_table(self):
+        """
+        Update samples table.
+
+        """
+        # Initialize dataframe with sample IDs
+        ids = ['{}{:03d}'.format(self.id_prefix, i)
+               for i in range(self.id_offset + 1,
+                              self.n_rows*self.n_cols + self.id_offset + 1)]
+        self.samples_table = pandas.DataFrame({'ID': ids})
+        self.samples_table.set_index('ID', inplace=True)
+        # Add metadata
+        for k, v in self.metadata.iteritems():
+            self.samples_table[k] = v
+        # Add plate name
+        self.samples_table['Plate'] = self.name
+        # Add row and column numbers
+        self.samples_table['Row'] = numpy.nan
+        self.samples_table['Column'] = numpy.nan
+        for i in range(self.n_rows):
+            for j in range(self.n_cols):
+                self.samples_table.set_value(
+                    self.samples_table.index[i*self.n_cols + j],
+                    'Row',
+                    i + 1)
+                self.samples_table.set_value(
+                    self.samples_table.index[i*self.n_cols + j],
+                    'Column',
+                    j + 1)
+        # Only preserve table rows that will be measured
+        self.samples_table = self.samples_table.iloc[:self.samples_to_measure]
+
+        # Add inducer info
+        for apply_to, inducers in self.inducers.iteritems():
+            for inducer in inducers:
+                if apply_to=='rows':
+                    for column in inducer.doses_table.columns:
+                        for i in range(self.n_rows):
+                            for j in range(self.n_cols):
+                                self.samples_table.set_value(
+                                    self.samples_table.index[i*self.n_cols + j],
+                                    column,
+                                    inducer.doses_table.iloc[j][column])
+                elif apply_to=='cols':
+                    for column in inducer.doses_table.columns:
+                        for i in range(self.n_rows):
+                            for j in range(self.n_cols):
+                                self.samples_table.set_value(
+                                    self.samples_table.index[i*self.n_cols + j],
+                                    column,
+                                    inducer.doses_table.iloc[i][column])
+                elif apply_to=='wells':
+                    for column in inducer.doses_table.columns:
+                        self.samples_table[column] = \
+                            inducer.doses_table[column].values
+                elif apply_to=='media':
+                    for column in inducer.doses_table.columns:
+                        self.samples_table[column] = \
+                            inducer.doses_table[column].value
 
 class PlateArray(Plate):
     """
@@ -629,11 +645,13 @@ class PlateArray(Plate):
         column, with all rows set to ``value``.
     samples_table : DataFrame
         Table containing information of all samples.
+    inducers : OrderedDict
+        Keys in this dictionary represent how each inducer is applied
+        ("rows", "cols", "wells", "media"), and the values are lists of
+        inducers to be applied as specified by the key.
 
     Methods
     -------
-    start_replicate
-        Initialize an empty samples table and inducers dictionary.
     apply_inducer_media_vol
         Get the media volume to which an inducer will be applied.
     apply_inducer_n_shots
@@ -646,6 +664,8 @@ class PlateArray(Plate):
         Add sheet with inducer pipetting instructions to specified workbook.
     add_cell_setup_instructions
         Add sheet with cell inoculation instructions to specified workbook.
+    update_samples_table
+        Update samples table.
 
     """
     def __init__(self,
@@ -683,8 +703,11 @@ class PlateArray(Plate):
         # Initialize metadata dictionary
         self.metadata = collections.OrderedDict()
 
-        # Initialize samples table and inducers dictionary
-        self.start_replicate()
+        # Initialize list of inducers
+        self.inducers = {'rows': [], 'cols': [], 'wells': [], 'media': []}
+
+        # Calling this with no inducers will initialize an empty samples table
+        self.update_samples_table()
 
     @property
     def n_rows(self):
@@ -742,8 +765,6 @@ class PlateArray(Plate):
                         samples_table_idx += 1
         # Only preserve table rows that will be measured
         self.samples_table = self.samples_table.iloc[:self.samples_to_measure]
-        # Start list of inducers to apply
-        self.inducers = {'rows': [], 'cols': [], 'wells': [], 'media': []}
 
     def save_rep_setup_instructions(self, file_name=None, workbook=None):
         """
@@ -884,3 +905,72 @@ class PlateArray(Plate):
                     cell.fill = plate_fill[(array_i + array_j)%2]
                     cell.border = plate_border
                     cell.alignment = plate_alignment
+
+    def update_samples_table(self):
+        """
+        Update samples table.
+
+        """
+        # Initialize dataframe with sample IDs
+        ids = ['{}{:03d}'.format(self.id_prefix, i)
+               for i in range(self.id_offset + 1,
+                              self.n_rows*self.n_cols + self.id_offset + 1)]
+        self.samples_table = pandas.DataFrame({'ID': ids})
+        self.samples_table.set_index('ID', inplace=True)
+        # Add metadata
+        for k, v in self.metadata.iteritems():
+            self.samples_table[k] = v
+        # Add plate array name
+        self.samples_table["Plate Array"] = self.name
+        # Add plate name, and row and column numbers
+        self.samples_table['Plate'] = ''
+        self.samples_table['Row'] = numpy.nan
+        self.samples_table['Column'] = numpy.nan
+        samples_table_idx = 0
+        for i in range(self.array_n_rows):
+            for j in range(self.array_n_cols):
+                for k in range(self.plate_n_rows):
+                    for l in range(self.plate_n_cols):
+                        self.samples_table.set_value(
+                            self.samples_table.index[samples_table_idx],
+                            'Plate',
+                            self.plate_names[i*self.array_n_cols + j])
+                        self.samples_table.set_value(
+                            self.samples_table.index[samples_table_idx],
+                            'Row',
+                            k + 1)
+                        self.samples_table.set_value(
+                            self.samples_table.index[samples_table_idx],
+                            'Column',
+                            l + 1)
+                        samples_table_idx += 1
+        # Only preserve table rows that will be measured
+        self.samples_table = self.samples_table.iloc[:self.samples_to_measure]
+
+        # Add inducer info
+        for apply_to, inducers in self.inducers.iteritems():
+            for inducer in inducers:
+                if apply_to=='rows':
+                    for column in inducer.doses_table.columns:
+                        for i in range(self.n_rows):
+                            for j in range(self.n_cols):
+                                self.samples_table.set_value(
+                                    self.samples_table.index[i*self.n_cols + j],
+                                    column,
+                                    inducer.doses_table.iloc[j][column])
+                elif apply_to=='cols':
+                    for column in inducer.doses_table.columns:
+                        for i in range(self.n_rows):
+                            for j in range(self.n_cols):
+                                self.samples_table.set_value(
+                                    self.samples_table.index[i*self.n_cols + j],
+                                    column,
+                                    inducer.doses_table.iloc[i][column])
+                elif apply_to=='wells':
+                    for column in inducer.doses_table.columns:
+                        self.samples_table[column] = \
+                            inducer.doses_table[column].values
+                elif apply_to=='media':
+                    for column in inducer.doses_table.columns:
+                        self.samples_table[column] = \
+                            inducer.doses_table[column].value

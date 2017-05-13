@@ -46,8 +46,8 @@ platearray = platedesign.plate.PlateArray(
 platearray.media_vol = 16000.*8
 platearray.sample_vol = 500.
 platearray.metadata['Strain'] = 'Test Strain 1'
+platearray.apply_inducer(inducer=xyl, apply_to='rows')
+platearray.apply_inducer(inducer=iptg, apply_to='cols')
 exp.add_plate(platearray)
-exp.apply_inducer(plate=platearray, inducer=xyl, apply_to='rows')
-exp.apply_inducer(plate=platearray, inducer=iptg, apply_to='cols')
 
 exp.generate()
