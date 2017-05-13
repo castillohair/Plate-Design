@@ -49,10 +49,6 @@ class Experiment(object):
         Plates in the experiment.
     inducers : list
         Inducers in the experiment.
-    to_apply : list
-        List of dictionaries with the form ``{plate: p, inducer: i, across:
-        a}``, where inducer ``i`` is applied on plate ``p``, as specified
-        by ``a``.
     measurement_template : str
         Name of a file to be used as template for the replicate measurement
         table.
@@ -63,8 +59,6 @@ class Experiment(object):
         Add plate to experiment.
     add_inducer
         Add inducer to experiment.
-    apply_inducer
-        Apply inducer to plate.
     generate
         Generate instruction files for all stages of the experiment.
 
@@ -73,10 +67,9 @@ class Experiment(object):
         # Initialize properties
         self.n_replicates = 3
         self.randomize = False
-        # Initialize containers of plates, inducers, and inducer applications
+        # Initialize containers of plates and inducers.
         self.plates = []
         self.inducers = []
-        self.ind_applications = []
         # Template for table of samples for measurement: Sheets other than
         # "Samples" will be copied unmodified. If a "Samples" sheet is present,
         # all columns will be added to the final "Samples" sheet, and filled
@@ -107,34 +100,6 @@ class Experiment(object):
         """
         self.inducers.append(inducer)
 
-    def apply_inducer(self, inducer, plate, apply_to='wells'):
-        """
-        Apply inducer to plate.
-
-        This function adds the inducer/plate pair to the attribute
-        `ind_applications`, along with the `apply_to` argument. If
-        `inducer` is not in the experiment's inducer list, it will be
-        added. The same applied for `plate`. Inducers are actually applied
-        to plates when `generate()` is called.
-
-        """
-        # Check across argument
-        if apply_to not in ['rows', 'cols', 'wells', 'media']:
-            raise ValueError('cannot apply inducer to "{}"'.format(apply_to))
-
-        # Add plate if necessary
-        if plate not in self.plates:
-            self.plates.append(plate)
-
-        # Add inducer if necessary
-        if inducer not in self.inducers:
-            self.inducers.append(inducer)
-
-        # Add pair
-        self.ind_applications.append({'inducer': inducer,
-                                      'plate': plate,
-                                      'apply_to': apply_to})
-
     def generate(self, path='.'):
         """
         Generate instruction files for all stages of the experiment.
@@ -163,19 +128,6 @@ class Experiment(object):
         for folder in replicate_folders:
             os.makedirs(folder)
 
-        # Remove inducers that are not applied
-        for inducer in self.inducers:
-            # Get all inducer applications
-            ind_applications = [a
-                                for a in self.ind_applications
-                                if a['inducer'] is inducer]
-
-            if not ind_applications:
-                warnings.warn("inducer {} is not applied and will be ignored".\
-                                    format(inducer.name),
-                              UserWarning)
-                self.inducers.remove(inducer)
-
         ###
         # Experiment Setup Stage
         ###
@@ -190,10 +142,13 @@ class Experiment(object):
         wb_exp_setup.remove_sheet(wb_exp_setup.active)
         # Run Experiment Setup for inducers
         for inducer in self.inducers:
-            # Get all inducer applications
-            ind_applications = [a
-                                for a in self.ind_applications
-                                if a['inducer'] is inducer]
+            # Get inducer applications on all plates
+            ind_applications = []
+            for plate in self.plates:
+                for apply_to, plate_inducers in plate.inducers.iteritems():
+                    if inducer in plate_inducers:
+                        ind_applications.append({'apply_to': apply_to,
+                                                 'plate': plate})
 
             # Consistency check: inducers should be applied to all plates
             # identically.
@@ -250,24 +205,7 @@ class Experiment(object):
                 inducer.save_rep_setup_files(path=path)
 
             # Run all plate calculations
-            n_samples = 0
             for plate in self.plates:
-                # Set the plate offset from the number of samples so far
-                plate.id_offset = n_samples
-                # Reset plate replicate info
-                plate.start_replicate()
-                # Update number of samples
-                n_samples += len(plate.samples_table)
-
-                # Get all applications of this plate
-                ind_applications = [a
-                                    for a in self.ind_applications
-                                    if a['plate'] is plate]
-
-                # Apply inducers
-                for a in ind_applications:
-                    plate.apply_inducer(a['inducer'], a['apply_to'])
-
                 # Save files
                 plate.save_rep_setup_instructions(workbook=wb_rep_setup)
                 plate.save_rep_setup_files(path=path)
@@ -287,12 +225,16 @@ class Experiment(object):
             samples_table_columns = []
 
             for plate in self.plates:
+                # Set the plate offset from the number of samples so far
+                plate.id_offset = len(samples_table)
+                # Update samples table
+                plate.update_samples_table()
                 # The following is necessary to preserve the order of the
                 # columns when appending
                 for column in plate.samples_table.columns:
                     if column not in samples_table_columns:
                         samples_table_columns.append(column)
-                # Append samples table to samples table
+                # Append plate's samples table to samples table
                 samples_table = samples_table.append(plate.samples_table)
                 # Sort columns
                 samples_table = samples_table[samples_table_columns]

@@ -24,158 +24,11 @@ plate_border = openpyxl.styles.Border(
     right=openpyxl.styles.Side(style='thin', color='FF4F81BD'), 
     top=openpyxl.styles.Side(style='thin', color='FF4F81BD'), 
     bottom=openpyxl.styles.Side(style='thin', color='FF4F81BD'))
+header_alignment = openpyxl.styles.Alignment(wrapText=True,
+                                            horizontal='center')
+header_font = openpyxl.styles.Font(bold=True, color="FF1F497D")
 
-class PlateBase(object):
-    """
-    Generic class that represents a plate.
-
-    This class is meant to be inherited by a class representing a concrete
-    plate type. Functions that don't save files here raise a
-    NotImplementedError to force the child class to implement its own
-    version. Functions that save files are implemented as empty functions,
-    such that a child class only needs to redefine the necessary functions
-    depending on which files it has to save.
-
-    Attributes
-    ----------
-    name : str
-        Name of the inducer.
-    samples_table : DataFrame
-        Table with information of each sample in the plate.
-
-    Methods
-    -------
-    start_replicate
-        Initialize an empty samples table and inducers dictionary.
-    apply_inducer_media_vol
-        Get the media volume to which an inducer will be applied.
-    apply_inducer_n_shots
-        Get number of samples that each inducer dose will be applied to.
-    apply_inducer
-        Apply an inducer to the plate.
-    save_rep_setup_instructions
-        Calculate and save instructions for the Replicate Setup stage.
-
-    """
-    def __init__(self, name):
-        # Store name
-        self.name = name
-
-        # Initialize dose table
-        self.samples_table = pandas.DataFrame()
-
-    def start_replicate(self):
-        """
-        Initialize an empty samples table and inducers dictionary.
-
-        """
-        raise NotImplementedError
-
-    def apply_inducer_media_vol(self, apply_to):
-        """
-        Get the media volume to which an inducer will be applied.
-
-        Parameters
-        ----------
-        apply_to : {'rows', 'cols', 'wells', 'media'}
-            "rows" applies the specified inducer to all rows equally.
-            "cols" applies to all columns equally. "wells" applies to each
-            well individually. 'media' applies inducer to the media at the
-            beginning of the replicate setup stage.
-
-        """
-        raise NotImplementedError
-
-    def apply_inducer_n_doses(self, apply_to):
-        """
-        Get number of samples that each inducer dose will be applied to.
-
-        Parameters
-        ----------
-        apply_to : {'rows', 'cols', 'wells', 'media'}
-            "rows" applies the specified inducer to all rows equally.
-            "cols" applies to all columns equally. "wells" applies to each
-            well individually. 'media' applies inducer to the media at the
-            beginning of the replicate setup stage.
-
-        """
-        raise NotImplementedError
-
-    def apply_inducer(self, inducer, apply_to='wells'):
-        """
-        Apply an inducer to the plate.
-
-        This function stores the specified inducer in the `inducers`
-        attribute and updates the `samples_table` attribute.
-
-        Parameters
-        ----------
-        inducer : Inducer object
-            The inducer to apply to the plate.
-        apply_to : {'rows', 'cols', 'wells', 'media'}
-            "rows" applies the specified inducer to all rows equally.
-            "cols" applies to all columns equally. "wells" applies to each
-            well individually. 'media' applies inducer to the media at the
-            beginning of the replicate setup stage.
-
-        """
-        raise NotImplementedError
-
-    def save_exp_setup_instructions(self, file_name=None, workbook=None):
-        """
-        Calculate and save instructions for the Experiment Setup stage.
-
-        Parameters
-        ----------
-        file_name : str, optional
-            Name of the Excel file to save.
-        workbook : Workbook, optional
-            If not None, `file_name` is ignored, and a sheet with the
-            instructions is directly added to workbook `workbook`.
-
-        """
-        pass
-
-    def save_exp_setup_files(self, path='.'):
-        """
-        Save additional files required for the experiment setup stage.
-
-        Parameters
-        ----------
-        path : str
-            Folder in which to save files.
-
-        """
-        pass
-
-    def save_rep_setup_instructions(self, file_name=None, workbook=None):
-        """
-        Calculate and save instructions for the Replicate Setup stage.
-
-        Parameters
-        ----------
-        file_name : str, optional
-            Name of the Excel file to save.
-        workbook : Workbook, optional
-            If not None, `file_name` is ignored, and a sheet with the
-            instructions is directly added to workbook `workbook`.
-
-        """
-        pass
-
-    def save_rep_setup_files(self, path='.'):
-        """
-        Save additional files required for the replicate setup stage.
-
-        Parameters
-        ----------
-        path : str
-            Folder in which to save files.
-
-        """
-        pass
-
-class Plate(PlateBase):
+class Plate(object):
     """
     Object that represents a plate.
 
@@ -215,29 +68,53 @@ class Plate(PlateBase):
         Volume of media per sample (well).
     media_vol : float
         Starting total volume of media, to be added to the plate.
+    cell_strain_name : str
+        Name of the cell strain to be inoculated in this plate.
+    cell_setup_method : {None, 'fixed_volume', 'fixed_od600'}
+        Method used to determine how much volume of cells to inoculate.
+    cell_predilution : float
+        Dilution factor for the cell preculture before inoculating.
+    cell_predilution_vol : float
+        Volume of diluted preculture to make in uL.
+    cell_initial_od600 : float
+        Target initial OD600 for inoculating cells. Only used if
+        `cell_setup_method` is "fixed_od600".
+    cell_shot_vol : float
+        Volume of diluted preculture to inoculate in media. Only used if
+        `cell_setup_method` is "fixed_volume".
     metadata : OrderedDict
         A column in the samples table will be created for each ``(key,
         value)`` pair in this dictionary. ``key`` will be the name of the
         column, with all rows set to ``value``.
+    inducers : OrderedDict
+        Keys in this dictionary represent how each inducer is applied
+        ("rows", "cols", "wells", "media"), and the values are lists of
+        inducers to be applied as specified by the key.
     samples_table : DataFrame
         Table containing information of all samples.
 
     Methods
     -------
-    start_replicate
-        Initialize an empty samples table and inducers dictionary.
     apply_inducer_media_vol
         Get the media volume to which an inducer will be applied.
     apply_inducer_n_shots
         Get number of samples that each inducer dose will be applied to.
     apply_inducer
         Apply an inducer to the plate.
+    save_exp_setup_instructions
+        Calculate and save instructions for the Experiment Setup stage.
+    save_exp_setup_files
+        Save additional files required for the Experiment Setup stage.
     save_rep_setup_instructions
         Calculate and save instructions for the Replicate Setup stage.
     add_inducer_setup_instructions
         Add sheet with inducer pipetting instructions to specified workbook.
     add_cell_setup_instructions
         Add sheet with cell inoculation instructions to specified workbook.
+    save_rep_setup_files
+        Save additional files required for the Replicate Setup stage.
+    update_samples_table
+        Update samples table.
 
     """
     def __init__(self,
@@ -261,45 +138,22 @@ class Plate(PlateBase):
         self.sample_vol = None
         self.media_vol = None
 
+        # Initialize parameters for cell setup
+        self.cell_strain_name = None
+        self.cell_setup_method = None
+        self.cell_predilution = 1
+        self.cell_predilution_vol = None
+        self.cell_initial_od600 = None
+        self.cell_shot_vol = None
+
         # Initialize metadata dictionary
         self.metadata = collections.OrderedDict()
 
-        # Initialize samples table and inducers dictionary
-        self.start_replicate()
-
-    def start_replicate(self):
-        """
-        Initialize an empty samples table and inducers dictionary.
-
-        """
-        # Initialize dataframe with sample IDs
-        ids = ['{}{:03d}'.format(self.id_prefix, i)
-               for i in range(self.id_offset + 1,
-                              self.n_rows*self.n_cols + self.id_offset + 1)]
-        self.samples_table = pandas.DataFrame({'ID': ids})
-        self.samples_table.set_index('ID', inplace=True)
-        # Add metadata
-        for k, v in self.metadata.iteritems():
-            self.samples_table[k] = v
-        # Add plate name
-        self.samples_table['Plate'] = self.name
-        # Add row and column numbers
-        self.samples_table['Row'] = numpy.nan
-        self.samples_table['Column'] = numpy.nan
-        for i in range(self.n_rows):
-            for j in range(self.n_cols):
-                self.samples_table.set_value(
-                    self.samples_table.index[i*self.n_cols + j],
-                    'Row',
-                    i + 1)
-                self.samples_table.set_value(
-                    self.samples_table.index[i*self.n_cols + j],
-                    'Column',
-                    j + 1)
-        # Only preserve table rows that will be measured
-        self.samples_table = self.samples_table.iloc[:self.samples_to_measure]
-        # Start list of inducers to apply
+        # Initialize list of inducers
         self.inducers = {'rows': [], 'cols': [], 'wells': [], 'media': []}
+
+        # Calling this with no inducers will initialize an empty samples table
+        self.update_samples_table()
 
     def apply_inducer_media_vol(self, apply_to):
         """
@@ -366,7 +220,7 @@ class Plate(PlateBase):
         Apply an inducer to the plate.
 
         This function stores the specified inducer in the `inducers`
-        attribute and updates the `samples_table` attribute.
+        attribute, after verifying consistency.
 
         Parameters
         ----------
@@ -397,32 +251,39 @@ class Plate(PlateBase):
                 raise ValueError('inducer does not have the appropriate' + \
                     ' number of doses')
 
-        # Fill well info
-        if apply_to=='rows':
-            for column in inducer.doses_table.columns:
-                for i in range(self.n_rows):
-                    for j in range(self.n_cols):
-                        self.samples_table.set_value(
-                            self.samples_table.index[i*self.n_cols + j],
-                            column,
-                            inducer.doses_table.iloc[j][column])
-        elif apply_to=='cols':
-            for column in inducer.doses_table.columns:
-                for i in range(self.n_rows):
-                    for j in range(self.n_cols):
-                        self.samples_table.set_value(
-                            self.samples_table.index[i*self.n_cols + j],
-                            column,
-                            inducer.doses_table.iloc[i][column])
-        elif apply_to=='wells':
-            for column in inducer.doses_table.columns:
-                self.samples_table[column] = inducer.doses_table[column].values
-        elif apply_to=='media':
-            for column in inducer.doses_table.columns:
-                self.samples_table[column] = inducer.doses_table[column].value
+        # Check that the inducer is not repeated
+        if inducer in self.inducers[apply_to]:
+            raise ValueError("inducer already in plate's inducer list")
 
-        # Store inducer to apply
+        # Store inducer
         self.inducers[apply_to].append(inducer)
+
+    def save_exp_setup_instructions(self, file_name=None, workbook=None):
+        """
+        Calculate and save instructions for the Experiment Setup stage.
+
+        Parameters
+        ----------
+        file_name : str, optional
+            Name of the Excel file to save.
+        workbook : Workbook, optional
+            If not None, `file_name` is ignored, and a sheet with the
+            instructions is directly added to workbook `workbook`.
+
+        """
+        pass
+
+    def save_exp_setup_files(self, path='.'):
+        """
+        Save additional files required for the Experiment Setup stage.
+
+        Parameters
+        ----------
+        path : str
+            Folder in which to save files.
+
+        """
+        pass
 
     def save_rep_setup_instructions(self, file_name=None, workbook=None):
         """
@@ -566,12 +427,233 @@ class Plate(PlateBase):
             Name to give to the new sheet.
 
         """
-
         # Check that a sheet with the specified name doesn't exist
         if sheet_name in [ws.title for ws in workbook.worksheets]:
             raise ValueError("sheet \"{}\"already present in workbook".\
                 format(sheet_name))
+
+        # Do nothing if cell starting method has not been defined.
+        if self.cell_setup_method is None:
+            return
+
+        # Create sheet
+        worksheet = workbook.create_sheet(title=sheet_name)
+        # Add setup instructions
+        if self.cell_setup_method=='fixed_od600':
+            # Set width
+            worksheet.column_dimensions['A'].width = 22
+            worksheet.column_dimensions['B'].width = 7
+            worksheet.column_dimensions['C'].width = 5
+            # Info about strain
+            worksheet.cell(row=1, column=1).value = "Strain Name"
+            worksheet.cell(row=1, column=2).value = self.cell_strain_name
+            if self.cell_predilution != 1:
+                # Instructions for making predilution
+                worksheet.cell(row=2, column=1).value = "Predilution"
+                worksheet.cell(row=2, column=1).alignment = header_alignment
+                worksheet.cell(row=2, column=1).font = header_font
+                worksheet.merge_cells(start_row=2,
+                                      end_row=2,
+                                      start_column=1,
+                                      end_column=3)
+
+                worksheet.cell(row=3, column=1).value = "Predilution factor"
+                worksheet.cell(row=3, column=2).value = self.cell_predilution
+                worksheet.cell(row=3, column=3).value = "x"
+
+                media_vol = self.cell_predilution_vol / \
+                    float(self.cell_predilution)
+                worksheet.cell(row=4, column=1).value = "Media volume"
+                worksheet.cell(row=4, column=2).value = media_vol
+                worksheet.cell(row=4, column=3).value = "uL"
+
+                cell_vol = self.cell_predilution_vol - media_vol
+                worksheet.cell(row=5, column=1).value = "Preculture volume"
+                worksheet.cell(row=5, column=2).value = cell_vol
+                worksheet.cell(row=5, column=3).value = "uL"
+
+                worksheet.cell(row=6, column=1).value = "Predilution OD600"
+                worksheet.cell(row=6, column=2).fill = plate_fill[0]
+
+                # Instructions for inoculating into plate media
+                worksheet.cell(row=7, column=1).value = "Inoculation"
+                worksheet.cell(row=7, column=1).alignment = header_alignment
+                worksheet.cell(row=7, column=1).font = header_font
+                worksheet.merge_cells(start_row=7,
+                                      end_row=7,
+                                      start_column=1,
+                                      end_column=3)
+
+                worksheet.cell(row=8, column=1).value = "Target OD600"
+                worksheet.cell(row=8, column=2).value = self.cell_initial_od600
+
+                worksheet.cell(row=9, column=1).value = "Predilution volume"
+                worksheet.cell(row=9, column=2).value = "={}/B6".format(
+                    self.media_vol*self.cell_initial_od600)
+                worksheet.cell(row=9, column=3).value = "uL"
+
+                worksheet.cell(row=10, column=1).value = \
+                    "Add into {:.0f}mL media, ".format(self.media_vol/1000.) + \
+                    "and distribute into plate wells."
+            else:
+                worksheet.cell(row=2, column=1).value = "Preculture OD600"
+                worksheet.cell(row=2, column=2).fill = plate_fill[0]
+
+                worksheet.cell(row=3, column=1).value = "Target OD600"
+                worksheet.cell(row=3, column=2).value = self.cell_initial_od600
+
+                worksheet.cell(row=4, column=1).value = "Predilution volume"
+                worksheet.cell(row=4, column=2).value = "={}/B2".format(
+                    self.media_vol*self.cell_initial_od600)
+                worksheet.cell(row=4, column=3).value = "uL"
+
+                worksheet.cell(row=5, column=1).value = \
+                    "Add into {:.0f}mL media, ".format(self.media_vol/1000.) + \
+                    "and distribute into plate wells."
+
+        elif self.cell_setup_method=='fixed_volume':
+            # Set width
+            worksheet.column_dimensions['A'].width = 22
+            worksheet.column_dimensions['B'].width = 7
+            worksheet.column_dimensions['C'].width = 5
+            # Info about strain
+            worksheet.cell(row=1, column=1).value = "Strain Name"
+            worksheet.cell(row=1, column=2).value = self.cell_strain_name
+            if self.cell_predilution != 1:
+                # Instructions for making predilution
+                worksheet.cell(row=2, column=1).value = "Predilution"
+                worksheet.cell(row=2, column=1).alignment = header_alignment
+                worksheet.cell(row=2, column=1).font = header_font
+                worksheet.merge_cells(start_row=2,
+                                      end_row=2,
+                                      start_column=1,
+                                      end_column=3)
+
+                worksheet.cell(row=3, column=1).value = "Predilution factor"
+                worksheet.cell(row=3, column=2).value = self.cell_predilution
+                worksheet.cell(row=3, column=3).value = "x"
+
+                media_vol = self.cell_predilution_vol / \
+                    float(self.cell_predilution)
+                worksheet.cell(row=4, column=1).value = "Media volume"
+                worksheet.cell(row=4, column=2).value = media_vol
+                worksheet.cell(row=4, column=3).value = "uL"
+
+                cell_vol = self.cell_predilution_vol - media_vol
+                worksheet.cell(row=5, column=1).value = "Preculture volume"
+                worksheet.cell(row=5, column=2).value = cell_vol
+                worksheet.cell(row=5, column=3).value = "uL"
+
+                # Instructions for inoculating into plate media
+                worksheet.cell(row=6, column=1).value = "Inoculation"
+                worksheet.cell(row=6, column=1).alignment = header_alignment
+                worksheet.cell(row=6, column=1).font = header_font
+                worksheet.merge_cells(start_row=6,
+                                      end_row=6,
+                                      start_column=1,
+                                      end_column=3)
+
+                worksheet.cell(row=7, column=1).value = "Predilution volume"
+                worksheet.cell(row=7, column=2).value = self.cell_shot_vol
+                worksheet.cell(row=7, column=3).value = "uL"
+
+                worksheet.cell(row=8, column=1).value = \
+                    "Add into {:.0f}mL media, ".format(self.media_vol/1000.) + \
+                    "and distribute into plate wells."
+            else:
+                # Instructions for inoculating into plate media
+                worksheet.cell(row=2, column=1).value = "Preculture volume"
+                worksheet.cell(row=2, column=2).value = self.cell_shot_vol
+                worksheet.cell(row=2, column=3).value = "uL"
+
+                worksheet.cell(row=3, column=1).value = \
+                    "Add into {:.0f}mL media, ".format(self.media_vol/1000.) + \
+                    "and distribute into plate wells."
+        else:
+            raise ValueError("cell setup method {} not recognized".format(
+                self.cell_setup_method))
+
+    def save_rep_setup_files(self, path='.'):
+        """
+        Save additional files required for the Replicate Setup stage.
+
+        Parameters
+        ----------
+        path : str
+            Folder in which to save files.
+
+        """
         pass
+
+    def update_samples_table(self):
+        """
+        Update samples table.
+
+        """
+        # Initialize dataframe with sample IDs
+        ids = ['{}{:03d}'.format(self.id_prefix, i)
+               for i in range(self.id_offset + 1,
+                              self.n_rows*self.n_cols + self.id_offset + 1)]
+        self.samples_table = pandas.DataFrame({'ID': ids})
+        self.samples_table.set_index('ID', inplace=True)
+        # Add metadata
+        for k, v in self.metadata.iteritems():
+            self.samples_table[k] = v
+        # Add plate name
+        self.samples_table['Plate'] = self.name
+        # Add row and column numbers
+        self.samples_table['Row'] = numpy.nan
+        self.samples_table['Column'] = numpy.nan
+        for i in range(self.n_rows):
+            for j in range(self.n_cols):
+                self.samples_table.set_value(
+                    self.samples_table.index[i*self.n_cols + j],
+                    'Row',
+                    i + 1)
+                self.samples_table.set_value(
+                    self.samples_table.index[i*self.n_cols + j],
+                    'Column',
+                    j + 1)
+        # Only preserve table rows that will be measured
+        self.samples_table = self.samples_table.iloc[:self.samples_to_measure]
+
+        # Add cell info
+        self.samples_table['Strain'] = self.cell_strain_name
+        if self.cell_setup_method=='fixed_od600':
+            self.samples_table['Cell Predilution'] = self.cell_predilution
+            self.samples_table['Initial OD600'] = self.cell_initial_od600
+        elif self.cell_setup_method=='fixed_volume':
+            self.samples_table['Cell Predilution'] = self.cell_predilution
+            self.samples_table['Cell Inoculated Vol.'] = self.cell_shot_vol
+
+        # Add inducer info
+        for apply_to, inducers in self.inducers.iteritems():
+            for inducer in inducers:
+                if apply_to=='rows':
+                    for column in inducer.doses_table.columns:
+                        for i in range(self.n_rows):
+                            for j in range(self.n_cols):
+                                self.samples_table.set_value(
+                                    self.samples_table.index[i*self.n_cols + j],
+                                    column,
+                                    inducer.doses_table.iloc[j][column])
+                elif apply_to=='cols':
+                    for column in inducer.doses_table.columns:
+                        for i in range(self.n_rows):
+                            for j in range(self.n_cols):
+                                self.samples_table.set_value(
+                                    self.samples_table.index[i*self.n_cols + j],
+                                    column,
+                                    inducer.doses_table.iloc[i][column])
+                elif apply_to=='wells':
+                    for column in inducer.doses_table.columns:
+                        self.samples_table[column] = \
+                            inducer.doses_table[column].values
+                elif apply_to=='media':
+                    for column in inducer.doses_table.columns:
+                        self.samples_table[column] = \
+                            inducer.doses_table[column].value
+
 
 class PlateArray(Plate):
     """
@@ -623,17 +705,33 @@ class PlateArray(Plate):
         Volume of media per sample (well).
     media_vol : float
         Starting total volume of media, to be added to the plate.
+    cell_strain_name : str
+        Name of the cell strain to be inoculated in this plate.
+    cell_setup_method : {None, 'fixed_volume', 'fixed_od600'}
+        Method used to determine how much volume of cells to inoculate.
+    cell_predilution : float
+        Dilution factor for the cell preculture before inoculating.
+    cell_predilution_vol : float
+        Volume of diluted preculture to make in uL.
+    cell_initial_od600 : float
+        Target initial OD600 for inoculating cells. Only used if
+        `cell_setup_method` is "fixed_od600".
+    cell_shot_vol : float
+        Volume of diluted preculture to inoculate in media. Only used if
+        `cell_setup_method` is "fixed_volume".
     metadata : OrderedDict
         A column in the samples table will be created for each ``(key,
         value)`` pair in this dictionary. ``key`` will be the name of the
         column, with all rows set to ``value``.
     samples_table : DataFrame
         Table containing information of all samples.
+    inducers : OrderedDict
+        Keys in this dictionary represent how each inducer is applied
+        ("rows", "cols", "wells", "media"), and the values are lists of
+        inducers to be applied as specified by the key.
 
     Methods
     -------
-    start_replicate
-        Initialize an empty samples table and inducers dictionary.
     apply_inducer_media_vol
         Get the media volume to which an inducer will be applied.
     apply_inducer_n_shots
@@ -646,6 +744,8 @@ class PlateArray(Plate):
         Add sheet with inducer pipetting instructions to specified workbook.
     add_cell_setup_instructions
         Add sheet with cell inoculation instructions to specified workbook.
+    update_samples_table
+        Update samples table.
 
     """
     def __init__(self,
@@ -680,11 +780,22 @@ class PlateArray(Plate):
         self.sample_vol = None
         self.media_vol = None
 
+        # Initialize parameters for cell setup
+        self.cell_strain_name = None
+        self.cell_setup_method = None
+        self.cell_predilution = 1
+        self.cell_predilution_vol = None
+        self.cell_initial_od600 = None
+        self.cell_shot_vol = None
+
         # Initialize metadata dictionary
         self.metadata = collections.OrderedDict()
 
-        # Initialize samples table and inducers dictionary
-        self.start_replicate()
+        # Initialize list of inducers
+        self.inducers = {'rows': [], 'cols': [], 'wells': [], 'media': []}
+
+        # Calling this with no inducers will initialize an empty samples table
+        self.update_samples_table()
 
     @property
     def n_rows(self):
@@ -742,8 +853,6 @@ class PlateArray(Plate):
                         samples_table_idx += 1
         # Only preserve table rows that will be measured
         self.samples_table = self.samples_table.iloc[:self.samples_to_measure]
-        # Start list of inducers to apply
-        self.inducers = {'rows': [], 'cols': [], 'wells': [], 'media': []}
 
     def save_rep_setup_instructions(self, file_name=None, workbook=None):
         """
@@ -884,3 +993,81 @@ class PlateArray(Plate):
                     cell.fill = plate_fill[(array_i + array_j)%2]
                     cell.border = plate_border
                     cell.alignment = plate_alignment
+
+    def update_samples_table(self):
+        """
+        Update samples table.
+
+        """
+        # Initialize dataframe with sample IDs
+        ids = ['{}{:03d}'.format(self.id_prefix, i)
+               for i in range(self.id_offset + 1,
+                              self.n_rows*self.n_cols + self.id_offset + 1)]
+        self.samples_table = pandas.DataFrame({'ID': ids})
+        self.samples_table.set_index('ID', inplace=True)
+        # Add metadata
+        for k, v in self.metadata.iteritems():
+            self.samples_table[k] = v
+        # Add plate array name
+        self.samples_table["Plate Array"] = self.name
+        # Add plate name, and row and column numbers
+        self.samples_table['Plate'] = ''
+        self.samples_table['Row'] = numpy.nan
+        self.samples_table['Column'] = numpy.nan
+        samples_table_idx = 0
+        for i in range(self.array_n_rows):
+            for j in range(self.array_n_cols):
+                for k in range(self.plate_n_rows):
+                    for l in range(self.plate_n_cols):
+                        self.samples_table.set_value(
+                            self.samples_table.index[samples_table_idx],
+                            'Plate',
+                            self.plate_names[i*self.array_n_cols + j])
+                        self.samples_table.set_value(
+                            self.samples_table.index[samples_table_idx],
+                            'Row',
+                            k + 1)
+                        self.samples_table.set_value(
+                            self.samples_table.index[samples_table_idx],
+                            'Column',
+                            l + 1)
+                        samples_table_idx += 1
+        # Only preserve table rows that will be measured
+        self.samples_table = self.samples_table.iloc[:self.samples_to_measure]
+
+        # Add cell info
+        self.samples_table['Strain'] = self.cell_strain_name
+        if self.cell_setup_method=='fixed_od600':
+            self.samples_table['Cell Predilution'] = self.cell_predilution
+            self.samples_table['Initial OD600'] = self.cell_initial_od600
+        elif self.cell_setup_method=='fixed_volume':
+            self.samples_table['Cell Predilution'] = self.cell_predilution
+            self.samples_table['Cell Inoculated Vol.'] = self.cell_shot_vol
+
+        # Add inducer info
+        for apply_to, inducers in self.inducers.iteritems():
+            for inducer in inducers:
+                if apply_to=='rows':
+                    for column in inducer.doses_table.columns:
+                        for i in range(self.n_rows):
+                            for j in range(self.n_cols):
+                                self.samples_table.set_value(
+                                    self.samples_table.index[i*self.n_cols + j],
+                                    column,
+                                    inducer.doses_table.iloc[j][column])
+                elif apply_to=='cols':
+                    for column in inducer.doses_table.columns:
+                        for i in range(self.n_rows):
+                            for j in range(self.n_cols):
+                                self.samples_table.set_value(
+                                    self.samples_table.index[i*self.n_cols + j],
+                                    column,
+                                    inducer.doses_table.iloc[i][column])
+                elif apply_to=='wells':
+                    for column in inducer.doses_table.columns:
+                        self.samples_table[column] = \
+                            inducer.doses_table[column].values
+                elif apply_to=='media':
+                    for column in inducer.doses_table.columns:
+                        self.samples_table[column] = \
+                            inducer.doses_table[column].value
