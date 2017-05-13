@@ -25,161 +25,7 @@ plate_border = openpyxl.styles.Border(
     top=openpyxl.styles.Side(style='thin', color='FF4F81BD'), 
     bottom=openpyxl.styles.Side(style='thin', color='FF4F81BD'))
 
-class PlateBase(object):
-    """
-    Generic class that represents a plate.
-
-    This class is meant to be inherited by a class representing a concrete
-    plate type. Functions that don't save files here raise a
-    NotImplementedError to force the child class to implement its own
-    version. Functions that save files are implemented as empty functions,
-    such that a child class only needs to redefine the necessary functions
-    depending on which files it has to save.
-
-    Attributes
-    ----------
-    name : str
-        Name of the inducer.
-    inducers : OrderedDict
-        Keys in this dictionary represent how each inducer is applied
-        ("rows", "cols", "wells", "media"), and the values are lists of
-        inducers to be applied as specified by the key.
-    samples_table : DataFrame
-        Table with information of each sample in the plate.
-
-    Methods
-    -------
-    apply_inducer_media_vol
-        Get the media volume to which an inducer will be applied.
-    apply_inducer_n_shots
-        Get number of samples that each inducer dose will be applied to.
-    apply_inducer
-        Apply an inducer to the plate.
-    save_rep_setup_instructions
-        Calculate and save instructions for the Replicate Setup stage.
-    update_samples_table
-        Update samples table.
-
-    """
-    def __init__(self, name):
-        # Store name
-        self.name = name
-
-        # Initialize samples table
-        self.samples_table = pandas.DataFrame()
-
-    def apply_inducer_media_vol(self, apply_to):
-        """
-        Get the media volume to which an inducer will be applied.
-
-        Parameters
-        ----------
-        apply_to : {'rows', 'cols', 'wells', 'media'}
-            "rows" applies the specified inducer to all rows equally.
-            "cols" applies to all columns equally. "wells" applies to each
-            well individually. 'media' applies inducer to the media at the
-            beginning of the replicate setup stage.
-
-        """
-        raise NotImplementedError
-
-    def apply_inducer_n_doses(self, apply_to):
-        """
-        Get number of samples that each inducer dose will be applied to.
-
-        Parameters
-        ----------
-        apply_to : {'rows', 'cols', 'wells', 'media'}
-            "rows" applies the specified inducer to all rows equally.
-            "cols" applies to all columns equally. "wells" applies to each
-            well individually. 'media' applies inducer to the media at the
-            beginning of the replicate setup stage.
-
-        """
-        raise NotImplementedError
-
-    def apply_inducer(self, inducer, apply_to='wells'):
-        """
-        Apply an inducer to the plate.
-
-        This function stores the specified inducer in the `inducers`
-        attribute and updates the `samples_table` attribute.
-
-        Parameters
-        ----------
-        inducer : Inducer object
-            The inducer to apply to the plate.
-        apply_to : {'rows', 'cols', 'wells', 'media'}
-            "rows" applies the specified inducer to all rows equally.
-            "cols" applies to all columns equally. "wells" applies to each
-            well individually. 'media' applies inducer to the media at the
-            beginning of the replicate setup stage.
-
-        """
-        raise NotImplementedError
-
-    def save_exp_setup_instructions(self, file_name=None, workbook=None):
-        """
-        Calculate and save instructions for the Experiment Setup stage.
-
-        Parameters
-        ----------
-        file_name : str, optional
-            Name of the Excel file to save.
-        workbook : Workbook, optional
-            If not None, `file_name` is ignored, and a sheet with the
-            instructions is directly added to workbook `workbook`.
-
-        """
-        pass
-
-    def save_exp_setup_files(self, path='.'):
-        """
-        Save additional files required for the experiment setup stage.
-
-        Parameters
-        ----------
-        path : str
-            Folder in which to save files.
-
-        """
-        pass
-
-    def save_rep_setup_instructions(self, file_name=None, workbook=None):
-        """
-        Calculate and save instructions for the Replicate Setup stage.
-
-        Parameters
-        ----------
-        file_name : str, optional
-            Name of the Excel file to save.
-        workbook : Workbook, optional
-            If not None, `file_name` is ignored, and a sheet with the
-            instructions is directly added to workbook `workbook`.
-
-        """
-        pass
-
-    def save_rep_setup_files(self, path='.'):
-        """
-        Save additional files required for the replicate setup stage.
-
-        Parameters
-        ----------
-        path : str
-            Folder in which to save files.
-
-        """
-        pass
-
-    def update_samples_table(self):
-        """
-        Update samples table.
-
-        """
-        pass
-
-class Plate(PlateBase):
+class Plate(object):
     """
     Object that represents a plate.
 
@@ -238,12 +84,18 @@ class Plate(PlateBase):
         Get number of samples that each inducer dose will be applied to.
     apply_inducer
         Apply an inducer to the plate.
+    save_exp_setup_instructions
+        Calculate and save instructions for the Experiment Setup stage.
+    save_exp_setup_files
+        Save additional files required for the Experiment Setup stage.
     save_rep_setup_instructions
         Calculate and save instructions for the Replicate Setup stage.
     add_inducer_setup_instructions
         Add sheet with inducer pipetting instructions to specified workbook.
     add_cell_setup_instructions
         Add sheet with cell inoculation instructions to specified workbook.
+    save_rep_setup_files
+        Save additional files required for the Replicate Setup stage.
     update_samples_table
         Update samples table.
 
@@ -380,6 +232,33 @@ class Plate(PlateBase):
 
         # Store inducer
         self.inducers[apply_to].append(inducer)
+
+    def save_exp_setup_instructions(self, file_name=None, workbook=None):
+        """
+        Calculate and save instructions for the Experiment Setup stage.
+
+        Parameters
+        ----------
+        file_name : str, optional
+            Name of the Excel file to save.
+        workbook : Workbook, optional
+            If not None, `file_name` is ignored, and a sheet with the
+            instructions is directly added to workbook `workbook`.
+
+        """
+        pass
+
+    def save_exp_setup_files(self, path='.'):
+        """
+        Save additional files required for the Experiment Setup stage.
+
+        Parameters
+        ----------
+        path : str
+            Folder in which to save files.
+
+        """
+        pass
 
     def save_rep_setup_instructions(self, file_name=None, workbook=None):
         """
@@ -527,6 +406,18 @@ class Plate(PlateBase):
         if sheet_name in [ws.title for ws in workbook.worksheets]:
             raise ValueError("sheet \"{}\"already present in workbook".\
                 format(sheet_name))
+        pass
+
+    def save_rep_setup_files(self, path='.'):
+        """
+        Save additional files required for the Replicate Setup stage.
+
+        Parameters
+        ----------
+        path : str
+            Folder in which to save files.
+
+        """
         pass
 
     def update_samples_table(self):
