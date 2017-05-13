@@ -24,6 +24,9 @@ plate_border = openpyxl.styles.Border(
     right=openpyxl.styles.Side(style='thin', color='FF4F81BD'), 
     top=openpyxl.styles.Side(style='thin', color='FF4F81BD'), 
     bottom=openpyxl.styles.Side(style='thin', color='FF4F81BD'))
+header_alignment = openpyxl.styles.Alignment(wrapText=True,
+                                            horizontal='center')
+header_font = openpyxl.styles.Font(bold=True, color="FF1F497D")
 
 class Plate(object):
     """
@@ -65,6 +68,20 @@ class Plate(object):
         Volume of media per sample (well).
     media_vol : float
         Starting total volume of media, to be added to the plate.
+    cell_strain_name : str
+        Name of the cell strain to be inoculated in this plate.
+    cell_setup_method : {None, 'fixed_volume', 'fixed_od600'}
+        Method used to determine how much volume of cells to inoculate.
+    cell_predilution : float
+        Dilution factor for the cell preculture before inoculating.
+    cell_predilution_vol : float
+        Volume of diluted preculture to make in uL.
+    cell_initial_od600 : float
+        Target initial OD600 for inoculating cells. Only used if
+        `cell_setup_method` is "fixed_od600".
+    cell_shot_vol : float
+        Volume of diluted preculture to inoculate in media. Only used if
+        `cell_setup_method` is "fixed_volume".
     metadata : OrderedDict
         A column in the samples table will be created for each ``(key,
         value)`` pair in this dictionary. ``key`` will be the name of the
@@ -120,6 +137,14 @@ class Plate(object):
         # Initialize sample and media volumes
         self.sample_vol = None
         self.media_vol = None
+
+        # Initialize parameters for cell setup
+        self.cell_strain_name = None
+        self.cell_setup_method = None
+        self.cell_predilution = 1
+        self.cell_predilution_vol = None
+        self.cell_initial_od600 = None
+        self.cell_shot_vol = None
 
         # Initialize metadata dictionary
         self.metadata = collections.OrderedDict()
@@ -406,7 +431,147 @@ class Plate(object):
         if sheet_name in [ws.title for ws in workbook.worksheets]:
             raise ValueError("sheet \"{}\"already present in workbook".\
                 format(sheet_name))
-        pass
+
+        # Do nothing if cell starting method has not been defined.
+        if self.cell_setup_method is None:
+            return
+
+        # Create sheet
+        worksheet = workbook.create_sheet(title=sheet_name)
+        # Add setup instructions
+        if self.cell_setup_method=='fixed_od600':
+            # Set width
+            worksheet.column_dimensions['A'].width = 22
+            worksheet.column_dimensions['B'].width = 7
+            worksheet.column_dimensions['C'].width = 5
+            # Info about strain
+            worksheet.cell(row=1, column=1).value = "Strain Name"
+            worksheet.cell(row=1, column=2).value = self.cell_strain_name
+            if self.cell_predilution != 1:
+                # Instructions for making predilution
+                worksheet.cell(row=2, column=1).value = "Predilution"
+                worksheet.cell(row=2, column=1).alignment = header_alignment
+                worksheet.cell(row=2, column=1).font = header_font
+                worksheet.merge_cells(start_row=2,
+                                      end_row=2,
+                                      start_column=1,
+                                      end_column=3)
+
+                worksheet.cell(row=3, column=1).value = "Predilution factor"
+                worksheet.cell(row=3, column=2).value = self.cell_predilution
+                worksheet.cell(row=3, column=3).value = "x"
+
+                media_vol = self.cell_predilution_vol / \
+                    float(self.cell_predilution)
+                worksheet.cell(row=4, column=1).value = "Media volume"
+                worksheet.cell(row=4, column=2).value = media_vol
+                worksheet.cell(row=4, column=3).value = "uL"
+
+                cell_vol = self.cell_predilution_vol - media_vol
+                worksheet.cell(row=5, column=1).value = "Preculture volume"
+                worksheet.cell(row=5, column=2).value = cell_vol
+                worksheet.cell(row=5, column=3).value = "uL"
+
+                worksheet.cell(row=6, column=1).value = "Predilution OD600"
+                worksheet.cell(row=6, column=2).fill = plate_fill[0]
+
+                # Instructions for inoculating into plate media
+                worksheet.cell(row=7, column=1).value = "Inoculation"
+                worksheet.cell(row=7, column=1).alignment = header_alignment
+                worksheet.cell(row=7, column=1).font = header_font
+                worksheet.merge_cells(start_row=7,
+                                      end_row=7,
+                                      start_column=1,
+                                      end_column=3)
+
+                worksheet.cell(row=8, column=1).value = "Target OD600"
+                worksheet.cell(row=8, column=2).value = self.cell_initial_od600
+
+                worksheet.cell(row=9, column=1).value = "Predilution volume"
+                worksheet.cell(row=9, column=2).value = "={}/B6".format(
+                    self.media_vol*self.cell_initial_od600)
+                worksheet.cell(row=9, column=3).value = "uL"
+
+                worksheet.cell(row=10, column=1).value = \
+                    "Add into {:.0f}mL media, ".format(self.media_vol/1000.) + \
+                    "and distribute into plate wells."
+            else:
+                worksheet.cell(row=2, column=1).value = "Preculture OD600"
+                worksheet.cell(row=2, column=2).fill = plate_fill[0]
+
+                worksheet.cell(row=3, column=1).value = "Target OD600"
+                worksheet.cell(row=3, column=2).value = self.cell_initial_od600
+
+                worksheet.cell(row=4, column=1).value = "Predilution volume"
+                worksheet.cell(row=4, column=2).value = "={}/B2".format(
+                    self.media_vol*self.cell_initial_od600)
+                worksheet.cell(row=4, column=3).value = "uL"
+
+                worksheet.cell(row=5, column=1).value = \
+                    "Add into {:.0f}mL media, ".format(self.media_vol/1000.) + \
+                    "and distribute into plate wells."
+
+        elif self.cell_setup_method=='fixed_volume':
+            # Set width
+            worksheet.column_dimensions['A'].width = 22
+            worksheet.column_dimensions['B'].width = 7
+            worksheet.column_dimensions['C'].width = 5
+            # Info about strain
+            worksheet.cell(row=1, column=1).value = "Strain Name"
+            worksheet.cell(row=1, column=2).value = self.cell_strain_name
+            if self.cell_predilution != 1:
+                # Instructions for making predilution
+                worksheet.cell(row=2, column=1).value = "Predilution"
+                worksheet.cell(row=2, column=1).alignment = header_alignment
+                worksheet.cell(row=2, column=1).font = header_font
+                worksheet.merge_cells(start_row=2,
+                                      end_row=2,
+                                      start_column=1,
+                                      end_column=3)
+
+                worksheet.cell(row=3, column=1).value = "Predilution factor"
+                worksheet.cell(row=3, column=2).value = self.cell_predilution
+                worksheet.cell(row=3, column=3).value = "x"
+
+                media_vol = self.cell_predilution_vol / \
+                    float(self.cell_predilution)
+                worksheet.cell(row=4, column=1).value = "Media volume"
+                worksheet.cell(row=4, column=2).value = media_vol
+                worksheet.cell(row=4, column=3).value = "uL"
+
+                cell_vol = self.cell_predilution_vol - media_vol
+                worksheet.cell(row=5, column=1).value = "Preculture volume"
+                worksheet.cell(row=5, column=2).value = cell_vol
+                worksheet.cell(row=5, column=3).value = "uL"
+
+                # Instructions for inoculating into plate media
+                worksheet.cell(row=6, column=1).value = "Inoculation"
+                worksheet.cell(row=6, column=1).alignment = header_alignment
+                worksheet.cell(row=6, column=1).font = header_font
+                worksheet.merge_cells(start_row=6,
+                                      end_row=6,
+                                      start_column=1,
+                                      end_column=3)
+
+                worksheet.cell(row=7, column=1).value = "Predilution volume"
+                worksheet.cell(row=7, column=2).value = self.cell_shot_vol
+                worksheet.cell(row=7, column=3).value = "uL"
+
+                worksheet.cell(row=8, column=1).value = \
+                    "Add into {:.0f}mL media, ".format(self.media_vol/1000.) + \
+                    "and distribute into plate wells."
+            else:
+                # Instructions for inoculating into plate media
+                worksheet.cell(row=2, column=1).value = "Preculture volume"
+                worksheet.cell(row=2, column=2).value = self.cell_shot_vol
+                worksheet.cell(row=2, column=3).value = "uL"
+
+                worksheet.cell(row=3, column=1).value = \
+                    "Add into {:.0f}mL media, ".format(self.media_vol/1000.) + \
+                    "and distribute into plate wells."
+        else:
+            raise ValueError("cell setup method {} not recognized".format(
+                self.cell_setup_method))
 
     def save_rep_setup_files(self, path='.'):
         """
@@ -452,6 +617,15 @@ class Plate(object):
         # Only preserve table rows that will be measured
         self.samples_table = self.samples_table.iloc[:self.samples_to_measure]
 
+        # Add cell info
+        self.samples_table['Strain'] = self.cell_strain_name
+        if self.cell_setup_method=='fixed_od600':
+            self.samples_table['Cell Predilution'] = self.cell_predilution
+            self.samples_table['Initial OD600'] = self.cell_initial_od600
+        elif self.cell_setup_method=='fixed_volume':
+            self.samples_table['Cell Predilution'] = self.cell_predilution
+            self.samples_table['Cell Inoculated Vol.'] = self.cell_shot_vol
+
         # Add inducer info
         for apply_to, inducers in self.inducers.iteritems():
             for inducer in inducers:
@@ -479,6 +653,7 @@ class Plate(object):
                     for column in inducer.doses_table.columns:
                         self.samples_table[column] = \
                             inducer.doses_table[column].value
+
 
 class PlateArray(Plate):
     """
@@ -530,6 +705,20 @@ class PlateArray(Plate):
         Volume of media per sample (well).
     media_vol : float
         Starting total volume of media, to be added to the plate.
+    cell_strain_name : str
+        Name of the cell strain to be inoculated in this plate.
+    cell_setup_method : {None, 'fixed_volume', 'fixed_od600'}
+        Method used to determine how much volume of cells to inoculate.
+    cell_predilution : float
+        Dilution factor for the cell preculture before inoculating.
+    cell_predilution_vol : float
+        Volume of diluted preculture to make in uL.
+    cell_initial_od600 : float
+        Target initial OD600 for inoculating cells. Only used if
+        `cell_setup_method` is "fixed_od600".
+    cell_shot_vol : float
+        Volume of diluted preculture to inoculate in media. Only used if
+        `cell_setup_method` is "fixed_volume".
     metadata : OrderedDict
         A column in the samples table will be created for each ``(key,
         value)`` pair in this dictionary. ``key`` will be the name of the
@@ -590,6 +779,14 @@ class PlateArray(Plate):
         # Initialize sample and media volumes
         self.sample_vol = None
         self.media_vol = None
+
+        # Initialize parameters for cell setup
+        self.cell_strain_name = None
+        self.cell_setup_method = None
+        self.cell_predilution = 1
+        self.cell_predilution_vol = None
+        self.cell_initial_od600 = None
+        self.cell_shot_vol = None
 
         # Initialize metadata dictionary
         self.metadata = collections.OrderedDict()
@@ -837,6 +1034,15 @@ class PlateArray(Plate):
                         samples_table_idx += 1
         # Only preserve table rows that will be measured
         self.samples_table = self.samples_table.iloc[:self.samples_to_measure]
+
+        # Add cell info
+        self.samples_table['Strain'] = self.cell_strain_name
+        if self.cell_setup_method=='fixed_od600':
+            self.samples_table['Cell Predilution'] = self.cell_predilution
+            self.samples_table['Initial OD600'] = self.cell_initial_od600
+        elif self.cell_setup_method=='fixed_volume':
+            self.samples_table['Cell Predilution'] = self.cell_predilution
+            self.samples_table['Cell Inoculated Vol.'] = self.cell_shot_vol
 
         # Add inducer info
         for apply_to, inducers in self.inducers.iteritems():

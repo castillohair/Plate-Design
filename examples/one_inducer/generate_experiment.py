@@ -18,27 +18,37 @@ exp.add_inducer(iptg)
 
 # Plates 1 and 2: test strains
 plate = platedesign.plate.Plate('P1', n_rows=4, n_cols=6)
+plate.cell_strain_name = 'Test Strain 1'
 plate.samples_to_measure = 12
 plate.media_vol = 16000.
 plate.sample_vol = 500.
-plate.metadata['Strain'] = 'Test Strain 1'
+plate.cell_setup_method = 'fixed_volume'
+plate.cell_predilution = 100
+plate.cell_predilution_vol = 1000
+plate.cell_shot_vol = 5
 plate.apply_inducer(inducer=iptg, apply_to='wells')
 exp.add_plate(plate)
 
 plate = platedesign.plate.Plate('P2', n_rows=4, n_cols=6)
+plate.cell_strain_name = 'Test Strain 2'
 plate.samples_to_measure = 12
 plate.media_vol = 16000.
 plate.sample_vol = 500.
-plate.metadata['Strain'] = 'Test Strain 2'
+plate.cell_setup_method = 'fixed_volume'
+plate.cell_shot_vol = 5
 plate.apply_inducer(inducer=iptg, apply_to='wells')
 exp.add_plate(plate)
 
 # Plate 3: autofluorescence control strain
 plate = platedesign.plate.Plate('P3', n_rows=4, n_cols=6)
+plate.cell_strain_name = 'Autofluorescence Control Strain'
 plate.samples_to_measure = 4
 plate.media_vol = 16000.
 plate.sample_vol = 500.
-plate.metadata['Strain'] = 'Autofluorescence Control Strain'
+plate.cell_setup_method = 'fixed_od600'
+plate.cell_predilution = 100
+plate.cell_predilution_vol = 1000
+plate.cell_initial_od600 = 1e-5
 exp.add_plate(plate)
 
 exp.generate()
