@@ -6,6 +6,7 @@ Module that contains the experiment class.
 import copy
 import os
 
+import numpy
 import openpyxl
 import pandas
 
@@ -51,7 +52,15 @@ class Experiment(object):
         Inducers in the experiment.
     measurement_template : str
         Name of a file to be used as template for the replicate measurement
-        table.
+        table. Sheets other than "Samples" will be copied unmodified. If a
+        "Samples" sheet is present, all columns will be added to the final
+        "Samples" sheet, and filled with the values present in the first
+        row.
+    plate_measurements : list
+        Each element of this list is the name of a measurement to record
+        at the end of the experiment for each plate. An empty table in
+        which to record these values will be created in the replicate
+        measurement file, sheet "Plate Measurements".
 
     Methods
     -------
@@ -70,11 +79,10 @@ class Experiment(object):
         # Initialize containers of plates and inducers.
         self.plates = []
         self.inducers = []
-        # Template for table of samples for measurement: Sheets other than
-        # "Samples" will be copied unmodified. If a "Samples" sheet is present,
-        # all columns will be added to the final "Samples" sheet, and filled
-        # with the values present in the first row.
+        # Template for table of samples for measurement.
         self.measurement_template = None
+        # List of measurements per plate to take
+        self.plate_measurements = []
 
     def add_plate(self, plate):
         """
@@ -220,7 +228,15 @@ class Experiment(object):
             # Replicate Measurement Stage
             ###
 
-            # Start empty dataframe
+            # Plate measurements table
+            plate_measurements_table = pandas.DataFrame()
+            plate_measurements_table['Plate'] = [p.name for p in self.plates]
+            for m in self.plate_measurements:
+                plate_measurements_table[m] = numpy.nan
+            # Plate column should be the index
+            plate_measurements_table.set_index('Plate', inplace=True)
+
+            # Samples table
             samples_table = pandas.DataFrame()
             samples_table_columns = []
 
@@ -290,6 +306,10 @@ class Experiment(object):
                                 pass
                             samples_table[index] = value
 
-            # Convert pandas table to sheet and save
+            # Convert pandas tables to sheet and save
             samples_table.to_excel(writer, sheet_name='Samples')
+            if len(plate_measurements_table.columns):
+                plate_measurements_table.to_excel(
+                    writer,
+                    sheet_name='Plate Measurements')
             writer.save()
