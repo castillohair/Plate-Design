@@ -486,6 +486,8 @@ class ChemicalInducer(InducerBase):
         else:
             # Generate pandas writer to a new file
             writer = pandas.ExcelWriter(file_name, engine='openpyxl')
+            # Default sheet name
+            sheet_name = self.name
 
         # Save instructions table
         instructions.to_excel(writer, sheet_name=sheet_name)
