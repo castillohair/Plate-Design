@@ -228,13 +228,13 @@ class ChemicalInducer(InducerBase):
         self.stock_decimals = 2
         self.water_decimals = 1
 
-        # The following initializes an empty dose table
-        self.dose = [0]
-        # Remove shuffling
+        # Initialize an empty dose table
+        self._doses_table = pandas.DataFrame()
+        # Start with no shuffling
         self.shuffled_idx = None
 
     @property
-    def concentrations_header(self):
+    def _concentrations_header(self):
         """
         Header to be used in the dose table to specify concentration.
 
@@ -253,7 +253,7 @@ class ChemicalInducer(InducerBase):
         IDs will be lost.
 
         """
-        return self.doses_table[self.concentrations_header].values
+        return self.doses_table[self._concentrations_header].values
 
     @concentrations.setter
     def concentrations(self, value):
@@ -263,7 +263,7 @@ class ChemicalInducer(InducerBase):
                               len(value) + self.id_offset + 1)]
         self._doses_table = pandas.DataFrame({'ID': ids})
         self._doses_table.set_index('ID', inplace=True)
-        self._doses_table[self.concentrations_header] = value
+        self._doses_table[self._concentrations_header] = value
 
     @property
     def doses_table(self):
@@ -313,7 +313,6 @@ class ChemicalInducer(InducerBase):
         # Calculate gradient
         if scale == 'linear':
             self.concentrations = numpy.linspace(min, max, n/n_repeat)
-            self.concentrations = numpy.repeat(self.concentrations, n_repeat)
         elif scale == 'log':
             if use_zero:
                 self.concentrations = numpy.logspace(numpy.log10(min),
@@ -325,9 +324,11 @@ class ChemicalInducer(InducerBase):
                 self.concentrations = numpy.logspace(numpy.log10(min),
                                                      numpy.log10(max),
                                                      n/n_repeat)
-            self.concentrations = numpy.repeat(self.concentrations, n_repeat)
         else:
             raise ValueError("scale {} not recognized".format(scale))
+
+        # Repeat if necessary
+        self.concentrations = numpy.repeat(self.concentrations, n_repeat)
 
     def set_vol_from_shots(self,
                            n_shots,
@@ -469,7 +470,7 @@ class ChemicalInducer(InducerBase):
         # Build table with instructions
         instructions = self._doses_table.copy()
 
-        instructions[self.concentrations_header] = actual_concs
+        instructions[self._concentrations_header] = actual_concs
         instructions['Stock dilution'] = stock_dils
         instructions['Inducer volume (uL)'] = inducer_vols
         instructions['Water volume (uL)'] = water_vols
@@ -505,5 +506,313 @@ class ChemicalInducer(InducerBase):
             # Actually save
             writer.save()
 
-        # Update concentration array in class
-        self._doses_table[self.concentrations_header] = actual_concs
+        # Regenerate doses table based on actual concentrations
+        self.concentrations = actual_concs
+
+
+class ChemicalGeneExpression(ChemicalInducer):
+    """
+    Object representing gene expression from a chemically-inducible system.
+
+    Expression of the gene of interest is assumed to be controlled by a
+    chemical inducer, which will be physically dosed into each sample
+    during the replicate setup stage. The relationship between the inducer
+    concentration ``x`` and the resulting expression level ``y`` is assumed
+    to be given by a Hill Equation of the form::
+
+        y = y0 + dy* (x^n)/(K^n + x^n)
+
+    where ``y0`` is the basal expression in the absence of inducer, ``dy``
+    is the expression range that the inducer regulates, ``K`` is the
+    inducer amount necessary to drive expression to half of its regulated
+    level, and ``n`` is the Hill coefficient.
+
+    Parameters
+    ----------
+    name : str
+        Name of the gene to be expressed, used in generated files.
+    units : str
+        Units in which the expressed gene is quantified. This is used in
+        generated files.
+    inducer_name : str
+        Name of the inducer, to be used in generated files.
+    inducer_units : str
+        Units in which the inducer's concentration is expressed. This is
+        used in generated files.
+    hill_params : dict
+        Contains four key:value pairs, with keys ``dy``, ``y0``, ``n``, and
+        ``K``. These are the parameters used for calculations converting
+        inducer concentrations into gene expression and viceversa.
+    id_prefix : str, optional
+        Prefix to be used for the ID that identifies each inducer dilution.
+        If None, use the first letter of the inducer's name.
+    id_offset : int, optional
+        Offset from which to generate the ID that identifies each inducer
+        dilution. Default: 0 (no offset).
+
+    Attributes
+    ----------
+    name : str
+        Name of the gene to be expressed.
+    units : str
+        Units in which the expressed gene is quantified.
+    inducer_name : str
+        Name of the inducer.
+    inducer_units : str
+        Units in which the inducer's concentration is expressed.
+    id_prefix : str
+        Prefix to be used for the ID that identifies each inducer
+        concentration.
+    id_offset : int
+        Offset from which to generate the ID that identifies each inducer
+        concentration.
+    hill_params : dict
+        Contains four key:value pairs, with keys ``dy``, ``y0``, ``n``, and
+        ``K``. These are the parameters used for calculations converting
+        inducer concentrations into gene expression and viceversa.
+    stock_conc : float
+        Concentration of the stock solution of the inducer.
+    media_vol : float
+        Volume of sample media in which the inducer will be added.
+    shot_vol : float
+        Volume of inducer to add to each sample.
+    total_vol : float
+        Total volume of inducer to make per dose.
+    replicate_vol : float
+        Volume of inducer to make for each experiment replicate, per dose.
+    doses_table : DataFrame
+        Table containing information of all the inducer concentrations.
+
+    Methods
+    -------
+    set_gradient
+        Set expression levels from a specified gradient.
+
+    """
+    def __init__(self,
+                 name,
+                 units,
+                 inducer_name,
+                 inducer_units,
+                 hill_params,
+                 id_prefix=None,
+                 id_offset=0):
+        # Call parent's init function
+        super(ChemicalGeneExpression, self).__init__(name,
+                                                     units,
+                                                     id_prefix,
+                                                     id_offset)
+
+        # Store inducer names and units
+        self.inducer_name = inducer_name
+        self.inducer_units = inducer_units
+
+        # Set hill parameters
+        self.hill_params = hill_params
+
+    def _hill(self, x):
+        """
+        Convert from an inducer concentration to a gene expression level.
+
+        Parameters
+        ----------
+        x : float or array
+            Concentration value(s) to convert.
+
+        Return
+        ------
+        float or array
+            Gene expression levels.
+
+        """
+        dy = self.hill_params['dy']
+        y0 = self.hill_params['y0']
+        K = self.hill_params['K']
+        n = self.hill_params['n']
+        return y0 + dy*(x**n)/(x**n + K**n)
+
+    def _hill_inverse(self, y):
+        """
+        Convert from a gene expression level to an inducer concentration.
+
+        Parameters
+        ----------
+        y : float or array
+            Gene expression levels to convert.
+
+        Return
+        ------
+        float or array
+            Inducer concentration.
+
+        """
+        dy = self.hill_params['dy']
+        y0 = self.hill_params['y0']
+        K = self.hill_params['K']
+        n = self.hill_params['n']
+        # Check that y is between ``y0`` and ``dy + y0``
+        if numpy.any(y < y0):
+            raise ValueError('expression should be higher than y0 = {}'.\
+                format(y0))
+        if numpy.any(y > dy + y0):
+            raise ValueError('expression should be lower than dy + y0 = {}'.\
+                format(dy + y0))
+        # Compute inducer concentration
+        z = (y - y0)/dy
+        x = K*(z/(1.-z))**(1./n)
+        # Correct extreme values
+        if hasattr(x, '__iter__'):
+            x[y==y0] = 0.
+            x[y==(y0 + dy)] = numpy.inf
+        else:
+            if y==y0:
+                x = 0.
+            elif y==(y0 + dy):
+                x = numpy.inf
+
+        return x
+
+    @property
+    def _concentrations_header(self):
+        """
+        Header to be used in the dose table to specify concentration.
+
+        """
+        return "{} Concentration ({})".format(self.inducer_name,
+                                              self.inducer_units)
+
+    @property
+    def _expression_levels_header(self):
+        """
+        Header to be used in the dose table to specify gene expression.
+
+        """
+        return "{} Expression ({})".format(self.name, self.units)
+
+    @property
+    def concentrations(self):
+        """
+        Inducer concentrations.
+
+        Reading from this attribute will return the contents of the
+        "Concentration" column from the dose table. Writing to this
+        attribute will reinitialize the doses table with the specified
+        concentrations. An additional column will be populated with
+        matching expression levels. Any columns that are not the
+        concentrations, expression levels, or IDs will be lost.
+
+        """
+        return self.doses_table[self._concentrations_header].values
+
+    @concentrations.setter
+    def concentrations(self, value):
+        # Initialize dataframe with doses info
+        ids = ['{}{:03d}'.format(self.id_prefix, i)
+               for i in range(self.id_offset + 1,
+                              len(value) + self.id_offset + 1)]
+        df = pandas.DataFrame({'ID': ids})
+        df.set_index('ID', inplace=True)
+        df[self._concentrations_header] = value
+        df[self._expression_levels_header] = self._hill(value)
+        self._doses_table = df
+
+    @property
+    def expression_levels(self):
+        """
+        Gene expression levels.
+
+        Reading from this attribute will return the contents of the
+        "Expression" column from the dose table. Writing to this attribute
+        will reinitialize the doses table with the specified gene
+        expression levels. An additional column will be populated with
+        matching inducer concentrations. Any columns that are not the
+        concentrations, expression levels, or IDs will be lost.
+
+        """
+        return self.doses_table[self._expression_levels_header].values
+
+    @expression_levels.setter
+    def expression_levels(self, value):
+        # Initialize dataframe with doses info
+        ids = ['{}{:03d}'.format(self.id_prefix, i)
+               for i in range(self.id_offset + 1,
+                              len(value) + self.id_offset + 1)]
+        df = pandas.DataFrame({'ID': ids})
+        df.set_index('ID', inplace=True)
+        df[self._concentrations_header] = self._hill_inverse(value)
+        df[self._expression_levels_header] = value
+        self._doses_table = df
+
+    def set_gradient(self,
+                     n,
+                     min=None,
+                     max=None,
+                     min_inducer=None,
+                     max_inducer=None,
+                     scale='linear',
+                     n_repeat=1):
+        """
+        Set expression levels from dy specified gradient.
+
+        Using this function will reset the dose table and populate the
+        "Expression" column with the specified gradient.
+
+        Parameters
+        ----------
+        n : int
+            Number of points to use for the gradient.
+        min : float, optional
+            Minimum value on the gradient. Should be between Hill
+            parameters ``y0`` and ``dy + y0``. If None, derive from
+            `min_inducer` (if specified) or use Hill parameter ``y0``.
+        max : float, optional
+            Maximum value on the gradient. Should be between Hill
+            parameters ``y0`` and ``dy + y0``. If None, derive from
+            `max_inducer`. One of these parameters should be specified.
+        min_inducer : float, optional
+            Inducer concentration corresponding to the minimum expression
+            level on the gradient. Ignored if `min` is specified.
+        max_inducer : float, optional
+            Inducer concentration corresponding to the maximum expression
+            level on the gradient. Ignored if `max` is specified.
+        scale : {'linear', 'log'}, optional
+            Whether to generate the gradient with linear or logarithmic
+            spacing.
+        n_repeat : int, optional
+            How many times to repeat each concentration. Default: 1 (no
+            repeat). Should be an exact divisor of ``n``.
+
+        """
+        # Check that n_repeat is an exact divisor of n
+        if n%n_repeat != 0:
+            raise ValueError("n should be dy multiple of n_repeat")
+
+        # If not specified, compute min and max expression levels from minimum
+        # and maximum inducer concentrations. Otherwise, use ``y0`` for the
+        # minimum, or raise an error for the maximum.
+        if min is None:
+            if min_inducer is not None:
+                min = self._hill(min_inducer)
+            else:
+                min = self.hill_params['y0']
+        if max is None:
+            if max_inducer is not None:
+                max = self._hill(max_inducer)
+            else:
+                # The maximum expression level is ``dy + y0``. However, this
+                # requires infinite inducer. Therefore, raise error.
+                raise ValueError('maximum expression or inducer level should be'
+                    ' specified')
+
+        # Calculate gradient
+        if scale == 'linear':
+            self.expression_levels = numpy.linspace(min, max, n/n_repeat)
+        elif scale == 'log':
+            self.expression_levels = numpy.logspace(numpy.log10(min),
+                                                    numpy.log10(max),
+                                                    n/n_repeat)
+        else:
+            raise ValueError("scale {} not recognized".format(scale))
+
+        # Repeat if necessary
+        self.expression_levels = numpy.repeat(self.expression_levels, n_repeat)
