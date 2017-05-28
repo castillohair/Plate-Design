@@ -204,6 +204,8 @@ class ChemicalInducer(InducerBase):
     shuffled_idx : list
         Randomized indices that result in the current shuffling of
         doses.
+    shuffling_sync_list : list
+        List of inducers with which shuffling should be synchronized.
 
     """
     def __init__(self, name, units, id_prefix=None, id_offset=0):
@@ -234,9 +236,11 @@ class ChemicalInducer(InducerBase):
 
         # Initialize an empty dose table
         self._doses_table = pandas.DataFrame()
-        # Enable shuffling by default, but start with no shuffling
+        # Enable shuffling by default, but start with no shuffling and an
+        # empty list of inducers to synchronize shuffling with.
         self.shuffling_enabled = True
         self.shuffled_idx = None
+        self.shuffling_sync_list = []
 
     @property
     def _concentrations_header(self):
@@ -379,6 +383,32 @@ class ChemicalInducer(InducerBase):
             self.total_vol = inducer_rep_vol
             self.replicate_vol = None
 
+    def sync_shuffling(self, inducer):
+        """
+        Register an inducer to synchronize shuffling with.
+
+        Inducers whose shuffling is synchronized should have the same
+        number of doses (i.e. the length of their doses table should be the
+        same). Shuffling synchronization is based on the controlling
+        inducer being able to directly modify the shuffling indices of the
+        controlled inducers. Therefore, this function sets the flag
+        ``shuffling_enabled`` in `inducer` to ``False``.
+
+        Parameters
+        ----------
+        inducer : Inducer
+            Inducer to synchronize shuffling with.
+
+        """
+        # Check length of doses table
+        if len(self.doses_table) != len(inducer.doses_table):
+            raise ValueError("inducers to synchronize should have the same "
+                "number of doses")
+        # Disable shuffling flag
+        inducer.shuffling_enabled = False
+        # Add to list of inducers to synchronize with
+        self.shuffling_sync_list.append(inducer)
+
     def shuffle(self):
         """
         Apply random shuffling to the dose table.
@@ -391,6 +421,9 @@ class ChemicalInducer(InducerBase):
             shuffled_idx = range(len(self.doses_table))
             random.shuffle(shuffled_idx)
             self.shuffled_idx = shuffled_idx
+            # Write shuffled indices on inducers to synchronize with
+            for inducer in self.shuffling_sync_list:
+                inducer.shuffled_idx = self.shuffled_idx
 
     def save_exp_setup_instructions(self, file_name=None, workbook=None):
         """
