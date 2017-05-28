@@ -197,9 +197,13 @@ class ChemicalInducer(InducerBase):
         Number of decimals to use for the volume of stock inducer.
     water_decimals : int
         Number of decimals to use for the volume of water.
+    shuffling_enabled : bool
+        Whether shuffling of the doses table is enabled. If False, the
+        `shuffle` function will not change the order of the rows in the
+        doses table.
     shuffled_idx : list
         Randomized indices that result in the current shuffling of
-        dilutions.
+        doses.
 
     """
     def __init__(self, name, units, id_prefix=None, id_offset=0):
@@ -230,7 +234,8 @@ class ChemicalInducer(InducerBase):
 
         # Initialize an empty dose table
         self._doses_table = pandas.DataFrame()
-        # Start with no shuffling
+        # Enable shuffling by default, but start with no shuffling
+        self.shuffling_enabled = True
         self.shuffled_idx = None
 
     @property
@@ -377,10 +382,13 @@ class ChemicalInducer(InducerBase):
         Apply random shuffling to the dose table.
 
         """
-        # Create list of indices, shuffle, and store.
-        shuffled_idx = range(len(self.doses_table))
-        random.shuffle(shuffled_idx)
-        self.shuffled_idx = shuffled_idx
+        if not self.shuffling_enabled:
+            self.shuffled_idx = None
+        else:
+            # Create list of indices, shuffle, and store.
+            shuffled_idx = range(len(self.doses_table))
+            random.shuffle(shuffled_idx)
+            self.shuffled_idx = shuffled_idx
 
     def save_exp_setup_instructions(self, file_name=None, workbook=None):
         """
