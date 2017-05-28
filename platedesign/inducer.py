@@ -262,6 +262,8 @@ class ChemicalInducer(InducerBase):
 
     @concentrations.setter
     def concentrations(self, value):
+        # Make sure that value is a float array
+        value = numpy.array(value, dtype=numpy.float)
         # Initialize dataframe with doses info
         ids = ['{}{:03d}'.format(self.id_prefix, i)
                for i in range(self.id_offset + 1,
@@ -714,6 +716,8 @@ class ChemicalGeneExpression(ChemicalInducer):
 
     @concentrations.setter
     def concentrations(self, value):
+        # Make sure that value is a float array
+        value = numpy.array(value, dtype=numpy.float)
         # Initialize dataframe with doses info
         ids = ['{}{:03d}'.format(self.id_prefix, i)
                for i in range(self.id_offset + 1,
@@ -741,6 +745,8 @@ class ChemicalGeneExpression(ChemicalInducer):
 
     @expression_levels.setter
     def expression_levels(self, value):
+        # Make sure that value is a float array
+        value = numpy.array(value, dtype=numpy.float)
         # Initialize dataframe with doses info
         ids = ['{}{:03d}'.format(self.id_prefix, i)
                for i in range(self.id_offset + 1,
