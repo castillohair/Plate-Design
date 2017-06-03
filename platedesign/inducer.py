@@ -467,20 +467,32 @@ class ChemicalInducer(InducerBase):
         if self.total_vol is None:
             raise AttributeError("total_vol should be set")
 
+        # Convert concentrations to a set, such that each requested
+        # concentration appears once.
+        target_concs = self._doses_table[self._concentrations_header].unique()
+        target_concs.sort()
+        # Get indices of doses for each group with the same concentration
+        doses_idx = []
+        for c in target_concs:
+            doses_idx.append(numpy.where(self.concentrations == c)[0])
+        # Get number of doses on each group
+        n_doses = numpy.array([len(d) for d in doses_idx])
+
         # Initialize relevant arrays
-        target_concs = self.concentrations
         stock_dils = numpy.zeros_like(target_concs)
         inducer_vols = numpy.zeros_like(target_concs)
         water_vols = numpy.zeros_like(target_concs)
         actual_concs = numpy.zeros_like(target_concs)
+        total_vols = n_doses*self.total_vol
 
         # Iterate over concentrations
         for i, target_conc in enumerate(target_concs):
+            total_vol = total_vols[i]
             # If concentration is zero, skip
             if target_conc == 0:
-                stock_dils[i] = 0
+                stock_dils[i] = 1
                 inducer_vols[i] = 0
-                water_vols[i] = self.total_vol
+                water_vols[i] = total_vol
                 continue
             # Determine the appropriate dilution to use
             # We start with a high dilution, and scale down until we reach a
@@ -488,7 +500,7 @@ class ChemicalInducer(InducerBase):
             stock_dil = self.stock_dilution_step**10
             while True:
                 inducer_vol = (target_conc*self.media_vol/self.shot_vol) * \
-                    self.total_vol / (self.stock_conc/stock_dil)
+                    total_vol / (self.stock_conc/stock_dil)
                 if (inducer_vol < self.max_stock_vol):
                     break
                 if stock_dil/self.stock_dilution_step < 1:
@@ -498,7 +510,7 @@ class ChemicalInducer(InducerBase):
             inducer_vol = numpy.round(inducer_vol,
                                       decimals=self.stock_decimals)
             # Water volume is the remaining volume
-            water_vol = numpy.round(self.total_vol - inducer_vol,
+            water_vol = numpy.round(total_vol - inducer_vol,
                                     decimals=self.water_decimals)
             # Actual concentration achieved
             actual_conc = self.stock_conc/stock_dil * \
@@ -511,12 +523,14 @@ class ChemicalInducer(InducerBase):
             actual_concs[i] = actual_conc
 
         # Build table with instructions
-        instructions = self._doses_table.copy()
-
+        instructions = pandas.DataFrame()
         instructions[self._concentrations_header] = actual_concs
         instructions['Stock dilution'] = stock_dils
         instructions['Inducer volume (uL)'] = inducer_vols
         instructions['Water volume (uL)'] = water_vols
+        instructions['Total volume (uL)'] = total_vols
+        instructions['Aliquot IDs'] = [", ".join(self._doses_table.index[idx])
+                                       for idx in doses_idx]
 
         if workbook is not None:
             # First, check that a sheet with the inducer name doesn't exist
@@ -534,24 +548,24 @@ class ChemicalInducer(InducerBase):
             sheet_name = self.name
 
         # Save instructions table
-        instructions.to_excel(writer, sheet_name=sheet_name)
+        instructions.to_excel(writer, sheet_name=sheet_name, index=False)
         # Add message about aliquots
-        if self.replicate_vol is not None:
-            message = "Distribute in aliquots of {}uL." \
-                .format(self.replicate_vol)
-            worksheet = writer.sheets[sheet_name]
-            worksheet.cell(row=len(instructions) + 3,
-                           column=1,
-                           value=message)
+        message = "Distribute in aliquots of {}uL." \
+            .format(self.replicate_vol)
+        worksheet = writer.sheets[sheet_name]
+        worksheet.cell(row=len(instructions) + 3,
+                       column=1,
+                       value=message)
 
         # Save file if necessary
         if workbook is None:
-            # Actually save
             writer.save()
 
         # Regenerate doses table based on actual concentrations
-        self.concentrations = actual_concs
-
+        actual_doses = numpy.zeros_like(self.concentrations)
+        for idx, conc in zip(doses_idx, actual_concs):
+            actual_doses[idx] = conc
+        self.concentrations = actual_doses
 
 class ChemicalGeneExpression(ChemicalInducer):
     """
