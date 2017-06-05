@@ -418,7 +418,7 @@ class ChemicalInducer(InducerBase):
             self.shuffled_idx = None
         else:
             # Create list of indices, shuffle, and store.
-            shuffled_idx = range(len(self.doses_table))
+            shuffled_idx = list(range(len(self.doses_table)))
             random.shuffle(shuffled_idx)
             self.shuffled_idx = shuffled_idx
             # Write shuffled indices on inducers to synchronize with

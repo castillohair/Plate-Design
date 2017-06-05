@@ -153,7 +153,13 @@ class Experiment(object):
             # Get inducer applications on all plates
             ind_applications = []
             for plate in self.plates:
-                for apply_to, plate_inducers in plate.inducers.iteritems():
+                # The following try-catch block is needed to ensure
+                # compatibility with both python2 and python3.
+                try:
+                    items = plate.inducers.iteritems()
+                except AttributeError:
+                    items = plate.inducers.items()
+                for apply_to, plate_inducers in items:
                     if inducer in plate_inducers:
                         ind_applications.append({'apply_to': apply_to,
                                                  'plate': plate})
@@ -298,7 +304,13 @@ class Experiment(object):
                         # Extract first row
                         samples_extra = samples_extra.iloc[0]
                         # Add columns to samples_table
-                        for index, value in samples_extra.iteritems():
+                        # The following try-catch block is needed to ensure
+                        # compatibility with both python2 and python3.
+                        try:
+                            items = samples_extra.iteritems()
+                        except AttributeError:
+                            items = samples_extra.items()
+                        for index, value in items:
                             try:
                                 value = [value.format(i + 1)
                                          for i in range(len(samples_table))]
