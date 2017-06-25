@@ -3,7 +3,7 @@ import platedesign
 exp = platedesign.experiment.Experiment()
 exp.n_replicates = 5
 exp.randomize = True
-exp.measurement_template = 'template_FlowCal.xlsx'
+exp.measurement_template = '../supporting_files/template_FlowCal.xlsx'
 
 # Inducers
 iptg = platedesign.inducer.ChemicalInducer(name='IPTG', units='uM')
