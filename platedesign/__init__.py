@@ -6,13 +6,14 @@ Tools for designing plate experiments
 # Versions should comply with PEP440. For a discussion on single-sourcing
 # the version across setup.py and the project code, see
 # https://packaging.python.org/en/latest/single_source_version.html
-__version__ = '0.4.0'
+__version__ = '0.5.0'
 
-import experiment
-import inducer
-import plate
+from . import experiment
+from . import inducer
+from . import plate
 
 # Change pandas header style
 import pandas
-pandas.formats.format.header_style = {"font": {"bold": True,
-                                               "color": "FF1F497D"}}
+import pandas.io.formats.excel
+pandas.io.formats.excel.header_style = {"font": {"bold": True,
+                                                 "color": "FF1F497D"}}

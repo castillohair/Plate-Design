@@ -597,7 +597,13 @@ class Plate(object):
         self.samples_table = pandas.DataFrame({'ID': ids})
         self.samples_table.set_index('ID', inplace=True)
         # Add metadata
-        for k, v in self.metadata.iteritems():
+        # The following try-catch block is needed to ensure compatibility with
+        # both python2 and python3.
+        try:
+            items = self.metadata.iteritems()
+        except AttributeError:
+            items = self.metadata.items()
+        for k, v in items:
             self.samples_table[k] = v
         # Add plate name
         self.samples_table['Plate'] = self.name
@@ -627,7 +633,13 @@ class Plate(object):
             self.samples_table['Cell Inoculated Vol.'] = self.cell_shot_vol
 
         # Add inducer info
-        for apply_to, inducers in self.inducers.iteritems():
+        # The following try-catch block is needed to ensure compatibility with
+        # both python2 and python3.
+        try:
+            items = self.inducers.iteritems()
+        except AttributeError:
+            items = self.inducers.items()
+        for apply_to, inducers in items:
             for inducer in inducers:
                 if apply_to=='rows':
                     for column in inducer.doses_table.columns:
@@ -825,7 +837,13 @@ class PlateArray(Plate):
         self.samples_table = pandas.DataFrame({'ID': ids})
         self.samples_table.set_index('ID', inplace=True)
         # Add metadata
-        for k, v in self.metadata.iteritems():
+        # The following try-catch block is needed to ensure compatibility with
+        # both python2 and python3.
+        try:
+            items = self.metadata.iteritems()
+        except AttributeError:
+            items = self.metadata.items()
+        for k, v in items:
             self.samples_table[k] = v
         # Add plate array name
         self.samples_table["Plate Array"] = self.name
@@ -1006,7 +1024,13 @@ class PlateArray(Plate):
         self.samples_table = pandas.DataFrame({'ID': ids})
         self.samples_table.set_index('ID', inplace=True)
         # Add metadata
-        for k, v in self.metadata.iteritems():
+        # The following try-catch block is needed to ensure compatibility with
+        # both python2 and python3.
+        try:
+            items = self.metadata.iteritems()
+        except AttributeError:
+            items = self.metadata.items()
+        for k, v in items:
             self.samples_table[k] = v
         # Add plate array name
         self.samples_table["Plate Array"] = self.name
@@ -1045,7 +1069,13 @@ class PlateArray(Plate):
             self.samples_table['Cell Inoculated Vol.'] = self.cell_shot_vol
 
         # Add inducer info
-        for apply_to, inducers in self.inducers.iteritems():
+        # The following try-catch block is needed to ensure compatibility with
+        # both python2 and python3.
+        try:
+            items = self.inducers.iteritems()
+        except AttributeError:
+            items = self.inducers.items()
+        for apply_to, inducers in items:
             for inducer in inducers:
                 if apply_to=='rows':
                     for column in inducer.doses_table.columns:
