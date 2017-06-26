@@ -328,7 +328,7 @@ class Plate(object):
         Add sheet with inducer pipetting instructions to specified workbook.
 
         Only add instructions for an inducer if it has the attribute
-        ``dose_vol``.
+        ``shot_vol``.
 
         Parameters
         ----------
@@ -338,19 +338,19 @@ class Plate(object):
             Name to give to the new sheet.
 
         """
-        # Get only inducers that have ``dose_vol``
+        # Get only inducers that have ``shot_vol``
         inducers_rows = [ind
                          for ind in self.inducers['rows']
-                         if hasattr(ind, 'dose_vol')]
+                         if hasattr(ind, 'shot_vol')]
         inducers_cols = [ind
                          for ind in self.inducers['cols']
-                         if hasattr(ind, 'dose_vol')]
+                         if hasattr(ind, 'shot_vol')]
         inducers_wells = [ind
                           for ind in self.inducers['wells']
-                          if hasattr(ind, 'dose_vol')]
+                          if hasattr(ind, 'shot_vol')]
         inducers_media = [ind
                           for ind in self.inducers['media']
-                          if hasattr(ind, 'dose_vol')]
+                          if hasattr(ind, 'shot_vol')]
 
         # Skip if no inducers are present
         if not(inducers_rows or inducers_cols or \
@@ -410,7 +410,7 @@ class Plate(object):
         for l, inducer in enumerate(inducers_media):
             row = self.n_rows + len(inducers_rows) + 1 + l
             ind_layout[row][0] = "Add {:.2f}µL of {} to media".format(
-                inducer.dose_vol, inducer.name)
+                inducer.shot_vol, inducer.name)
 
         # Plate area
         plate_min_row = len(inducers_rows)
@@ -933,7 +933,7 @@ class PlateArray(Plate):
         Add sheet with inducer pipetting instructions to specified workbook.
 
         Only add instructions for an inducer if it has the attribute
-        ``dose_vol``.
+        ``shot_vol``.
 
         Parameters
         ----------
@@ -943,19 +943,19 @@ class PlateArray(Plate):
             Name to give to the new sheet.
 
         """
-        # Get only inducers that have ``dose_vol``
+        # Get only inducers that have ``shot_vol``
         inducers_rows = [ind
                          for ind in self.inducers['rows']
-                         if hasattr(ind, 'dose_vol')]
+                         if hasattr(ind, 'shot_vol')]
         inducers_cols = [ind
                          for ind in self.inducers['cols']
-                         if hasattr(ind, 'dose_vol')]
+                         if hasattr(ind, 'shot_vol')]
         inducers_wells = [ind
                           for ind in self.inducers['wells']
-                          if hasattr(ind, 'dose_vol')]
+                          if hasattr(ind, 'shot_vol')]
         inducers_media = [ind
                           for ind in self.inducers['media']
-                          if hasattr(ind, 'dose_vol')]
+                          if hasattr(ind, 'shot_vol')]
 
         # Skip if no inducers are present
         if not(inducers_rows or inducers_cols or \
@@ -1022,7 +1022,7 @@ class PlateArray(Plate):
         for l, inducer in enumerate(inducers_media):
             row = self.n_rows + len(inducers_rows) + 1 + l
             ind_layout[row][0] = "Add {:.2f}µL of {} to media".format(
-                inducer.dose_vol, inducer.name)
+                inducer.shot_vol, inducer.name)
 
         # Plate area
         plate_min_row = len(inducers_rows)
