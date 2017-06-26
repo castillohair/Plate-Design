@@ -75,7 +75,7 @@ class Plate(object):
     cell_predilution : float
         Dilution factor for the cell preculture before inoculating.
     cell_predilution_vol : float
-        Volume of diluted preculture to make in uL.
+        Volume of diluted preculture to make in µL.
     cell_initial_od600 : float
         Target initial OD600 for inoculating cells. Only used if
         `cell_setup_method` is "fixed_od600".
@@ -327,6 +327,9 @@ class Plate(object):
         """
         Add sheet with inducer pipetting instructions to specified workbook.
 
+        Only add instructions for an inducer if it has the attribute
+        ``dose_vol``.
+
         Parameters
         ----------
         workbook : Workbook
@@ -335,9 +338,23 @@ class Plate(object):
             Name to give to the new sheet.
 
         """
+        # Get only inducers that have ``dose_vol``
+        inducers_rows = [ind
+                         for ind in self.inducers['rows']
+                         if hasattr(ind, 'dose_vol')]
+        inducers_cols = [ind
+                         for ind in self.inducers['cols']
+                         if hasattr(ind, 'dose_vol')]
+        inducers_wells = [ind
+                          for ind in self.inducers['wells']
+                          if hasattr(ind, 'dose_vol')]
+        inducers_media = [ind
+                          for ind in self.inducers['media']
+                          if hasattr(ind, 'dose_vol')]
+
         # Skip if no inducers are present
-        if not(self.inducers['rows'] or self.inducers['cols'] or \
-                self.inducers['wells'] or self.inducers['media']):
+        if not(inducers_rows or inducers_cols or \
+                inducers_wells or inducers_media):
             return
 
         # Check that a sheet with the specified name doesn't exist
@@ -347,59 +364,59 @@ class Plate(object):
 
         # Only "wells" or "media" supported if not measuring full plate
         if (self.samples_to_measure != self.n_cols*self.n_rows) and \
-                self.inducers['rows']:
+                inducers_rows:
             raise ValueError('"rows" not possible for a non-full plate')
         if (self.samples_to_measure != self.n_cols*self.n_rows) and \
-                self.inducers['cols']:
+                inducers_cols:
             raise ValueError('"cols" not possible for a non-full plate')
 
         # Initialize inducer instructions table
         ind_layout = []
-        ind_layout_rows = self.n_rows + len(self.inducers['rows']) + \
-            len(self.inducers['media']) + 1
-        ind_layout_cols = self.n_cols + len(self.inducers['cols'])
+        ind_layout_rows = self.n_rows + len(inducers_rows) + \
+            len(inducers_media) + 1
+        ind_layout_cols = self.n_cols + len(inducers_cols)
         for i in range(ind_layout_rows):
             ind_layout.append(['']*(ind_layout_cols))
 
         # Add well coordinates
         for i in range(self.n_rows):
             for j in range(self.n_cols):
-                row = i + len(self.inducers['rows'])
-                col = j + len(self.inducers['cols'])
+                row = i + len(inducers_rows)
+                col = j + len(inducers_cols)
                 ind_layout[row][col] += "({}, {})".format(i + 1, j + 1)
         # Add row inducer information
-        for i, inducer in enumerate(self.inducers['rows']):
+        for i, inducer in enumerate(inducers_rows):
             for j, val in enumerate(inducer.doses_table.index):
                 row = i
-                col = j + len(self.inducers['cols'])
+                col = j + len(inducers_cols)
                 ind_layout[row][col] = str(val)
         # Add column inducer information
-        for j, inducer in enumerate(self.inducers['cols']):
+        for j, inducer in enumerate(inducers_cols):
             for i, val in enumerate(inducer.doses_table.index):
-                row = i + len(self.inducers['rows'])
+                row = i + len(inducers_rows)
                 col = j
                 ind_layout[row][col] = str(val)
         # Add individual well inducer information
-        for k, inducer in enumerate(self.inducers['wells']):
+        for k, inducer in enumerate(inducers_wells):
             for i in range(self.n_rows):
                 for j in range(self.n_cols):
                     if (i*self.n_cols + j) >= self.samples_to_measure:
                         break
-                    row = i + len(self.inducers['rows'])
-                    col = j + len(self.inducers['cols'])
+                    row = i + len(inducers_rows)
+                    col = j + len(inducers_cols)
                     ind_layout[row][col] += "\n{}".format(
                         inducer.doses_table.index[i*self.n_cols + j])
         # Add information about inducers added to the media
-        for l, inducer in enumerate(self.inducers['media']):
-            row = self.n_rows + len(self.inducers['rows']) + 1 + l
-            ind_layout[row][0] = "Add {:.2f}uL of {} to media".format(
+        for l, inducer in enumerate(inducers_media):
+            row = self.n_rows + len(inducers_rows) + 1 + l
+            ind_layout[row][0] = "Add {:.2f}µL of {} to media".format(
                 inducer.dose_vol, inducer.name)
 
         # Plate area
-        plate_min_row = len(self.inducers['rows'])
-        plate_max_row = len(self.inducers['rows']) + self.n_rows
-        plate_min_col = len(self.inducers['cols'])
-        plate_max_col = len(self.inducers['cols']) + self.n_cols
+        plate_min_row = len(inducers_rows)
+        plate_max_row = len(inducers_rows) + self.n_rows
+        plate_min_col = len(inducers_cols)
+        plate_max_col = len(inducers_cols) + self.n_cols
 
         # Create and populate worksheet
         worksheet = workbook.create_sheet(title=sheet_name)
@@ -465,12 +482,12 @@ class Plate(object):
                     float(self.cell_predilution)
                 worksheet.cell(row=4, column=1).value = "Media volume"
                 worksheet.cell(row=4, column=2).value = media_vol
-                worksheet.cell(row=4, column=3).value = "uL"
+                worksheet.cell(row=4, column=3).value = "µL"
 
                 cell_vol = self.cell_predilution_vol - media_vol
                 worksheet.cell(row=5, column=1).value = "Preculture volume"
                 worksheet.cell(row=5, column=2).value = cell_vol
-                worksheet.cell(row=5, column=3).value = "uL"
+                worksheet.cell(row=5, column=3).value = "µL"
 
                 worksheet.cell(row=6, column=1).value = "Predilution OD600"
                 worksheet.cell(row=6, column=2).fill = plate_fill[0]
@@ -490,7 +507,7 @@ class Plate(object):
                 worksheet.cell(row=9, column=1).value = "Predilution volume"
                 worksheet.cell(row=9, column=2).value = "={}/B6".format(
                     self.media_vol*self.cell_initial_od600)
-                worksheet.cell(row=9, column=3).value = "uL"
+                worksheet.cell(row=9, column=3).value = "µL"
 
                 worksheet.cell(row=10, column=1).value = \
                     "Add into {:.0f}mL media, ".format(self.media_vol/1000.) + \
@@ -505,7 +522,7 @@ class Plate(object):
                 worksheet.cell(row=4, column=1).value = "Predilution volume"
                 worksheet.cell(row=4, column=2).value = "={}/B2".format(
                     self.media_vol*self.cell_initial_od600)
-                worksheet.cell(row=4, column=3).value = "uL"
+                worksheet.cell(row=4, column=3).value = "µL"
 
                 worksheet.cell(row=5, column=1).value = \
                     "Add into {:.0f}mL media, ".format(self.media_vol/1000.) + \
@@ -537,12 +554,12 @@ class Plate(object):
                     float(self.cell_predilution)
                 worksheet.cell(row=4, column=1).value = "Media volume"
                 worksheet.cell(row=4, column=2).value = media_vol
-                worksheet.cell(row=4, column=3).value = "uL"
+                worksheet.cell(row=4, column=3).value = "µL"
 
                 cell_vol = self.cell_predilution_vol - media_vol
                 worksheet.cell(row=5, column=1).value = "Preculture volume"
                 worksheet.cell(row=5, column=2).value = cell_vol
-                worksheet.cell(row=5, column=3).value = "uL"
+                worksheet.cell(row=5, column=3).value = "µL"
 
                 # Instructions for inoculating into plate media
                 worksheet.cell(row=6, column=1).value = "Inoculation"
@@ -555,7 +572,7 @@ class Plate(object):
 
                 worksheet.cell(row=7, column=1).value = "Predilution volume"
                 worksheet.cell(row=7, column=2).value = self.cell_shot_vol
-                worksheet.cell(row=7, column=3).value = "uL"
+                worksheet.cell(row=7, column=3).value = "µL"
 
                 worksheet.cell(row=8, column=1).value = \
                     "Add into {:.0f}mL media, ".format(self.media_vol/1000.) + \
@@ -564,7 +581,7 @@ class Plate(object):
                 # Instructions for inoculating into plate media
                 worksheet.cell(row=2, column=1).value = "Preculture volume"
                 worksheet.cell(row=2, column=2).value = self.cell_shot_vol
-                worksheet.cell(row=2, column=3).value = "uL"
+                worksheet.cell(row=2, column=3).value = "µL"
 
                 worksheet.cell(row=3, column=1).value = \
                     "Add into {:.0f}mL media, ".format(self.media_vol/1000.) + \
@@ -724,7 +741,7 @@ class PlateArray(Plate):
     cell_predilution : float
         Dilution factor for the cell preculture before inoculating.
     cell_predilution_vol : float
-        Volume of diluted preculture to make in uL.
+        Volume of diluted preculture to make in µL.
     cell_initial_od600 : float
         Target initial OD600 for inoculating cells. Only used if
         `cell_setup_method` is "fixed_od600".
@@ -915,6 +932,9 @@ class PlateArray(Plate):
         """
         Add sheet with inducer pipetting instructions to specified workbook.
 
+        Only add instructions for an inducer if it has the attribute
+        ``dose_vol``.
+
         Parameters
         ----------
         workbook : Workbook
@@ -923,9 +943,23 @@ class PlateArray(Plate):
             Name to give to the new sheet.
 
         """
+        # Get only inducers that have ``dose_vol``
+        inducers_rows = [ind
+                         for ind in self.inducers['rows']
+                         if hasattr(ind, 'dose_vol')]
+        inducers_cols = [ind
+                         for ind in self.inducers['cols']
+                         if hasattr(ind, 'dose_vol')]
+        inducers_wells = [ind
+                          for ind in self.inducers['wells']
+                          if hasattr(ind, 'dose_vol')]
+        inducers_media = [ind
+                          for ind in self.inducers['media']
+                          if hasattr(ind, 'dose_vol')]
+
         # Skip if no inducers are present
-        if not(self.inducers['rows'] or self.inducers['cols'] or \
-                self.inducers['wells'] or self.inducers['media']):
+        if not(inducers_rows or inducers_cols or \
+                inducers_wells or inducers_media):
             return
 
         # Check that a sheet with the specified name doesn't exist
@@ -935,17 +969,17 @@ class PlateArray(Plate):
 
         # Only "wells" or "media" supported if not measuring full plate
         if (self.samples_to_measure != self.n_cols*self.n_rows) and \
-                self.inducers['rows']:
+                inducers_rows:
             raise ValueError('"rows" not possible for a non-full plate')
         if (self.samples_to_measure != self.n_cols*self.n_rows) and \
-                self.inducers['cols']:
+                inducers_cols:
             raise ValueError('"cols" not possible for a non-full plate')
 
         # Initialize inducer instructions table
         ind_layout = []
-        ind_layout_rows = self.n_rows + len(self.inducers['rows']) + \
-            len(self.inducers['media']) + 1
-        ind_layout_cols = self.n_cols + len(self.inducers['cols'])
+        ind_layout_rows = self.n_rows + len(inducers_rows) + \
+            len(inducers_media) + 1
+        ind_layout_cols = self.n_cols + len(inducers_cols)
         for i in range(ind_layout_rows):
             ind_layout.append(['']*(ind_layout_cols))
 
@@ -956,45 +990,45 @@ class PlateArray(Plate):
                 array_j = j/(self.plate_n_cols)
                 plate_i = i%(self.plate_n_rows)
                 plate_j = j%(self.plate_n_cols)
-                row = i + len(self.inducers['rows'])
-                col = j + len(self.inducers['cols'])
+                row = i + len(inducers_rows)
+                col = j + len(inducers_cols)
                 ind_layout[row][col] += "{} ({}, {})".format(
                     self.plate_names[array_i*self.array_n_cols + array_j],
                     plate_i + 1,
                     plate_j + 1)
         # Add row inducer information
-        for i, inducer in enumerate(self.inducers['rows']):
+        for i, inducer in enumerate(inducers_rows):
             for j, val in enumerate(inducer.doses_table.index):
                 row = i
-                col = j + len(self.inducers['cols'])
+                col = j + len(inducers_cols)
                 ind_layout[row][col] = str(val)
         # Add column inducer information
-        for j, inducer in enumerate(self.inducers['cols']):
+        for j, inducer in enumerate(inducers_cols):
             for i, val in enumerate(inducer.doses_table.index):
-                row = i + len(self.inducers['rows'])
+                row = i + len(inducers_rows)
                 col = j
                 ind_layout[row][col] = str(val)
         # Add individual well inducer information
-        for k, inducer in enumerate(self.inducers['wells']):
+        for k, inducer in enumerate(inducers_wells):
             for i in range(self.n_rows):
                 for j in range(self.n_cols):
                     if (i*self.n_cols + j) >= self.samples_to_measure:
                         break
-                    row = i + len(self.inducers['rows'])
-                    col = j + len(self.inducers['cols'])
+                    row = i + len(inducers_rows)
+                    col = j + len(inducers_cols)
                     ind_layout[row][col] += "\n{}".format(
                         inducer.doses_table.index[i*self.n_cols + j])
         # Add information about inducers added to the media
-        for l, inducer in enumerate(self.inducers['media']):
-            row = self.n_rows + len(self.inducers['rows']) + 1 + l
-            ind_layout[row][0] = "Add {:.2f}uL of {} to media".format(
+        for l, inducer in enumerate(inducers_media):
+            row = self.n_rows + len(inducers_rows) + 1 + l
+            ind_layout[row][0] = "Add {:.2f}µL of {} to media".format(
                 inducer.dose_vol, inducer.name)
 
         # Plate area
-        plate_min_row = len(self.inducers['rows'])
-        plate_max_row = len(self.inducers['rows']) + self.n_rows
-        plate_min_col = len(self.inducers['cols'])
-        plate_max_col = len(self.inducers['cols']) + self.n_cols
+        plate_min_row = len(inducers_rows)
+        plate_max_row = len(inducers_rows) + self.n_rows
+        plate_min_col = len(inducers_cols)
+        plate_max_col = len(inducers_cols) + self.n_cols
 
         # Create and populate worksheet
         worksheet = workbook.create_sheet(title=sheet_name)

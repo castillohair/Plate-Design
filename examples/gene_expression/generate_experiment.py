@@ -11,7 +11,7 @@ rr = platedesign.inducer.ChemicalGeneExpression(
   name='RR',
   units='MEFL',
   inducer_name='IPTG',
-  inducer_units='uM',
+  inducer_units='µM',
   hill_params={'y0': 1e1,
                'dy': 3000.,
                'K': 40.,

@@ -6,7 +6,7 @@ exp.randomize = True
 exp.measurement_template = '../supporting_files/template_FlowCal.xlsx'
 
 # Inducers
-iptg = platedesign.inducer.ChemicalInducer(name='IPTG', units='uM')
+iptg = platedesign.inducer.ChemicalInducer(name='IPTG', units='µM')
 iptg.stock_conc = 1e6
 iptg.shot_vol = 5.
 iptg.set_gradient(min=0.5,
@@ -27,7 +27,7 @@ xyl.set_gradient(min=5e-3,
                  use_zero=True)
 exp.add_inducer(xyl)
 
-ligand = platedesign.inducer.ChemicalInducer(name='Ligand', units='uM')
+ligand = platedesign.inducer.ChemicalInducer(name='Ligand', units='µM')
 ligand.stock_conc = 1e6
 ligand.shot_vol = 5.
 ligand.concentrations = [0, 500, 0, 500, 0, 500]

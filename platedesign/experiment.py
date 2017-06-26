@@ -199,7 +199,8 @@ class Experiment(object):
             plate.save_exp_setup_files(path=path)
 
         # Save spreadsheet
-        wb_exp_setup.save(filename=wb_exp_setup_filename)
+        if len(wb_exp_setup.worksheets) > 0:
+            wb_exp_setup.save(filename=wb_exp_setup_filename)
 
         # Iterate over replicates
         for replicate_idx in range(self.n_replicates):
@@ -228,7 +229,8 @@ class Experiment(object):
             wb_rep_setup_filename = os.path.join(
                 replicate_folders[replicate_idx],
                 'replicate_{:03d}_setup.xlsx'.format(replicate_idx + 1))
-            wb_rep_setup.save(filename=wb_rep_setup_filename)
+            if len(wb_rep_setup.worksheets) > 0:
+                wb_rep_setup.save(filename=wb_rep_setup_filename)
 
             ###
             # Replicate Measurement Stage
