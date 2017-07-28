@@ -3,11 +3,11 @@ import platedesign
 exp = platedesign.experiment.Experiment()
 exp.n_replicates = 5
 exp.randomize = True
-exp.measurement_template = 'template_FlowCal.xlsx'
+exp.measurement_template = '../supporting_files/template_FlowCal.xlsx'
 exp.plate_measurements = ['Final OD600', 'Incubation time (min)']
 
 # Inducers
-iptg = platedesign.inducer.ChemicalInducer(name='IPTG', units='uM')
+iptg = platedesign.inducer.ChemicalInducer(name='IPTG', units='µM')
 iptg.stock_conc = 1e6
 iptg.shot_vol = 5.
 iptg.set_gradient(min=0.5,

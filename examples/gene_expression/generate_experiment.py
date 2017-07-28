@@ -3,7 +3,7 @@ import platedesign
 exp = platedesign.experiment.Experiment()
 exp.n_replicates = 5
 exp.randomize = True
-exp.measurement_template = 'template_FlowCal.xlsx'
+exp.measurement_template = '../supporting_files/template_FlowCal.xlsx'
 exp.plate_measurements = ['Final OD600', 'Incubation time (min)']
 
 # Inducers
@@ -11,7 +11,7 @@ rr = platedesign.inducer.ChemicalGeneExpression(
   name='RR',
   units='MEFL',
   inducer_name='IPTG',
-  inducer_units='uM',
+  inducer_units='µM',
   hill_params={'y0': 1e1,
                'dy': 3000.,
                'K': 40.,

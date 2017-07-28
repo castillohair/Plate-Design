@@ -439,8 +439,8 @@ class ChemicalInducer(InducerBase):
         The instructions are saved to a single Excel sheet, named after
         the inducer. To prepare the dilutions, the stock solution should be
         diluted by the factor specified in "Stock dilution". Next, the
-        volume of stock dilution indicated in "Inducer volume (uL)" should
-        be mixed with a volume of water specified in "Water volume (uL)".
+        volume of stock dilution indicated in "Inducer volume (µL)" should
+        be mixed with a volume of water specified in "Water volume (µL)".
 
         Additional class properties that need to be set are "stock_conc"
         and "total_vol". This function modifies the specified
@@ -526,9 +526,9 @@ class ChemicalInducer(InducerBase):
         instructions = pandas.DataFrame()
         instructions[self._concentrations_header] = actual_concs
         instructions['Stock dilution'] = stock_dils
-        instructions['Inducer volume (uL)'] = inducer_vols
-        instructions['Water volume (uL)'] = water_vols
-        instructions['Total volume (uL)'] = total_vols
+        instructions['Inducer volume (µL)'] = inducer_vols
+        instructions['Water volume (µL)'] = water_vols
+        instructions['Total volume (µL)'] = total_vols
         instructions['Aliquot IDs'] = [", ".join(self._doses_table.index[idx])
                                        for idx in doses_idx]
 
@@ -550,7 +550,7 @@ class ChemicalInducer(InducerBase):
         # Save instructions table
         instructions.to_excel(writer, sheet_name=sheet_name, index=False)
         # Add message about aliquots
-        message = "Distribute in aliquots of {}uL." \
+        message = "Distribute in aliquots of {}µL." \
             .format(self.replicate_vol)
         worksheet = writer.sheets[sheet_name]
         worksheet.cell(row=len(instructions) + 3,
