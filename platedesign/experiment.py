@@ -217,13 +217,15 @@ class Experiment(object):
                 if self.randomize:
                     inducer.shuffle()
                 inducer.save_rep_setup_instructions(workbook=wb_rep_setup)
-                inducer.save_rep_setup_files(path=path)
+                inducer.save_rep_setup_files(
+                    path=replicate_folders[replicate_idx])
 
             # Run all plate calculations
             for plate in self.plates:
                 # Save files
                 plate.save_rep_setup_instructions(workbook=wb_rep_setup)
-                plate.save_rep_setup_files(path=path)
+                plate.save_rep_setup_files(
+                    path=replicate_folders[replicate_idx])
 
             # Save spreadsheet
             wb_rep_setup_filename = os.path.join(
