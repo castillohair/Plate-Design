@@ -249,7 +249,7 @@ class ChemicalInducer(InducerBase):
         Header to be used in the dose table to specify concentration.
 
         """
-        return "{} Concentration ({})".format(self.name, self.units)
+        return u"{} Concentration ({})".format(self.name, self.units)
 
     @property
     def concentrations(self):
@@ -468,6 +468,10 @@ class ChemicalInducer(InducerBase):
         if self.total_vol is None:
             raise AttributeError("total_vol should be set")
 
+        # Check that at least one of the parameters has been specified
+        if (file_name is None) and (workbook is None):
+            raise ValueError("either file_name or workbook should be specified")
+
         # Convert concentrations to a set, such that each requested
         # concentration appears once.
         target_concs = self._doses_table[self._concentrations_header].unique()
@@ -526,12 +530,12 @@ class ChemicalInducer(InducerBase):
         # Build table with instructions
         instructions = pandas.DataFrame()
         instructions[self._concentrations_header] = actual_concs
-        instructions['Stock dilution'] = stock_dils
-        instructions['Inducer volume (µL)'] = inducer_vols
-        instructions['Water volume (µL)'] = water_vols
-        instructions['Total volume (µL)'] = total_vols
-        instructions['Aliquot IDs'] = [", ".join(self._doses_table.index[idx])
-                                       for idx in doses_idx]
+        instructions[u'Stock dilution'] = stock_dils
+        instructions[u'Inducer volume (µL)'] = inducer_vols
+        instructions[u'Water volume (µL)'] = water_vols
+        instructions[u'Total volume (µL)'] = total_vols
+        instructions[u'Aliquot IDs'] = [", ".join(self._doses_table.index[idx])
+                                        for idx in doses_idx]
 
         if workbook is not None:
             # First, check that a sheet with the inducer name doesn't exist
@@ -550,13 +554,17 @@ class ChemicalInducer(InducerBase):
 
         # Save instructions table
         instructions.to_excel(writer, sheet_name=sheet_name, index=False)
-        # Add message about aliquots
-        message = "Distribute in aliquots of {}µL." \
-            .format(self.replicate_vol)
+        # Add message about aliquot volume
+        if self.replicate_vol is not None:
+            aliquot_message = u"Distribute in aliquots of {} µL." \
+                .format(self.replicate_vol)
+        else:
+            aliquot_message = u"Distribute in aliquots of {} µL." \
+                .format(self.total_vol)
         worksheet = writer.sheets[sheet_name]
         worksheet.cell(row=len(instructions) + 3,
                        column=1,
-                       value=message)
+                       value=aliquot_message)
 
         # Save file if necessary
         if workbook is None:
