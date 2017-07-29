@@ -569,7 +569,7 @@ class TestChemicalInducer(unittest.TestCase):
                          100., 10., 10., 10., 1., 1.])
         ind = numpy.round(500*c/5*100/1e6*d, decimals=2)
         water = numpy.round(100 - ind, decimals=1)
-        actual_conc = _round_sigfig(1e6/d*ind/(ind + water)*5/500., 6)
+        actual_conc = 1e6/d*ind/(ind + water)*5/500.
         # Expected dataframe
         df = pandas.DataFrame()
         df[u'IPTG Concentration (µM)'] = actual_conc
@@ -581,8 +581,8 @@ class TestChemicalInducer(unittest.TestCase):
         # Add two empty rows
         df = df.reindex(df.index.union([len(c), len(c) + 1]))
         # Add message in first column, last row
-        df[u'IPTG Concentration (µM)'] = df[u'IPTG Concentration (µM)'].astype('unicode')
-        df.set_value(len(c), u'IPTG Concentration (µM)', numpy.nan)
+        df[u'IPTG Concentration (µM)'] = \
+            df[u'IPTG Concentration (µM)'].astype('object')
         df.set_value(
             len(c) + 1,
             u'IPTG Concentration (µM)',
