@@ -326,26 +326,22 @@ class TestChemicalInducer(unittest.TestCase):
         # Shuffle
         random.seed(1)
         iptg.shuffle()
+        # The following indices give the correct shuffled concentrations array
+        # after setting the random seed to one.
+        shuffling_ind = [10, 5, 0, 4, 9, 7, 3, 2, 6, 8, 1]
         # Check concentrations
-        # The following has checked to be always the answer after seeing the
-        # random seed to one.
-        concentrations = numpy.array([1.0, 0.5, 0, 0.4, 0.9, 0.7,
-                                      0.3, 0.2, 0.6, 0.8, 0.1])
-        numpy.testing.assert_almost_equal(iptg.concentrations, concentrations)
+        concentrations = numpy.linspace(0,1,11)
+        numpy.testing.assert_almost_equal(iptg.concentrations,
+                                          concentrations[shuffling_ind])
         # Check unshuffled doses table
-        df_unshuffled = pandas.DataFrame(
+        df = pandas.DataFrame(
             {u'IPTG Concentration (µM)': numpy.linspace(0,1,11)},
             index=['I{:03d}'.format(i + 1) for i in range(11)])
-        df_unshuffled.index.name='ID'
-        pandas.util.testing.assert_frame_equal(iptg._doses_table, df_unshuffled)
+        df.index.name='ID'
+        pandas.util.testing.assert_frame_equal(iptg._doses_table, df)
         # Check shuffled doses table
-        df_shuffled = pandas.DataFrame(
-            {u'IPTG Concentration (µM)': numpy.array([1.0, 0.5, 0, 0.4, 0.9, 0.7,
-                                                      0.3, 0.2, 0.6, 0.8, 0.1])},
-            index=['I{:03d}'.format(i + 1)
-                   for i in [10, 5, 0, 4, 9, 7, 3, 2, 6, 8, 1]])
-        df_shuffled.index.name='ID'
-        pandas.util.testing.assert_frame_equal(iptg.doses_table, df_shuffled)
+        pandas.util.testing.assert_frame_equal(iptg.doses_table,
+                                               df.iloc[shuffling_ind])
 
     def test_shuffle_disabled(self):
         iptg = platedesign.inducer.ChemicalInducer(
@@ -361,12 +357,12 @@ class TestChemicalInducer(unittest.TestCase):
         numpy.testing.assert_almost_equal(iptg.concentrations,
                                           numpy.linspace(0,1,11))
         # Check unshuffled doses table
-        df_unshuffled = pandas.DataFrame(
+        df = pandas.DataFrame(
             {u'IPTG Concentration (µM)': numpy.linspace(0,1,11)},
             index=['I{:03d}'.format(i + 1) for i in range(11)])
-        df_unshuffled.index.name='ID'
-        pandas.util.testing.assert_frame_equal(iptg._doses_table, df_unshuffled)
-        pandas.util.testing.assert_frame_equal(iptg.doses_table, df_unshuffled)
+        df.index.name='ID'
+        pandas.util.testing.assert_frame_equal(iptg._doses_table, df)
+        pandas.util.testing.assert_frame_equal(iptg.doses_table, df)
 
     def test_sync_shuffling_fail(self):
         iptg = platedesign.inducer.ChemicalInducer(
@@ -415,12 +411,12 @@ class TestChemicalInducer(unittest.TestCase):
         numpy.testing.assert_almost_equal(atc.concentrations,
                                           numpy.linspace(0,1,11) + 2)
         # Check unshuffled doses table
-        df_unshuffled = pandas.DataFrame(
+        df = pandas.DataFrame(
             {u'aTc Concentration (µM)': numpy.linspace(0,1,11) + 2},
             index=['a{:03d}'.format(i + 1) for i in range(11)])
-        df_unshuffled.index.name='ID'
-        pandas.util.testing.assert_frame_equal(atc._doses_table, df_unshuffled)
-        pandas.util.testing.assert_frame_equal(atc.doses_table, df_unshuffled)
+        df.index.name='ID'
+        pandas.util.testing.assert_frame_equal(atc._doses_table, df)
+        pandas.util.testing.assert_frame_equal(atc.doses_table, df)
 
     def test_sync_shuffling(self):
         iptg = platedesign.inducer.ChemicalInducer(
@@ -436,47 +432,35 @@ class TestChemicalInducer(unittest.TestCase):
         # Shuffle both inducers by calling the first one
         random.seed(1)
         iptg.shuffle()
-        # Check concentrations
-        # The following has checked to be always the answer after seeing the
-        # random seed to one.
-        concentrations = numpy.array([1.0, 0.5, 0, 0.4, 0.9, 0.7,
-                                      0.3, 0.2, 0.6, 0.8, 0.1])
-        numpy.testing.assert_almost_equal(iptg.concentrations, concentrations)
+        # The following indices give the correct shuffled concentrations array
+        # after setting the random seed to one.
+        shuffling_ind = [10, 5, 0, 4, 9, 7, 3, 2, 6, 8, 1]
+        # Check concentrations for independent inducer
+        concentrations = numpy.linspace(0,1,11)
+        numpy.testing.assert_almost_equal(iptg.concentrations,
+                                          concentrations[shuffling_ind])
         # Check unshuffled doses table
-        df_unshuffled = pandas.DataFrame(
+        df = pandas.DataFrame(
             {u'IPTG Concentration (µM)': numpy.linspace(0,1,11)},
             index=['I{:03d}'.format(i + 1) for i in range(11)])
-        df_unshuffled.index.name='ID'
-        pandas.util.testing.assert_frame_equal(iptg._doses_table, df_unshuffled)
+        df.index.name='ID'
+        pandas.util.testing.assert_frame_equal(iptg._doses_table, df)
         # Check shuffled doses table
-        df_shuffled = pandas.DataFrame(
-            {u'IPTG Concentration (µM)': numpy.array([1.0, 0.5, 0, 0.4, 0.9, 0.7,
-                                                      0.3, 0.2, 0.6, 0.8, 0.1])},
-            index=['I{:03d}'.format(i + 1)
-                   for i in [10, 5, 0, 4, 9, 7, 3, 2, 6, 8, 1]])
-        df_shuffled.index.name='ID'
-        pandas.util.testing.assert_frame_equal(iptg.doses_table, df_shuffled)
-        # The following has checked to be always the answer after seeing the
-        # random seed to one.
-        concentrations = numpy.array([1.0, 0.5, 0, 0.4, 0.9, 0.7,
-                                      0.3, 0.2, 0.6, 0.8, 0.1]) + 2
-        numpy.testing.assert_almost_equal(atc.concentrations, concentrations)
+        pandas.util.testing.assert_frame_equal(iptg.doses_table,
+                                               df.iloc[shuffling_ind])
+        # Check concentrations for dependent inducer
+        concentrations = numpy.linspace(2,3,11)
+        numpy.testing.assert_almost_equal(atc.concentrations,
+                                          concentrations[shuffling_ind])
         # Check unshuffled doses table
-        df_unshuffled = pandas.DataFrame(
+        df = pandas.DataFrame(
             {u'aTc Concentration (µM)': numpy.linspace(0,1,11) + 2},
             index=['a{:03d}'.format(i + 1) for i in range(11)])
-        df_unshuffled.index.name='ID'
-        pandas.util.testing.assert_frame_equal(atc._doses_table, df_unshuffled)
+        df.index.name='ID'
+        pandas.util.testing.assert_frame_equal(atc._doses_table, df)
         # Check shuffled doses table
-        df_shuffled = pandas.DataFrame(
-            {u'aTc Concentration (µM)': numpy.array([1.0, 0.5, 0, 0.4,
-                                                     0.9, 0.7, 0.3,
-                                                     0.2, 0.6, 0.8,
-                                                     0.1]) + 2},
-            index=['a{:03d}'.format(i + 1)
-                   for i in [10, 5, 0, 4, 9, 7, 3, 2, 6, 8, 1]])
-        df_shuffled.index.name='ID'
-        pandas.util.testing.assert_frame_equal(atc.doses_table, df_shuffled)
+        pandas.util.testing.assert_frame_equal(atc.doses_table,
+                                               df.iloc[shuffling_ind])
 
     def test_save_exp_setup_instructions_error_1(self):
         iptg = platedesign.inducer.ChemicalInducer(
