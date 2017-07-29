@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 """
 Unit tests for inducer classes
 
@@ -5,557 +6,602 @@ Unit tests for inducer classes
 
 import os
 import random
+import shutil
 import unittest
 
 import numpy
 import pandas
 
 import platedesign
-import platedesign.inducer
+
+def _round_sigfig(a, n=1):
+    """
+    Round numpy array to specified number of significant digits.
+
+    """
+    a_nz_ind = numpy.nonzero(a)
+    a_nz = a[a_nz_ind]
+    e = numpy.ceil(numpy.log10(a_nz))
+    m = a_nz/(10**e)
+    r = numpy.round(m, decimals=n)
+    a_rounded = a.copy()
+    a_rounded[a_nz_ind] = r*(10**e)
+    return a_rounded
+
+class TestInducerBase(unittest.TestCase):
+    """
+    Tests for the InducerBase class
+    
+    """
+    def test_create(self):
+        ind = platedesign.inducer.InducerBase('Inducer')
+
+    def test_name(self):
+        ind = platedesign.inducer.InducerBase('Inducer')
+        self.assertEqual(ind.name, 'Inducer')
+
+    def test_default_doses_table(self):
+        ind = platedesign.inducer.InducerBase('Inducer')
+        self.assertIsInstance(ind.doses_table, pandas.DataFrame)
+        self.assertTrue(ind.doses_table.empty)
+
+    def test_shuffle_not_implemented(self):
+        ind = platedesign.inducer.InducerBase('Inducer')
+        with self.assertRaises(NotImplementedError):
+            ind.set_vol_from_shots(n_shots=10)
+        with self.assertRaises(NotImplementedError):
+            ind.shuffle()
+
+    def test_no_effect_functions(self):
+        ind = platedesign.inducer.InducerBase('Inducer')
+        ind.save_exp_setup_instructions()
+        ind.save_exp_setup_files()
+        ind.save_rep_setup_instructions()
+        ind.save_rep_setup_files()
 
 class TestChemicalInducer(unittest.TestCase):
     """
     Tests for the ChemicalInducer class.
 
     """
+    def setUp(self):
+        # Directory where to save temporary files
+        self.temp_dir = "test/temp_chemical_inducer"
+        if not os.path.exists(self.temp_dir):
+            os.makedirs(self.temp_dir)
+
+    def tearDown(self):
+        # Delete temporary directory
+        if os.path.exists(self.temp_dir):
+            shutil.rmtree(self.temp_dir)
 
     def test_create(self):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
-            units='uM')
+            units=u'µM')
 
-    def test_default_attributes(self):
+    def test_default_dose_table_attributes(self):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
-            units='uM')
-        # Default attributes
+            units=u'µM')
+        # Default main attributes
         self.assertEqual(iptg.name, 'IPTG')
-        self.assertEqual(iptg.units, 'uM')
+        self.assertEqual(iptg.units, u'µM')
         self.assertEqual(iptg.id_prefix, 'I')
         self.assertEqual(iptg.id_offset, 0)
-        # Default properties
-        self.assertEqual(iptg.conc_header, "Concentration (uM)")
         # Default dilutions table
-        df = pandas.DataFrame({'Concentration (uM)': [0]}, index=['I001'])
-        df.index.name='ID'
-        pandas.util.testing.assert_frame_equal(iptg._dilutions, df)
-        pandas.util.testing.assert_frame_equal(iptg.dilutions, df)
+        df = pandas.DataFrame()
+        pandas.util.testing.assert_frame_equal(iptg._doses_table, df)
+        pandas.util.testing.assert_frame_equal(iptg.doses_table, df)
+        # Header for the dilutions table
+        self.assertEqual(iptg._concentrations_header,
+                         u"IPTG Concentration (µM)")
 
-    def test_custom_attributes(self):
+    def test_default_custom_table_attributes(self):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
-            units='uM',
+            units=u'µM',
             id_prefix='IP',
             id_offset=24)
+        # Default main attributes
         self.assertEqual(iptg.name, 'IPTG')
-        self.assertEqual(iptg.units, 'uM')
+        self.assertEqual(iptg.units, u'µM')
         self.assertEqual(iptg.id_prefix, 'IP')
         self.assertEqual(iptg.id_offset, 24)
-        # Test properties
-        self.assertEqual(iptg.conc_header, "Concentration (uM)")
-        # Test dilutions table
-        df = pandas.DataFrame({'Concentration (uM)': [0]}, index=['IP025'])
-        df.index.name='ID'
-        pandas.util.testing.assert_frame_equal(iptg._dilutions, df)
-        pandas.util.testing.assert_frame_equal(iptg.dilutions, df)
 
-    def test_conc_assignment(self):
+    def test_default_calculation_attributes(self):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
-            units='uM')
-        iptg.conc = numpy.linspace(0,1,10)
-        # Test dilutions table
+            units=u'µM')
+        self.assertIsNone(iptg.stock_conc)
+        self.assertIsNone(iptg.media_vol)
+        self.assertIsNone(iptg.shot_vol)
+        self.assertIsNone(iptg.total_vol)
+        self.assertIsNone(iptg.replicate_vol)
+        self.assertEqual(iptg.vol_safety_factor, 1.2)
+        self.assertEqual(iptg.min_stock_vol,1.5)
+        self.assertEqual(iptg.max_stock_vol, 20.)
+        self.assertEqual(iptg.stock_dilution_step, 10.)
+        self.assertEqual(iptg.stock_decimals, 2)
+        self.assertEqual(iptg.water_decimals, 1)
+
+    def test_default_shuffling_attributes(self):
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        self.assertTrue(iptg.shuffling_enabled)
+        self.assertIsNone(iptg.shuffled_idx)
+        self.assertEqual(iptg.shuffling_sync_list, [])
+
+    def test_concentrations_assignment(self):
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        # Write concentrations should generate a corresponding _doses_table
+        iptg.concentrations = numpy.linspace(0,1,11)
+        # Test doses table
         df = pandas.DataFrame(
-            {'Concentration (uM)': numpy.linspace(0,1,10)},
-            index=['I{:03d}'.format(i + 1) for i in range(10)])
+            {u'IPTG Concentration (µM)': numpy.linspace(0,1,11)},
+            index=['I{:03d}'.format(i + 1) for i in range(11)])
         df.index.name='ID'
-        pandas.util.testing.assert_frame_equal(iptg._dilutions, df)
-        pandas.util.testing.assert_frame_equal(iptg.dilutions, df)
+        pandas.util.testing.assert_frame_equal(iptg._doses_table, df)
+        pandas.util.testing.assert_frame_equal(iptg.doses_table, df)
         # Test conc attribute
-        numpy.testing.assert_array_equal(iptg.conc, numpy.linspace(0,1,10))
+        numpy.testing.assert_array_equal(iptg.concentrations,
+                                         numpy.linspace(0,1,11))
+
+    def test_concentrations_assignment_custom_id(self):
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM',
+            id_prefix='IP',
+            id_offset=24)
+        # Writing concentrations should generate a corresponding _doses_table
+        iptg.concentrations = numpy.linspace(0,1,11)
+        # Test doses table
+        df = pandas.DataFrame(
+            {u'IPTG Concentration (µM)': numpy.linspace(0,1,11)},
+            index=['IP{:03d}'.format(i + 24 + 1) for i in range(11)])
+        df.index.name='ID'
+        pandas.util.testing.assert_frame_equal(iptg._doses_table, df)
+        pandas.util.testing.assert_frame_equal(iptg.doses_table, df)
+        # Test concentrations attribute
+        numpy.testing.assert_array_equal(iptg.concentrations,
+                                         numpy.linspace(0,1,11))
 
     def test_set_gradient_linear(self):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
-            units='uM')
-        iptg.set_gradient(min=0, max=1, n=11)
+            units=u'µM')
+        # Set concentrations from gradient
+        iptg.set_gradient(min=0, max=1, n=21)
+        # Check doses table
         df = pandas.DataFrame(
-            {'Concentration (uM)': numpy.linspace(0,1,11)},
-            index=['I{:03d}'.format(i + 1) for i in range(11)])
+            {u'IPTG Concentration (µM)': numpy.linspace(0,1,21)},
+            index=['I{:03d}'.format(i + 1) for i in range(21)])
         df.index.name='ID'
-        pandas.util.testing.assert_frame_equal(iptg._dilutions, df)
-        pandas.util.testing.assert_frame_equal(iptg.dilutions, df)
+        pandas.util.testing.assert_frame_equal(iptg._doses_table, df)
+        pandas.util.testing.assert_frame_equal(iptg.doses_table, df)
+        # Test concentrations attribute
+        numpy.testing.assert_array_equal(iptg.concentrations,
+                                         numpy.linspace(0,1,21))
 
     def test_set_gradient_linear_repeat(self):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
-            units='uM')
+            units=u'µM')
+        # Set concentrations from gradient
         iptg.set_gradient(min=0, max=1, n=12, n_repeat=3)
+        # Check doses table
         df = pandas.DataFrame(
-            {'Concentration (uM)': numpy.repeat(numpy.linspace(0,1,4), 3)},
+            {u'IPTG Concentration (µM)': numpy.repeat(numpy.linspace(0,1,4), 3)},
             index=['I{:03d}'.format(i + 1) for i in range(12)])
         df.index.name='ID'
-        pandas.util.testing.assert_frame_equal(iptg._dilutions, df)
-        pandas.util.testing.assert_frame_equal(iptg.dilutions, df)
+        pandas.util.testing.assert_frame_equal(iptg._doses_table, df)
+        pandas.util.testing.assert_frame_equal(iptg.doses_table, df)
+        # Test concentrations attribute
+        numpy.testing.assert_array_equal(iptg.concentrations,
+                                         numpy.repeat(numpy.linspace(0,1,4), 3))
 
     def test_set_gradient_linear_repeat_error(self):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
-            units='uM')
+            units=u'µM')
         with self.assertRaises(ValueError):
             iptg.set_gradient(min=0, max=1, n=11, n_repeat=3)
 
     def test_set_gradient_log(self):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
-            units='uM')
+            units=u'µM')
+        # Set concentrations from gradient
         iptg.set_gradient(min=1e-6, max=1e-3, n=10, scale='log')
+        # Check doses table
         df = pandas.DataFrame(
-            {'Concentration (uM)': numpy.logspace(-6,-3,10)},
+            {u'IPTG Concentration (µM)': numpy.logspace(-6,-3,10)},
             index=['I{:03d}'.format(i + 1) for i in range(10)])
         df.index.name='ID'
-        pandas.util.testing.assert_frame_equal(iptg._dilutions, df)
-        pandas.util.testing.assert_frame_equal(iptg.dilutions, df)
+        pandas.util.testing.assert_frame_equal(iptg._doses_table, df)
+        pandas.util.testing.assert_frame_equal(iptg.doses_table, df)
+        # Test concentrations attribute
+        numpy.testing.assert_array_equal(iptg.concentrations,
+                                         numpy.logspace(-6,-3,10))
 
     def test_set_gradient_log_repeat(self):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
-            units='uM')
+            units=u'µM')
+        # Set concentrations from gradient
         iptg.set_gradient(min=1e-6, max=1e-3, n=12, scale='log', n_repeat=3)
+        # Check doses table
+        conc = numpy.repeat(numpy.logspace(-6,-3,4), 3)
         df = pandas.DataFrame(
-            {'Concentration (uM)': numpy.repeat(numpy.logspace(-6,-3,4), 3)},
+            {u'IPTG Concentration (µM)': conc},
             index=['I{:03d}'.format(i + 1) for i in range(12)])
         df.index.name='ID'
-        pandas.util.testing.assert_frame_equal(iptg._dilutions, df)
-        pandas.util.testing.assert_frame_equal(iptg.dilutions, df)
+        pandas.util.testing.assert_frame_equal(iptg._doses_table, df)
+        pandas.util.testing.assert_frame_equal(iptg.doses_table, df)
+        # Test concentrations attribute
+        numpy.testing.assert_array_equal(iptg.concentrations, conc)
 
     def test_set_gradient_log_zero(self):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
-            units='uM')
+            units=u'µM')
+        # Set concentrations from gradient
         iptg.set_gradient(min=1e-6, max=1e-3, n=10, scale='log', use_zero=True)
+        # Check doses table
+        conc = numpy.append([0], numpy.logspace(-6,-3,9))
         df = pandas.DataFrame(
-            {'Concentration (uM)': numpy.append([0], numpy.logspace(-6,-3,9))},
+            {u'IPTG Concentration (µM)': conc},
             index=['I{:03d}'.format(i + 1) for i in range(10)])
         df.index.name='ID'
-        pandas.util.testing.assert_frame_equal(iptg._dilutions, df)
-        pandas.util.testing.assert_frame_equal(iptg.dilutions, df)
+        pandas.util.testing.assert_frame_equal(iptg._doses_table, df)
+        pandas.util.testing.assert_frame_equal(iptg.doses_table, df)
+        # Test concentrations attribute
+        numpy.testing.assert_array_equal(iptg.concentrations, conc)
 
     def test_set_gradient_log_zero_repeat(self):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
-            units='uM')
+            units=u'µM')
+        # Set concentrations from gradient
         iptg.set_gradient(min=1e-6,
                           max=1e-3,
                           n=12,
                           scale='log',
                           use_zero=True,
                           n_repeat=2)
+        # Check doses table
         conc = numpy.repeat(numpy.append([0], numpy.logspace(-6,-3,5)), 2)
         df = pandas.DataFrame(
-            {'Concentration (uM)': conc},
+            {u'IPTG Concentration (µM)': conc},
             index=['I{:03d}'.format(i + 1) for i in range(12)])
         df.index.name='ID'
-        pandas.util.testing.assert_frame_equal(iptg._dilutions, df)
-        pandas.util.testing.assert_frame_equal(iptg.dilutions, df)
+        pandas.util.testing.assert_frame_equal(iptg._doses_table, df)
+        pandas.util.testing.assert_frame_equal(iptg.doses_table, df)
+        # Test concentrations attribute
+        numpy.testing.assert_array_equal(iptg.concentrations, conc)
 
     def test_set_gradient_scale_error(self):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
-            units='uM')
+            units=u'µM')
         with self.assertRaises(ValueError):
             iptg.set_gradient(min=1e-6, max=1e-3, n=10, scale='symlog')
 
-    def test_calculate_vol_no_rep(self):
+    def test_set_vol_from_shots_single_rep(self):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
-            units='uM')
-        iptg.conc = numpy.linspace(0,1,10)
-        iptg.inoculation_vol = 5.
-        iptg.calculate_vol(n_samples=10, n_replicates=1, safety_factor=1.2)
+            units=u'µM')
+        iptg.concentrations = numpy.linspace(0,1,11)
+        # Shot volume and safety factor should be set
+        iptg.shot_vol = 5.
+        iptg.vol_safety_factor = 1.2
+        # Call function to set functions
+        iptg.set_vol_from_shots(n_shots=5)
+        # Check attributes
         self.assertEqual(iptg.replicate_vol, None)
-        self.assertEqual(iptg.total_vol, 60)
+        self.assertEqual(iptg.total_vol, 30)
 
-    def test_calculate_vol_rep(self):
+    def test_set_vol_from_shots_many_reps(self):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
-            units='uM')
-        iptg.conc = numpy.linspace(0,1,10)
-        iptg.inoculation_vol = 5.
-        iptg.calculate_vol(n_samples=10, n_replicates=2, safety_factor=1.2)
-        self.assertEqual(iptg.replicate_vol, 60)
+            units=u'µM')
+        iptg.concentrations = numpy.linspace(0,1,11)
+        # Shot volume and safety factor should be set
+        iptg.shot_vol = 5.
+        iptg.vol_safety_factor = 1.2
+        # Call function to set functions
+        iptg.set_vol_from_shots(n_shots=5, n_replicates=5)
+        # Check attributes
+        self.assertEqual(iptg.replicate_vol, 30)
         self.assertEqual(iptg.total_vol, 200)
-
-    def test_calculate_recipe_error_1(self):
-        iptg = platedesign.inducer.ChemicalInducer(
-            name='IPTG',
-            units='uM')
-        iptg.set_gradient(min=1, max=500, n=12, scale='log', use_zero=True)
-        # iptg.stock_conc = 1e6
-        iptg.inoculation_vol = 5.
-        iptg.sample_vol = 500.
-        iptg.total_vol = 100.
-        with self.assertRaises(AttributeError):
-            iptg.calculate_recipe()
-
-    def test_calculate_recipe_error_2(self):
-        iptg = platedesign.inducer.ChemicalInducer(
-            name='IPTG',
-            units='uM')
-        iptg.set_gradient(min=1, max=500, n=12, scale='log', use_zero=True)
-        iptg.stock_conc = 1e6
-        # iptg.inoculation_vol = 5.
-        iptg.sample_vol = 500.
-        iptg.total_vol = 100.
-        with self.assertRaises(AttributeError):
-            iptg.calculate_recipe()
-
-    def test_calculate_recipe_error_3(self):
-        iptg = platedesign.inducer.ChemicalInducer(
-            name='IPTG',
-            units='uM')
-        iptg.set_gradient(min=1, max=500, n=12, scale='log', use_zero=True)
-        iptg.stock_conc = 1e6
-        iptg.inoculation_vol = 5.
-        # iptg.sample_vol = 500.
-        iptg.total_vol = 100.
-        with self.assertRaises(AttributeError):
-            iptg.calculate_recipe()
-
-    def test_calculate_recipe_error_4(self):
-        iptg = platedesign.inducer.ChemicalInducer(
-            name='IPTG',
-            units='uM')
-        iptg.set_gradient(min=1, max=500, n=12, scale='log', use_zero=True)
-        iptg.stock_conc = 1e6
-        iptg.inoculation_vol = 5.
-        iptg.sample_vol = 500.
-        # iptg.total_vol = 100.
-        with self.assertRaises(AttributeError):
-            iptg.calculate_recipe()
-
-    def test_calculate_recipe(self):
-        iptg = platedesign.inducer.ChemicalInducer(
-            name='IPTG',
-            units='uM')
-        iptg.set_gradient(min=1, max=500, n=12, scale='log', use_zero=True)
-        iptg.stock_conc = 1e6
-        iptg.inoculation_vol = 5.
-        iptg.sample_vol = 500.
-        iptg.total_vol = 100.
-        iptg.calculate_recipe()
-        # Make expected result by hand
-        df = pandas.DataFrame(
-            index=['I{:03d}'.format(i + 1) for i in range(12)])
-        df.index.name='ID'
-        df['Concentration (uM)'] = numpy.array(
-            [0.,
-             1e6*5./500./1000.*10./(10. + 90.),
-             1e6*5./500./1000.*18.62/(18.62 + 81.4),
-             1e6*5./500./100.*3.47/(3.47 + 96.5),
-             1e6*5./500./100.*6.45/(6.45 + 93.6),
-             1e6*5./500./100.*12.01/(12.01 + 88),
-             1e6*5./500./10.*2.24/(2.24 + 97.8),
-             1e6*5./500./10.*4.16/(4.16 + 95.8),
-             1e6*5./500./10.*7.75/(7.75 + 92.2),
-             1e6*5./500./10.*14.43/(14.43 + 85.6),
-             1e6*5./500./1.*2.69/(2.69 + 97.3),
-             1e6*5./500./1.*5./(5. + 95),
-             ])
-        df['Stock dilution'] = numpy.array(
-            [0., 1000., 1000., 100., 100., 100.,
-             10., 10., 10., 10., 1., 1.])
-        df['Inducer volume (uL)'] = numpy.array(
-            [0., 10., 18.62, 3.47, 6.45, 12.01,
-             2.24, 4.16, 7.75, 14.43, 2.69, 5.0])
-        df['Water volume (uL)'] = numpy.array(
-            [100., 90., 81.4, 96.5, 93.6, 88.,
-             97.8, 95.8, 92.2, 85.6, 97.3, 95.])
-        pandas.util.testing.assert_frame_equal(iptg._dilutions, df)
-
-    def test_save_files(self):
-        iptg = platedesign.inducer.ChemicalInducer(
-            name='IPTG',
-            units='uM')
-        iptg.set_gradient(min=1, max=500, n=12, scale='log', use_zero=True)
-        iptg.stock_conc = 1e6
-        iptg.inoculation_vol = 5.
-        iptg.sample_vol = 500.
-        iptg.total_vol = 100.
-        iptg.calculate_recipe()
-        iptg.save_files(file_name='test_file.xlsx', sheet_name='Test Sheet')
-        # Open and check contents
-        df_file = pandas.read_excel(
-            'test_file.xlsx',
-            sheet_name='Test Sheet',
-            index_col='ID')
-        # Make expected result by hand
-        df = pandas.DataFrame(
-            index=['I{:03d}'.format(i + 1) for i in range(12)])
-        df.index.name='ID'
-        df['Concentration (uM)'] = numpy.array(
-            [0.,
-             1e6*5./500./1000.*10./(10. + 90.),
-             1e6*5./500./1000.*18.62/(18.62 + 81.4),
-             1e6*5./500./100.*3.47/(3.47 + 96.5),
-             1e6*5./500./100.*6.45/(6.45 + 93.6),
-             1e6*5./500./100.*12.01/(12.01 + 88),
-             1e6*5./500./10.*2.24/(2.24 + 97.8),
-             1e6*5./500./10.*4.16/(4.16 + 95.8),
-             1e6*5./500./10.*7.75/(7.75 + 92.2),
-             1e6*5./500./10.*14.43/(14.43 + 85.6),
-             1e6*5./500./1.*2.69/(2.69 + 97.3),
-             1e6*5./500./1.*5./(5. + 95),
-             ])
-        df['Stock dilution'] = numpy.array(
-            [0, 1000, 1000, 100, 100, 100,
-             10, 10, 10, 10, 1, 1], dtype=numpy.int64)
-        df['Inducer volume (uL)'] = numpy.array(
-            [0., 10., 18.62, 3.47, 6.45, 12.01,
-             2.24, 4.16, 7.75, 14.43, 2.69, 5.0])
-        df['Water volume (uL)'] = numpy.array(
-            [100., 90., 81.4, 96.5, 93.6, 88.,
-             97.8, 95.8, 92.2, 85.6, 97.3, 95.])
-        pandas.util.testing.assert_frame_equal(df_file, df)
-        # Delete file
-        os.remove('test_file.xlsx')
-
-    def test_generate_shufflings(self):
-        iptg = platedesign.inducer.ChemicalInducer(
-            name='IPTG',
-            units='uM')
-        iptg.conc = numpy.linspace(0,1,10)
-        # Generate shufflings
-        random.seed(1)
-        iptg.generate_shufflings(3)
-        self.assertEqual(len(iptg.shufflings), 3)
-        self.assertEqual(len(iptg.shufflings[0]), 10)
-        self.assertEqual(len(iptg.shufflings[1]), 10)
-        self.assertEqual(len(iptg.shufflings[2]), 10)
-        self.assertEqual(iptg.shufflings[0], [8, 0, 3, 4, 5, 2, 9, 6, 7, 1])
-        self.assertEqual(iptg.shufflings[1], [8, 1, 6, 4, 2, 9, 5, 3, 7, 0])
-        self.assertEqual(iptg.shufflings[2], [2, 6, 4, 7, 1, 5, 3, 8, 0, 9])
-
-    def test_shuffle_error_1(self):
-        iptg = platedesign.inducer.ChemicalInducer(
-            name='IPTG',
-            units='uM')
-        iptg.conc = numpy.linspace(0,1,10)
-        # Generate shufflings and try to shuffle
-        random.seed(1)
-        iptg.generate_shufflings(3)
-        with self.assertRaises(ValueError):
-            iptg.shuffle(4)
-
-    def test_shuffle_error_2(self):
-        iptg = platedesign.inducer.ChemicalInducer(
-            name='IPTG',
-            units='uM')
-        iptg.conc = numpy.linspace(0,1,10)
-        random.seed(1)
-        # Generate shufflings and try to shuffle
-        iptg.generate_shufflings(3)
-        with self.assertRaises(ValueError):
-            iptg.shuffle(-1)
-
-    def test_shuffle_no_shuffling(self):
-        iptg = platedesign.inducer.ChemicalInducer(
-            name='IPTG',
-            units='uM')
-        iptg.conc = numpy.linspace(0,1,10)
-        # Shuffle without generating shufflings
-        random.seed(1)
-        # iptg.generate_shufflings(3)
-        iptg.shuffle(2)
-        # Test dilutions table
-        df = pandas.DataFrame(
-            {'Concentration (uM)': numpy.linspace(0,1,10)},
-            index=['I{:03d}'.format(i + 1) for i in range(10)])
-        df.index.name='ID'
-        pandas.util.testing.assert_frame_equal(iptg._dilutions, df)
-        pandas.util.testing.assert_frame_equal(iptg.dilutions, df)
 
     def test_shuffle(self):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
-            units='uM')
-        iptg.conc = numpy.linspace(0,1,10)
+            units=u'µM')
+        iptg.concentrations = numpy.linspace(0,1,11)
         # Shuffle
         random.seed(1)
-        iptg.generate_shufflings(3)
-        iptg.shuffle(2)
-        # Test dilutions table
-        df = pandas.DataFrame(
-            {'Concentration (uM)': numpy.linspace(0,1,10)},
-            index=['I{:03d}'.format(i + 1) for i in range(10)])
-        df.index.name='ID'
-        df_shuffled = df.iloc[[2, 6, 4, 7, 1, 5, 3, 8, 0, 9]]
-        pandas.util.testing.assert_frame_equal(iptg._dilutions, df)
-        pandas.util.testing.assert_frame_equal(iptg.dilutions, df_shuffled)
+        iptg.shuffle()
+        # Check concentrations
+        # The following has checked to be always the answer after seeing the
+        # random seed to one.
+        concentrations = numpy.array([1.0, 0.5, 0, 0.4, 0.9, 0.7,
+                                      0.3, 0.2, 0.6, 0.8, 0.1])
+        numpy.testing.assert_almost_equal(iptg.concentrations, concentrations)
+        # Check unshuffled doses table
+        df_unshuffled = pandas.DataFrame(
+            {u'IPTG Concentration (µM)': numpy.linspace(0,1,11)},
+            index=['I{:03d}'.format(i + 1) for i in range(11)])
+        df_unshuffled.index.name='ID'
+        pandas.util.testing.assert_frame_equal(iptg._doses_table, df_unshuffled)
+        # Check shuffled doses table
+        df_shuffled = pandas.DataFrame(
+            {u'IPTG Concentration (µM)': numpy.array([1.0, 0.5, 0, 0.4, 0.9, 0.7,
+                                                      0.3, 0.2, 0.6, 0.8, 0.1])},
+            index=['I{:03d}'.format(i + 1)
+                   for i in [10, 5, 0, 4, 9, 7, 3, 2, 6, 8, 1]])
+        df_shuffled.index.name='ID'
+        pandas.util.testing.assert_frame_equal(iptg.doses_table, df_shuffled)
 
-    def test_shuffle_restore(self):
+    def test_shuffle_disabled(self):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
-            units='uM')
-        iptg.conc = numpy.linspace(0,1,10)
+            units=u'µM')
+        iptg.concentrations = numpy.linspace(0,1,11)
+        # Disable shuffling
+        iptg.shuffling_enabled = False
         # Shuffle
         random.seed(1)
-        iptg.generate_shufflings(3)
-        iptg.shuffle(2)
-        iptg.shuffle(None)
-        # Test dilutions table
-        df = pandas.DataFrame(
-            {'Concentration (uM)': numpy.linspace(0,1,10)},
-            index=['I{:03d}'.format(i + 1) for i in range(10)])
-        df.index.name='ID'
-        pandas.util.testing.assert_frame_equal(iptg._dilutions, df)
-        pandas.util.testing.assert_frame_equal(iptg.dilutions, df)
+        iptg.shuffle()
+        # Check concentrations
+        numpy.testing.assert_almost_equal(iptg.concentrations,
+                                          numpy.linspace(0,1,11))
+        # Check unshuffled doses table
+        df_unshuffled = pandas.DataFrame(
+            {u'IPTG Concentration (µM)': numpy.linspace(0,1,11)},
+            index=['I{:03d}'.format(i + 1) for i in range(11)])
+        df_unshuffled.index.name='ID'
+        pandas.util.testing.assert_frame_equal(iptg._doses_table, df_unshuffled)
+        pandas.util.testing.assert_frame_equal(iptg.doses_table, df_unshuffled)
 
-    def test_split_1(self):
+    def test_sync_shuffling_fail(self):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
-            units='uM')
-        iptg.conc = numpy.linspace(0,1,10)
-        iptg_split = iptg.split(1, split_shuffled=True)
-        self.assertEqual(len(iptg_split), 1)
-        pandas.util.testing.assert_frame_equal(iptg._dilutions,
-                                               iptg_split[0]._dilutions)
+            units=u'µM')
+        iptg.concentrations = numpy.linspace(0,1,11)
+        atc = platedesign.inducer.ChemicalInducer(
+            name='aTc',
+            units=u'µM')
+        atc.concentrations = numpy.linspace(2,3,12)
 
-    def test_split_2(self):
+        with self.assertRaises(ValueError):
+            iptg.sync_shuffling(atc)
+
+    def test_sync_shuffling_attributes(self):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
-            units='uM')
-        iptg.conc = numpy.linspace(0,1,10)
-        iptg_split = iptg.split(1, split_shuffled=False)
-        self.assertEqual(len(iptg_split), 1)
-        pandas.util.testing.assert_frame_equal(iptg._dilutions,
-                                               iptg_split[0]._dilutions)
+            units=u'µM')
+        iptg.concentrations = numpy.linspace(0,1,11)
+        atc = platedesign.inducer.ChemicalInducer(
+            name='aTc',
+            units=u'µM')
+        atc.concentrations = numpy.linspace(2,3,11)
+        # Sync shuffling
+        iptg.sync_shuffling(atc)
+        # Check attributes
+        self.assertTrue(iptg.shuffling_enabled)
+        self.assertFalse(atc.shuffling_enabled)
+        self.assertEqual(iptg.shuffling_sync_list, [atc])
 
-    def test_split_3(self):
+    def test_sync_shuffling_no_shuffling_in_dependent(self):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
-            units='uM')
-        iptg.conc = numpy.linspace(0,1,12)
-        iptg_split = iptg.split(3, split_shuffled=False)
-        self.assertEqual(len(iptg_split), 3)
-        pandas.util.testing.assert_frame_equal(iptg._dilutions.iloc[:4],
-                                               iptg_split[0]._dilutions)
-        pandas.util.testing.assert_frame_equal(iptg._dilutions.iloc[4:8],
-                                               iptg_split[1]._dilutions)
-        pandas.util.testing.assert_frame_equal(iptg._dilutions.iloc[8:12],
-                                               iptg_split[2]._dilutions)
-        self.assertEqual(iptg_split[0].current_shuffling, None)
-        self.assertEqual(iptg_split[1].current_shuffling, None)
-        self.assertEqual(iptg_split[2].current_shuffling, None)
-        self.assertEqual(iptg_split[0].shufflings, None)
-        self.assertEqual(iptg_split[1].shufflings, None)
-        self.assertEqual(iptg_split[2].shufflings, None)
-        self.assertEqual(iptg_split[0].id_offset, None)
-        self.assertEqual(iptg_split[1].id_offset, None)
-        self.assertEqual(iptg_split[2].id_offset, None)
-
-    def test_split_4(self):
-        iptg = platedesign.inducer.ChemicalInducer(
-            name='IPTG',
-            units='uM')
-        iptg.conc = numpy.linspace(0,1,12)
-        iptg_split = iptg.split(3, split_shuffled=True)
-        self.assertEqual(len(iptg_split), 3)
-        pandas.util.testing.assert_frame_equal(iptg._dilutions.iloc[:4],
-                                               iptg_split[0]._dilutions)
-        pandas.util.testing.assert_frame_equal(iptg._dilutions.iloc[4:8],
-                                               iptg_split[1]._dilutions)
-        pandas.util.testing.assert_frame_equal(iptg._dilutions.iloc[8:12],
-                                               iptg_split[2]._dilutions)
-        self.assertEqual(iptg_split[0].current_shuffling, None)
-        self.assertEqual(iptg_split[1].current_shuffling, None)
-        self.assertEqual(iptg_split[2].current_shuffling, None)
-        self.assertEqual(iptg_split[0].shufflings, None)
-        self.assertEqual(iptg_split[1].shufflings, None)
-        self.assertEqual(iptg_split[2].shufflings, None)
-        self.assertEqual(iptg_split[0].id_offset, None)
-        self.assertEqual(iptg_split[1].id_offset, None)
-        self.assertEqual(iptg_split[2].id_offset, None)
-
-    def test_split_5(self):
-        iptg = platedesign.inducer.ChemicalInducer(
-            name='IPTG',
-            units='uM')
-        iptg.conc = numpy.linspace(0,1,12)
-        # Shuffle
+            units=u'µM')
+        iptg.concentrations = numpy.linspace(0,1,11)
+        atc = platedesign.inducer.ChemicalInducer(
+            name='aTc',
+            units=u'µM')
+        atc.concentrations = numpy.linspace(2,3,11)
+        # Sync shuffling
+        iptg.sync_shuffling(atc)
+        # Shuffle dependent inducer
         random.seed(1)
-        iptg.generate_shufflings(3)
-        iptg.shuffle(2)
-        # Split
-        iptg_split = iptg.split(3, split_shuffled=True)
-        # Check
-        self.assertEqual(len(iptg_split), 3)
+        atc.shuffle()
+        # Check concentrations
+        numpy.testing.assert_almost_equal(atc.concentrations,
+                                          numpy.linspace(0,1,11) + 2)
+        # Check unshuffled doses table
+        df_unshuffled = pandas.DataFrame(
+            {u'aTc Concentration (µM)': numpy.linspace(0,1,11) + 2},
+            index=['a{:03d}'.format(i + 1) for i in range(11)])
+        df_unshuffled.index.name='ID'
+        pandas.util.testing.assert_frame_equal(atc._doses_table, df_unshuffled)
+        pandas.util.testing.assert_frame_equal(atc.doses_table, df_unshuffled)
 
-        pandas.util.testing.assert_frame_equal(iptg.dilutions.iloc[:4],
-                                               iptg_split[0]._dilutions)
-        pandas.util.testing.assert_frame_equal(iptg.dilutions.iloc[4:8],
-                                               iptg_split[1]._dilutions)
-        pandas.util.testing.assert_frame_equal(iptg.dilutions.iloc[8:12],
-                                               iptg_split[2]._dilutions)
-
-        pandas.util.testing.assert_frame_equal(iptg.dilutions.iloc[:4],
-                                               iptg_split[0].dilutions)
-        pandas.util.testing.assert_frame_equal(iptg.dilutions.iloc[4:8],
-                                               iptg_split[1].dilutions)
-        pandas.util.testing.assert_frame_equal(iptg.dilutions.iloc[8:12],
-                                               iptg_split[2].dilutions)
-
-        pandas.util.testing.assert_frame_equal(iptg._dilutions.iloc[[6, 10, 8, 7]],
-                                               iptg_split[0].dilutions)
-        pandas.util.testing.assert_frame_equal(iptg._dilutions.iloc[[5, 9, 1, 0]],
-                                               iptg_split[1].dilutions)
-        pandas.util.testing.assert_frame_equal(iptg._dilutions.iloc[[3, 2, 4, 11]],
-                                               iptg_split[2].dilutions)
-
-        self.assertEqual(iptg_split[0].current_shuffling, None)
-        self.assertEqual(iptg_split[1].current_shuffling, None)
-        self.assertEqual(iptg_split[2].current_shuffling, None)
-        self.assertEqual(iptg_split[0].shufflings, None)
-        self.assertEqual(iptg_split[1].shufflings, None)
-        self.assertEqual(iptg_split[2].shufflings, None)
-        self.assertEqual(iptg_split[0].id_offset, None)
-        self.assertEqual(iptg_split[1].id_offset, None)
-        self.assertEqual(iptg_split[2].id_offset, None)
-
-    def test_split_6(self):
+    def test_sync_shuffling(self):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
-            units='uM')
-        iptg.conc = numpy.linspace(0,1,12)
-        # Shuffle
+            units=u'µM')
+        iptg.concentrations = numpy.linspace(0,1,11)
+        atc = platedesign.inducer.ChemicalInducer(
+            name='aTc',
+            units=u'µM')
+        atc.concentrations = numpy.linspace(2,3,11)
+        # Sync shuffling
+        iptg.sync_shuffling(atc)
+        # Shuffle both inducers by calling the first one
         random.seed(1)
-        iptg.generate_shufflings(3)
-        iptg.shuffle(2)
-        # Split
-        iptg_split = iptg.split(3, split_shuffled=False)
-        # Check
-        self.assertEqual(len(iptg_split), 3)
+        iptg.shuffle()
+        # Check concentrations
+        # The following has checked to be always the answer after seeing the
+        # random seed to one.
+        concentrations = numpy.array([1.0, 0.5, 0, 0.4, 0.9, 0.7,
+                                      0.3, 0.2, 0.6, 0.8, 0.1])
+        numpy.testing.assert_almost_equal(iptg.concentrations, concentrations)
+        # Check unshuffled doses table
+        df_unshuffled = pandas.DataFrame(
+            {u'IPTG Concentration (µM)': numpy.linspace(0,1,11)},
+            index=['I{:03d}'.format(i + 1) for i in range(11)])
+        df_unshuffled.index.name='ID'
+        pandas.util.testing.assert_frame_equal(iptg._doses_table, df_unshuffled)
+        # Check shuffled doses table
+        df_shuffled = pandas.DataFrame(
+            {u'IPTG Concentration (µM)': numpy.array([1.0, 0.5, 0, 0.4, 0.9, 0.7,
+                                                      0.3, 0.2, 0.6, 0.8, 0.1])},
+            index=['I{:03d}'.format(i + 1)
+                   for i in [10, 5, 0, 4, 9, 7, 3, 2, 6, 8, 1]])
+        df_shuffled.index.name='ID'
+        pandas.util.testing.assert_frame_equal(iptg.doses_table, df_shuffled)
+        # The following has checked to be always the answer after seeing the
+        # random seed to one.
+        concentrations = numpy.array([1.0, 0.5, 0, 0.4, 0.9, 0.7,
+                                      0.3, 0.2, 0.6, 0.8, 0.1]) + 2
+        numpy.testing.assert_almost_equal(atc.concentrations, concentrations)
+        # Check unshuffled doses table
+        df_unshuffled = pandas.DataFrame(
+            {u'aTc Concentration (µM)': numpy.linspace(0,1,11) + 2},
+            index=['a{:03d}'.format(i + 1) for i in range(11)])
+        df_unshuffled.index.name='ID'
+        pandas.util.testing.assert_frame_equal(atc._doses_table, df_unshuffled)
+        # Check shuffled doses table
+        df_shuffled = pandas.DataFrame(
+            {u'aTc Concentration (µM)': numpy.array([1.0, 0.5, 0, 0.4,
+                                                     0.9, 0.7, 0.3,
+                                                     0.2, 0.6, 0.8,
+                                                     0.1]) + 2},
+            index=['a{:03d}'.format(i + 1)
+                   for i in [10, 5, 0, 4, 9, 7, 3, 2, 6, 8, 1]])
+        df_shuffled.index.name='ID'
+        pandas.util.testing.assert_frame_equal(atc.doses_table, df_shuffled)
 
-        pandas.util.testing.assert_frame_equal(iptg._dilutions.iloc[:4],
-                                               iptg_split[0]._dilutions)
-        pandas.util.testing.assert_frame_equal(iptg._dilutions.iloc[4:8],
-                                               iptg_split[1]._dilutions)
-        pandas.util.testing.assert_frame_equal(iptg._dilutions.iloc[8:12],
-                                               iptg_split[2]._dilutions)
+    def test_save_exp_setup_instructions_error_1(self):
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        # Set attributes for calculations
+        # iptg.stock_conc = 1e6
+        iptg.media_vol = 500.
+        iptg.shot_vol = 5.
+        iptg.total_vol = 100.
+        # Set concentrations from gradient
+        iptg.set_gradient(min=0.5, max=500, n=12, scale='log', use_zero=True)
+        # Try to generate setup instructions
+        with self.assertRaises(AttributeError):
+            iptg.save_exp_setup_instructions(file_name=os.path.join(
+                self.temp_dir,
+                'IPTG.xlsx'))
 
-        pandas.util.testing.assert_frame_equal(iptg._dilutions.iloc[:4],
-                                               iptg_split[0].dilutions)
-        pandas.util.testing.assert_frame_equal(iptg._dilutions.iloc[4:8],
-                                               iptg_split[1].dilutions)
-        pandas.util.testing.assert_frame_equal(iptg._dilutions.iloc[8:12],
-                                               iptg_split[2].dilutions)
+    def test_save_exp_setup_instructions_error_2(self):
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        # Set attributes for calculations
+        iptg.stock_conc = 1e6
+        # iptg.media_vol = 500.
+        iptg.shot_vol = 5.
+        iptg.total_vol = 100.
+        # Set concentrations from gradient
+        iptg.set_gradient(min=0.5, max=500, n=12, scale='log', use_zero=True)
+        # Try to generate setup instructions
+        with self.assertRaises(AttributeError):
+            iptg.save_exp_setup_instructions(file_name=os.path.join(
+                self.temp_dir,
+                'IPTG.xlsx'))
 
-        self.assertEqual(iptg_split[0].current_shuffling, None)
-        self.assertEqual(iptg_split[1].current_shuffling, None)
-        self.assertEqual(iptg_split[2].current_shuffling, None)
-        self.assertEqual(iptg_split[0].shufflings, None)
-        self.assertEqual(iptg_split[1].shufflings, None)
-        self.assertEqual(iptg_split[2].shufflings, None)
-        self.assertEqual(iptg_split[0].id_offset, None)
-        self.assertEqual(iptg_split[1].id_offset, None)
-        self.assertEqual(iptg_split[2].id_offset, None)
+    def test_save_exp_setup_instructions_error_3(self):
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        # Set attributes for calculations
+        iptg.stock_conc = 1e6
+        iptg.media_vol = 500.
+        # iptg.shot_vol = 5.
+        iptg.total_vol = 100.
+        # Set concentrations from gradient
+        iptg.set_gradient(min=0.5, max=500, n=12, scale='log', use_zero=True)
+        # Try to generate setup instructions
+        with self.assertRaises(AttributeError):
+            iptg.save_exp_setup_instructions(file_name=os.path.join(
+                self.temp_dir,
+                'IPTG.xlsx'))
+
+    def test_save_exp_setup_instructions_error_4(self):
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        # Set attributes for calculations
+        iptg.stock_conc = 1e6
+        iptg.media_vol = 500.
+        iptg.shot_vol = 5.
+        # iptg.total_vol = 100.
+        # Set concentrations from gradient
+        iptg.set_gradient(min=0.5, max=500, n=12, scale='log', use_zero=True)
+        # Try to generate setup instructions
+        with self.assertRaises(AttributeError):
+            iptg.save_exp_setup_instructions(file_name=os.path.join(
+                self.temp_dir,
+                'IPTG.xlsx'))
+
+    def test_save_exp_setup_instructions_error_5(self):
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        # Set attributes for calculations
+        iptg.stock_conc = 1e6
+        iptg.media_vol = 500.
+        iptg.shot_vol = 5.
+        iptg.total_vol = 100.
+        # Set concentrations from gradient
+        iptg.set_gradient(min=0.5, max=500, n=12, scale='log', use_zero=True)
+        # Try to generate setup instructions
+        with self.assertRaises(ValueError):
+            iptg.save_exp_setup_instructions()
+
+    def test_save_exp_setup_instructions_1(self):
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        # Set attributes for calculations
+        iptg.stock_conc = 1e6
+        iptg.media_vol = 500.
+        iptg.shot_vol = 5.
+        iptg.total_vol = 100.
+        # Set concentrations from gradient
+        iptg.set_gradient(min=0.5, max=500, n=12, scale='log', use_zero=True)
+        # Try to generate setup instructions
+        file_name = os.path.join(self.temp_dir, 'IPTG.xlsx')
+        iptg.save_exp_setup_instructions(file_name=file_name)
+        # Load instructions file
+        df_in_file = pandas.read_excel(file_name)
+        # Expected result
+        c = numpy.append([0], numpy.logspace(numpy.log10(0.5),
+                                             numpy.log10(500),
+                                             11))
+        d = numpy.array([1., 1000., 1000., 1000., 100., 100.,
+                         100., 10., 10., 10., 1., 1.])
+        ind = numpy.round(500*c/5*100/1e6*d, decimals=2)
+        water = numpy.round(100 - ind, decimals=1)
+        actual_conc = _round_sigfig(1e6/d*ind/(ind + water)*5/500., 6)
+        # Expected dataframe
+        df = pandas.DataFrame()
+        df[u'IPTG Concentration (µM)'] = actual_conc
+        df[u'Stock dilution'] = d
+        df[u'Inducer volume (µL)'] = ind
+        df[u'Water volume (µL)'] = water
+        df[u'Total volume (µL)'] = 100.
+        df[u'Aliquot IDs'] = ['I{:03d}'.format(i + 1) for i in range(12)]
+        # Add two empty rows
+        df = df.reindex(df.index.union([len(c), len(c) + 1]))
+        # Add message in first column, last row
+        df[u'IPTG Concentration (µM)'] = df[u'IPTG Concentration (µM)'].astype('unicode')
+        df.set_value(len(c), u'IPTG Concentration (µM)', numpy.nan)
+        df.set_value(
+            len(c) + 1,
+            u'IPTG Concentration (µM)',
+            u'Distribute in aliquots of {} µL.'.format(100.))
+        # Test for equality
+        pandas.util.testing.assert_frame_equal(df_in_file, df)
