@@ -4,12 +4,14 @@ Unit tests for inducer classes
 
 """
 
+import itertools
 import os
 import random
 import shutil
 import unittest
 
 import numpy
+import openpyxl
 import pandas
 
 import platedesign
@@ -557,7 +559,7 @@ class TestChemicalInducer(unittest.TestCase):
         # Set concentrations from gradient
         iptg.set_gradient(min=0.5, max=500, n=12, scale='log', use_zero=True)
         # Try to generate setup instructions
-        file_name = os.path.join(self.temp_dir, 'IPTG.xlsx')
+        file_name = os.path.join(self.temp_dir, 'IPTG_test1.xlsx')
         iptg.save_exp_setup_instructions(file_name=file_name)
         # Load instructions file
         df_in_file = pandas.read_excel(file_name)
@@ -589,3 +591,159 @@ class TestChemicalInducer(unittest.TestCase):
             u'Distribute in aliquots of {} µL.'.format(100.))
         # Test for equality
         pandas.util.testing.assert_frame_equal(df_in_file, df)
+
+    def test_save_exp_setup_instructions_2(self):
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        # Set attributes for calculations
+        iptg.stock_conc = 1e6
+        iptg.media_vol = 500.
+        iptg.shot_vol = 5.
+        iptg.total_vol = 100.
+        # Set concentrations from gradient
+        iptg.set_gradient(min=0.5,
+                          max=500,
+                          n=12,
+                          scale='log',
+                          use_zero=True,
+                          n_repeat=2)
+        # Try to generate setup instructions
+        file_name = os.path.join(self.temp_dir, 'IPTG_test2.xlsx')
+        iptg.save_exp_setup_instructions(file_name=file_name)
+        # Load instructions file
+        df_in_file = pandas.read_excel(file_name)
+        # Expected result
+        c = numpy.append([0], numpy.logspace(numpy.log10(0.5),
+                                             numpy.log10(500),
+                                             5))
+        d = numpy.array([1., 1000., 100., 10., 10., 1.])
+        ind = numpy.round(500*c/5*200/1e6*d, decimals=2)
+        water = numpy.round(200 - ind, decimals=1)
+        actual_conc = 1e6/d*ind/(ind + water)*5/500.
+        # Expected dataframe
+        df = pandas.DataFrame()
+        df[u'IPTG Concentration (µM)'] = actual_conc
+        df[u'Stock dilution'] = d
+        df[u'Inducer volume (µL)'] = ind
+        df[u'Water volume (µL)'] = water
+        df[u'Total volume (µL)'] = 200.
+        df[u'Aliquot IDs'] = ["I001, I002", "I003, I004", "I005, I006",
+                              "I007, I008", "I009, I010", "I011, I012"]
+        # Add two empty rows
+        df = df.reindex(df.index.union([len(c), len(c) + 1]))
+        # Add message in first column, last row
+        df[u'IPTG Concentration (µM)'] = \
+            df[u'IPTG Concentration (µM)'].astype('object')
+        df.set_value(
+            len(c) + 1,
+            u'IPTG Concentration (µM)',
+            u'Distribute in aliquots of {} µL.'.format(100.))
+        # Test for equality
+        pandas.util.testing.assert_frame_equal(df_in_file, df)
+
+    def test_save_exp_setup_instructions_3(self):
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        # Set attributes for calculations
+        iptg.stock_conc = 1e6
+        iptg.media_vol = 500.
+        iptg.shot_vol = 5.
+        iptg.vol_safety_factor = 1.2
+        # Call function to set volumes
+        iptg.set_vol_from_shots(n_shots=6, n_replicates=5)
+        # Check attributes
+        self.assertEqual(iptg.replicate_vol, 40)
+        self.assertEqual(iptg.total_vol, 300)
+        # Set concentrations from gradient
+        iptg.set_gradient(min=0.5,
+                          max=500,
+                          n=12,
+                          scale='log',
+                          use_zero=True,
+                          n_repeat=2)
+        # Try to generate setup instructions
+        file_name = os.path.join(self.temp_dir, 'IPTG_test3.xlsx')
+        iptg.save_exp_setup_instructions(file_name=file_name)
+        # Load instructions file
+        df_in_file = pandas.read_excel(file_name)
+        # Expected result
+        c = numpy.append([0], numpy.logspace(numpy.log10(0.5),
+                                             numpy.log10(500),
+                                             5))
+        d = numpy.array([1., 100., 100., 10., 1., 1.])
+        ind = numpy.round(500*c/5*600/1e6*d, decimals=2)
+        water = numpy.round(600 - ind, decimals=1)
+        actual_conc = 1e6/d*ind/(ind + water)*5/500.
+        # Expected dataframe
+        df = pandas.DataFrame()
+        df[u'IPTG Concentration (µM)'] = actual_conc
+        df[u'Stock dilution'] = d
+        df[u'Inducer volume (µL)'] = ind
+        df[u'Water volume (µL)'] = water
+        df[u'Total volume (µL)'] = 600.
+        df[u'Aliquot IDs'] = ["I001, I002", "I003, I004", "I005, I006",
+                              "I007, I008", "I009, I010", "I011, I012"]
+        # Add two empty rows
+        df = df.reindex(df.index.union([len(c), len(c) + 1]))
+        # Add message in first column, last row
+        df[u'IPTG Concentration (µM)'] = \
+            df[u'IPTG Concentration (µM)'].astype('object')
+        df.set_value(
+            len(c) + 1,
+            u'IPTG Concentration (µM)',
+            u'Distribute in aliquots of {} µL.'.format(40.))
+        # Test for equality
+        pandas.util.testing.assert_frame_equal(df_in_file, df)
+
+    def test_save_exp_setup_instructions_workbook(self):
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        # Set attributes for calculations
+        iptg.stock_conc = 1e6
+        iptg.media_vol = 500.
+        iptg.shot_vol = 5.
+        iptg.total_vol = 100.
+        # Set concentrations from gradient
+        iptg.set_gradient(min=0.5, max=500, n=12, scale='log', use_zero=True)
+        # Create new spreadsheet
+        wb_test = openpyxl.Workbook()
+        # Remove sheet created by default
+        wb_test.remove_sheet(wb_test.active)
+        # Try to generate setup instructions
+        iptg.save_exp_setup_instructions(workbook=wb_test)
+        # Extract data from worksheet and convert into dataframe
+        ws_values = wb_test.get_sheet_by_name('IPTG').values
+        cols = next(ws_values)
+        ws_values = list(ws_values)
+        df_in_wb = pandas.DataFrame(ws_values, columns=cols)
+        # Expected result
+        c = numpy.append([0], numpy.logspace(numpy.log10(0.5),
+                                             numpy.log10(500),
+                                             11))
+        d = numpy.array([1., 1000., 1000., 1000., 100., 100.,
+                         100., 10., 10., 10., 1., 1.])
+        ind = numpy.round(500*c/5*100/1e6*d, decimals=2)
+        water = numpy.round(100 - ind, decimals=1)
+        actual_conc = 1e6/d*ind/(ind + water)*5/500.
+        # Expected dataframe
+        df = pandas.DataFrame()
+        df[u'IPTG Concentration (µM)'] = actual_conc
+        df[u'Stock dilution'] = d
+        df[u'Inducer volume (µL)'] = ind
+        df[u'Water volume (µL)'] = water
+        df[u'Total volume (µL)'] = 100.
+        df[u'Aliquot IDs'] = ['I{:03d}'.format(i + 1) for i in range(12)]
+        # Add two empty rows
+        df = df.reindex(df.index.union([len(c), len(c) + 1]))
+        # Add message in first column, last row
+        df[u'IPTG Concentration (µM)'] = \
+            df[u'IPTG Concentration (µM)'].astype('object')
+        df.set_value(
+            len(c) + 1,
+            u'IPTG Concentration (µM)',
+            u'Distribute in aliquots of {} µL.'.format(100.))
+        # Test for equality
+        pandas.util.testing.assert_frame_equal(df_in_wb, df)
