@@ -1060,6 +1060,35 @@ class TestChemicalGeneExpression(unittest.TestCase):
         pandas.util.testing.assert_frame_equal(rr._doses_table, df)
         pandas.util.testing.assert_frame_equal(rr.doses_table, df)
 
+    def test_expression_levels_assignment_error(self):
+        rr = platedesign.inducer.ChemicalGeneExpression(
+            name='RR',
+            units='MEFL',
+            inducer_name='IPTG',
+            inducer_units=u'µM',
+            hill_params={'y0': 10, 'dy':1000, 'K': 50, 'n': 2})
+        # Attempt to write expression values outside of range
+        with self.assertRaises(ValueError):
+            rr.expression_levels = numpy.logspace(numpy.log10(9.99),
+                                                  numpy.log10(1000),
+                                                  11)
+        with self.assertRaises(ValueError):
+            rr.expression_levels = numpy.logspace(numpy.log10(30),
+                                                  numpy.log10(1100),
+                                                  11)
+        with self.assertRaises(ValueError):
+            rr.expression_levels = numpy.logspace(numpy.log10(30),
+                                                  numpy.log10(2000),
+                                                  11)
+        with self.assertRaises(ValueError):
+            rr.expression_levels = numpy.logspace(numpy.log10(0.1),
+                                                  numpy.log10(2000),
+                                                  11)
+        # Check that doses table is empty
+        df = pandas.DataFrame()
+        pandas.util.testing.assert_frame_equal(rr._doses_table, df)
+        pandas.util.testing.assert_frame_equal(rr.doses_table, df)
+
     def test_concentrations_assignment_custom_id(self):
         rr = platedesign.inducer.ChemicalGeneExpression(
             name='RR',
@@ -1088,10 +1117,10 @@ class TestChemicalGeneExpression(unittest.TestCase):
                                          expression_levels)
         # Test doses table
         df = pandas.DataFrame(
-            {u'IPTG Concentration (µM)': concentrations,
-             u'RR Expression (MEFL)': expression_levels},
-            index=['RR{:03d}'.format(i + 24 + 1) for i in range(11)])
+            index=['RR{:03d}'.format(i + 1 + 24) for i in range(11)])
         df.index.name='ID'
+        df[u'IPTG Concentration (µM)'] = concentrations
+        df[u'RR Expression (MEFL)'] = expression_levels
         pandas.util.testing.assert_frame_equal(rr._doses_table, df)
         pandas.util.testing.assert_frame_equal(rr.doses_table, df)
 
@@ -1123,10 +1152,10 @@ class TestChemicalGeneExpression(unittest.TestCase):
                                          expression_levels)
         # Test doses table
         df = pandas.DataFrame(
-            {u'IPTG Concentration (µM)': concentrations,
-             u'RR Expression (MEFL)': expression_levels},
-            index=['RR{:03d}'.format(i + 24 + 1) for i in range(11)])
+            index=['RR{:03d}'.format(i + 1 + 24) for i in range(11)])
         df.index.name='ID'
+        df[u'IPTG Concentration (µM)'] = concentrations
+        df[u'RR Expression (MEFL)'] = expression_levels
         pandas.util.testing.assert_frame_equal(rr._doses_table, df)
         pandas.util.testing.assert_frame_equal(rr.doses_table, df)
 
@@ -1153,10 +1182,10 @@ class TestChemicalGeneExpression(unittest.TestCase):
                                          concentrations)
         # Check doses table
         df = pandas.DataFrame(
-            {u'IPTG Concentration (µM)': concentrations,
-             u'RR Expression (MEFL)': expression_levels},
             index=['R{:03d}'.format(i + 1) for i in range(21)])
         df.index.name='ID'
+        df[u'IPTG Concentration (µM)'] = concentrations
+        df[u'RR Expression (MEFL)'] = expression_levels
         pandas.util.testing.assert_frame_equal(rr._doses_table, df)
         pandas.util.testing.assert_frame_equal(rr.doses_table, df)
 
@@ -1183,10 +1212,10 @@ class TestChemicalGeneExpression(unittest.TestCase):
                                          concentrations)
         # Check doses table
         df = pandas.DataFrame(
-            {u'IPTG Concentration (µM)': concentrations,
-             u'RR Expression (MEFL)': expression_levels},
             index=['R{:03d}'.format(i + 1) for i in range(21)])
         df.index.name='ID'
+        df[u'IPTG Concentration (µM)'] = concentrations
+        df[u'RR Expression (MEFL)'] = expression_levels
         pandas.util.testing.assert_frame_equal(rr._doses_table, df)
         pandas.util.testing.assert_frame_equal(rr.doses_table, df)
 
@@ -1215,10 +1244,10 @@ class TestChemicalGeneExpression(unittest.TestCase):
                                          concentrations)
         # Check doses table
         df = pandas.DataFrame(
-            {u'IPTG Concentration (µM)': concentrations,
-             u'RR Expression (MEFL)': expression_levels},
             index=['R{:03d}'.format(i + 1) for i in range(21)])
         df.index.name='ID'
+        df[u'IPTG Concentration (µM)'] = concentrations
+        df[u'RR Expression (MEFL)'] = expression_levels
         pandas.util.testing.assert_frame_equal(rr._doses_table, df)
         pandas.util.testing.assert_frame_equal(rr.doses_table, df)
 
@@ -1247,10 +1276,10 @@ class TestChemicalGeneExpression(unittest.TestCase):
                                          concentrations)
         # Check doses table
         df = pandas.DataFrame(
-            {u'IPTG Concentration (µM)': concentrations,
-             u'RR Expression (MEFL)': expression_levels},
             index=['R{:03d}'.format(i + 1) for i in range(21)])
         df.index.name='ID'
+        df[u'IPTG Concentration (µM)'] = concentrations
+        df[u'RR Expression (MEFL)'] = expression_levels
         pandas.util.testing.assert_frame_equal(rr._doses_table, df)
         pandas.util.testing.assert_frame_equal(rr.doses_table, df)
 
@@ -1282,10 +1311,10 @@ class TestChemicalGeneExpression(unittest.TestCase):
                                          concentrations)
         # Check doses table
         df = pandas.DataFrame(
-            {u'IPTG Concentration (µM)': concentrations,
-             u'RR Expression (MEFL)': expression_levels},
             index=['R{:03d}'.format(i + 1) for i in range(21)])
         df.index.name='ID'
+        df[u'IPTG Concentration (µM)'] = concentrations
+        df[u'RR Expression (MEFL)'] = expression_levels
         pandas.util.testing.assert_frame_equal(rr._doses_table, df)
         pandas.util.testing.assert_frame_equal(rr.doses_table, df)
 
@@ -1313,10 +1342,10 @@ class TestChemicalGeneExpression(unittest.TestCase):
                                          concentrations)
         # Check doses table
         df = pandas.DataFrame(
-            {u'IPTG Concentration (µM)': concentrations,
-             u'RR Expression (MEFL)': expression_levels},
             index=['R{:03d}'.format(i + 1) for i in range(21)])
         df.index.name='ID'
+        df[u'IPTG Concentration (µM)'] = concentrations
+        df[u'RR Expression (MEFL)'] = expression_levels
         pandas.util.testing.assert_frame_equal(rr._doses_table, df)
         pandas.util.testing.assert_frame_equal(rr.doses_table, df)
 
@@ -1348,10 +1377,10 @@ class TestChemicalGeneExpression(unittest.TestCase):
                                          concentrations)
         # Check doses table
         df = pandas.DataFrame(
-            {u'IPTG Concentration (µM)': concentrations,
-             u'RR Expression (MEFL)': expression_levels},
             index=['R{:03d}'.format(i + 1) for i in range(21)])
         df.index.name='ID'
+        df[u'IPTG Concentration (µM)'] = concentrations
+        df[u'RR Expression (MEFL)'] = expression_levels
         pandas.util.testing.assert_frame_equal(rr._doses_table, df)
         pandas.util.testing.assert_frame_equal(rr.doses_table, df)
 
@@ -1379,10 +1408,10 @@ class TestChemicalGeneExpression(unittest.TestCase):
                                          concentrations)
         # Check doses table
         df = pandas.DataFrame(
-            {u'IPTG Concentration (µM)': concentrations,
-             u'RR Expression (MEFL)': expression_levels},
             index=['R{:03d}'.format(i + 1) for i in range(21)])
         df.index.name='ID'
+        df[u'IPTG Concentration (µM)'] = concentrations
+        df[u'RR Expression (MEFL)'] = expression_levels
         pandas.util.testing.assert_frame_equal(rr._doses_table, df)
         pandas.util.testing.assert_frame_equal(rr.doses_table, df)
 
@@ -1443,10 +1472,10 @@ class TestChemicalGeneExpression(unittest.TestCase):
                                          concentrations)
         # Check doses table
         df = pandas.DataFrame(
-            {u'IPTG Concentration (µM)': concentrations,
-             u'RR Expression (MEFL)': expression_levels},
             index=['R{:03d}'.format(i + 1) for i in range(12)])
         df.index.name='ID'
+        df[u'IPTG Concentration (µM)'] = concentrations
+        df[u'RR Expression (MEFL)'] = expression_levels
         pandas.util.testing.assert_frame_equal(rr._doses_table, df)
         pandas.util.testing.assert_frame_equal(rr.doses_table, df)
 
@@ -1485,10 +1514,10 @@ class TestChemicalGeneExpression(unittest.TestCase):
                                          concentrations)
         # Check doses table
         df = pandas.DataFrame(
-            {u'IPTG Concentration (µM)': concentrations,
-             u'RR Expression (MEFL)': expression_levels},
             index=['R{:03d}'.format(i + 1) for i in range(21)])
         df.index.name='ID'
+        df[u'IPTG Concentration (µM)'] = concentrations
+        df[u'RR Expression (MEFL)'] = expression_levels
         pandas.util.testing.assert_frame_equal(rr._doses_table, df)
         pandas.util.testing.assert_frame_equal(rr.doses_table, df)
 
@@ -1519,10 +1548,10 @@ class TestChemicalGeneExpression(unittest.TestCase):
                                          concentrations)
         # Check doses table
         df = pandas.DataFrame(
-            {u'IPTG Concentration (µM)': concentrations,
-             u'RR Expression (MEFL)': expression_levels},
             index=['R{:03d}'.format(i + 1) for i in range(21)])
         df.index.name='ID'
+        df[u'IPTG Concentration (µM)'] = concentrations
+        df[u'RR Expression (MEFL)'] = expression_levels
         pandas.util.testing.assert_frame_equal(rr._doses_table, df)
         pandas.util.testing.assert_frame_equal(rr.doses_table, df)
 
@@ -1553,10 +1582,10 @@ class TestChemicalGeneExpression(unittest.TestCase):
                                          concentrations)
         # Check doses table
         df = pandas.DataFrame(
-            {u'IPTG Concentration (µM)': concentrations,
-             u'RR Expression (MEFL)': expression_levels},
             index=['R{:03d}'.format(i + 1) for i in range(21)])
         df.index.name='ID'
+        df[u'IPTG Concentration (µM)'] = concentrations
+        df[u'RR Expression (MEFL)'] = expression_levels
         pandas.util.testing.assert_frame_equal(rr._doses_table, df)
         pandas.util.testing.assert_frame_equal(rr.doses_table, df)
 
@@ -1590,10 +1619,10 @@ class TestChemicalGeneExpression(unittest.TestCase):
                                          concentrations)
         # Check doses table
         df = pandas.DataFrame(
-            {u'IPTG Concentration (µM)': concentrations,
-             u'RR Expression (MEFL)': expression_levels},
             index=['R{:03d}'.format(i + 1) for i in range(21)])
         df.index.name='ID'
+        df[u'IPTG Concentration (µM)'] = concentrations
+        df[u'RR Expression (MEFL)'] = expression_levels
         pandas.util.testing.assert_frame_equal(rr._doses_table, df)
         pandas.util.testing.assert_frame_equal(rr.doses_table, df)
 
@@ -1623,12 +1652,156 @@ class TestChemicalGeneExpression(unittest.TestCase):
                                          concentrations)
         # Check doses table
         df = pandas.DataFrame(
-            {u'IPTG Concentration (µM)': concentrations,
-             u'RR Expression (MEFL)': expression_levels},
             index=['R{:03d}'.format(i + 1) for i in range(21)])
         df.index.name='ID'
+        df[u'IPTG Concentration (µM)'] = concentrations
+        df[u'RR Expression (MEFL)'] = expression_levels
         pandas.util.testing.assert_frame_equal(rr._doses_table, df)
         pandas.util.testing.assert_frame_equal(rr.doses_table, df)
+
+    def test_set_gradient_log_max_inducer(self):
+        rr = platedesign.inducer.ChemicalGeneExpression(
+            name='RR',
+            units='MEFL',
+            inducer_name='IPTG',
+            inducer_units=u'µM',
+            hill_params={'y0': 10, 'dy':1000, 'K': 50, 'n': 2})
+        # Set concentrations from gradient
+        rr.set_gradient(min=30, max_inducer=200, n=21, scale='log')
+        # Expected results
+        max_exp = self.hill(y0=10,
+                            dy=1000,
+                            K=50,
+                            n=2,
+                            x=200.)
+        expression_levels = numpy.logspace(numpy.log10(30),
+                                           numpy.log10(max_exp),
+                                           21)
+        concentrations = self.hill_inverse(y0=10,
+                                           dy=1000,
+                                           K=50,
+                                           n=2,
+                                           y=expression_levels)
+        # Test concentrations attribute
+        numpy.testing.assert_array_equal(rr.expression_levels,
+                                         expression_levels)
+        numpy.testing.assert_array_equal(rr.concentrations,
+                                         concentrations)
+        # Check doses table
+        df = pandas.DataFrame(
+            index=['R{:03d}'.format(i + 1) for i in range(21)])
+        df.index.name='ID'
+        df[u'IPTG Concentration (µM)'] = concentrations
+        df[u'RR Expression (MEFL)'] = expression_levels
+        pandas.util.testing.assert_frame_equal(rr._doses_table, df)
+        pandas.util.testing.assert_frame_equal(rr.doses_table, df)
+
+    def test_set_gradient_log_ignore_max_inducer(self):
+        rr = platedesign.inducer.ChemicalGeneExpression(
+            name='RR',
+            units='MEFL',
+            inducer_name='IPTG',
+            inducer_units=u'µM',
+            hill_params={'y0': 10, 'dy':1000, 'K': 50, 'n': 2})
+        # Set concentrations from gradient
+        # hill(200) = 951.18 != 1000
+        rr.set_gradient(min=30, max=1000, max_inducer=200, n=21, scale='log')
+        # Expected results
+        expression_levels = numpy.logspace(numpy.log10(30),
+                                           numpy.log10(1000),
+                                           21)
+        concentrations = self.hill_inverse(y0=10,
+                                           dy=1000,
+                                           K=50,
+                                           n=2,
+                                           y=expression_levels)
+        # Test concentrations attribute
+        numpy.testing.assert_array_equal(rr.expression_levels,
+                                         expression_levels)
+        numpy.testing.assert_array_equal(rr.concentrations,
+                                         concentrations)
+        # Check doses table
+        df = pandas.DataFrame(
+            index=['R{:03d}'.format(i + 1) for i in range(21)])
+        df.index.name='ID'
+        df[u'IPTG Concentration (µM)'] = concentrations
+        df[u'RR Expression (MEFL)'] = expression_levels
+        pandas.util.testing.assert_frame_equal(rr._doses_table, df)
+        pandas.util.testing.assert_frame_equal(rr.doses_table, df)
+
+    def test_set_gradient_log_no_max_error(self):
+        rr = platedesign.inducer.ChemicalGeneExpression(
+            name='RR',
+            units='MEFL',
+            inducer_name='IPTG',
+            inducer_units=u'µM',
+            hill_params={'y0': 10, 'dy':1000, 'K': 50, 'n': 2})
+        # Attempt to set gradient without specifying max value
+        with self.assertRaises(ValueError):
+            rr.set_gradient(min=30, n=21, scale='log')
+
+    def test_set_gradient_log_out_of_range_error(self):
+        rr = platedesign.inducer.ChemicalGeneExpression(
+            name='RR',
+            units='MEFL',
+            inducer_name='IPTG',
+            inducer_units=u'µM',
+            hill_params={'y0': 10, 'dy':1000, 'K': 50, 'n': 2})
+        # Attempt to set a valid expression level
+        rr.set_gradient(min=10, max=1009.99, n=21, scale='log')
+        # Attempt to set invalid expression levels
+        with self.assertRaises(ValueError):
+            rr.set_gradient(min=10, max=1010, n=21, scale='log')
+        with self.assertRaises(ValueError):
+            rr.set_gradient(min=10, max=1300, n=21, scale='log')
+        with self.assertRaises(ValueError):
+            rr.set_gradient(min=9.99, max=1009.99, n=21, scale='log')
+        with self.assertRaises(ValueError):
+            rr.set_gradient(min=0, max=1010, n=21, scale='log')
+        with self.assertRaises(ValueError):
+            rr.set_gradient(min=0, max=1300, n=21, scale='log')
+
+    def test_set_gradient_log_repeat(self):
+        rr = platedesign.inducer.ChemicalGeneExpression(
+            name='RR',
+            units='MEFL',
+            inducer_name='IPTG',
+            inducer_units=u'µM',
+            hill_params={'y0': 10, 'dy':1000, 'K': 50, 'n': 2})
+        # Set concentrations from gradient
+        rr.set_gradient(min=10, max=1000, n=12, scale='log', n_repeat=3)
+        # Expected results
+        expression_levels = numpy.repeat(numpy.logspace(1, 3, 4), 3)
+        concentrations = numpy.append(
+            [0, 0, 0],
+            self.hill_inverse(y0=10,
+                              dy=1000,
+                              K=50,
+                              n=2,
+                              y=expression_levels[3:]))
+        # Test concentrations attribute
+        numpy.testing.assert_array_equal(rr.expression_levels,
+                                         expression_levels)
+        numpy.testing.assert_array_equal(rr.concentrations,
+                                         concentrations)
+        # Check doses table
+        df = pandas.DataFrame(
+            index=['R{:03d}'.format(i + 1) for i in range(12)])
+        df.index.name='ID'
+        df[u'IPTG Concentration (µM)'] = concentrations
+        df[u'RR Expression (MEFL)'] = expression_levels
+        pandas.util.testing.assert_frame_equal(rr._doses_table, df)
+        pandas.util.testing.assert_frame_equal(rr.doses_table, df)
+
+    def test_set_gradient_log_repeat_error(self):
+        rr = platedesign.inducer.ChemicalGeneExpression(
+            name='RR',
+            units='MEFL',
+            inducer_name='IPTG',
+            inducer_units=u'µM',
+            hill_params={'y0': 10, 'dy':1000, 'K': 50, 'n': 2})
+        with self.assertRaises(ValueError):
+            rr.set_gradient(min=10, max=1000, n=11, scale='log', n_repeat=3)
 
     def test_set_gradient_bad_scale(self):
         rr = platedesign.inducer.ChemicalGeneExpression(
@@ -1640,3 +1813,629 @@ class TestChemicalGeneExpression(unittest.TestCase):
         # Attempt to set gradient without specifying max value
         with self.assertRaises(ValueError):
             rr.set_gradient(min=30, max=1000, n=21, scale='symlog')
+
+    def test_set_vol_from_shots_single_rep(self):
+        rr = platedesign.inducer.ChemicalGeneExpression(
+            name='RR',
+            units='MEFL',
+            inducer_name='IPTG',
+            inducer_units=u'µM',
+            hill_params={'y0': 10, 'dy':1000, 'K': 50, 'n': 2})
+        rr.expression_levels = numpy.logspace(1,3,11)
+        # Shot volume and safety factor should be set
+        rr.shot_vol = 5.
+        rr.vol_safety_factor = 1.2
+        # Call function to set functions
+        rr.set_vol_from_shots(n_shots=5)
+        # Check attributes
+        self.assertEqual(rr.replicate_vol, None)
+        self.assertEqual(rr.total_vol, 30)
+
+    def test_set_vol_from_shots_many_reps(self):
+        rr = platedesign.inducer.ChemicalGeneExpression(
+            name='RR',
+            units='MEFL',
+            inducer_name='IPTG',
+            inducer_units=u'µM',
+            hill_params={'y0': 10, 'dy':1000, 'K': 50, 'n': 2})
+        rr.expression_levels = numpy.logspace(1,3,11)
+        # Shot volume and safety factor should be set
+        rr.shot_vol = 5.
+        rr.vol_safety_factor = 1.2
+        # Call function to set functions
+        rr.set_vol_from_shots(n_shots=5, n_replicates=5)
+        # Check attributes
+        self.assertEqual(rr.replicate_vol, 30)
+        self.assertEqual(rr.total_vol, 200)
+
+    def test_shuffle(self):
+        rr = platedesign.inducer.ChemicalGeneExpression(
+            name='RR',
+            units='MEFL',
+            inducer_name='IPTG',
+            inducer_units=u'µM',
+            hill_params={'y0': 10, 'dy':1000, 'K': 50, 'n': 2})
+        # Expression levels and expected concentrations
+        expression_levels = numpy.logspace(1,3,11)
+        concentrations = self.hill_inverse(y0=10,
+                                           dy=1000.,
+                                           K=50.,
+                                           n=2,
+                                           y=expression_levels)
+        rr.expression_levels = expression_levels
+        # Shuffle
+        random.seed(1)
+        rr.shuffle()
+        # The following indices give the correct shuffled concentrations array
+        # after setting the random seed to one.
+        shuffling_ind = [10, 5, 0, 4, 9, 7, 3, 2, 6, 8, 1]
+        # Check concentrations and expression levels
+        numpy.testing.assert_almost_equal(rr.concentrations,
+                                          concentrations[shuffling_ind])
+        numpy.testing.assert_almost_equal(rr.expression_levels,
+                                          expression_levels[shuffling_ind])
+        # Check unshuffled doses table
+        df = pandas.DataFrame(
+            index=['R{:03d}'.format(i + 1) for i in range(11)])
+        df.index.name='ID'
+        df[u'IPTG Concentration (µM)'] = concentrations
+        df[u'RR Expression (MEFL)'] = expression_levels
+        pandas.util.testing.assert_frame_equal(rr._doses_table, df)
+        # Check shuffled doses table
+        pandas.util.testing.assert_frame_equal(rr.doses_table,
+                                               df.iloc[shuffling_ind])
+
+    def test_shuffle_disabled(self):
+        rr = platedesign.inducer.ChemicalGeneExpression(
+            name='RR',
+            units='MEFL',
+            inducer_name='IPTG',
+            inducer_units=u'µM',
+            hill_params={'y0': 10, 'dy':1000, 'K': 50, 'n': 2})
+        # Expression levels and expected concentrations
+        expression_levels = numpy.logspace(1,3,11)
+        concentrations = self.hill_inverse(y0=10,
+                                           dy=1000.,
+                                           K=50.,
+                                           n=2,
+                                           y=expression_levels)
+        rr.expression_levels = expression_levels
+        # Disable shuffling
+        rr.shuffling_enabled = False
+        # Shuffle
+        random.seed(1)
+        rr.shuffle()
+        # Check concentrations and expression levels
+        numpy.testing.assert_almost_equal(rr.concentrations,
+                                          concentrations)
+        numpy.testing.assert_almost_equal(rr.expression_levels,
+                                          expression_levels)
+        # Check unshuffled doses table
+        df = pandas.DataFrame(
+            index=['R{:03d}'.format(i + 1) for i in range(11)])
+        df.index.name='ID'
+        df[u'IPTG Concentration (µM)'] = concentrations
+        df[u'RR Expression (MEFL)'] = expression_levels
+        pandas.util.testing.assert_frame_equal(rr._doses_table, df)
+        # Check shuffled doses table
+        pandas.util.testing.assert_frame_equal(rr.doses_table, df)
+
+    def test_sync_shuffling_fail(self):
+        rr = platedesign.inducer.ChemicalGeneExpression(
+            name='RR',
+            units='MEFL',
+            inducer_name='IPTG',
+            inducer_units=u'µM',
+            hill_params={'y0': 10, 'dy':1000, 'K': 50, 'n': 2})
+        rr.expression_levels = numpy.logspace(1,3,11)
+        sk = platedesign.inducer.ChemicalGeneExpression(
+            name='SK',
+            units='MEFL',
+            inducer_name='Xylose',
+            inducer_units=u'%',
+            hill_params={'y0': 1, 'dy':200, 'K': 0.05, 'n': 1.5})
+        sk.expression_levels = numpy.logspace(0,2,12)
+        with self.assertRaises(ValueError):
+            # The following should raise an error due to the different number of
+            # doses in each inducer
+            rr.sync_shuffling(sk)
+
+    def test_sync_shuffling_attributes(self):
+        rr = platedesign.inducer.ChemicalGeneExpression(
+            name='RR',
+            units='MEFL',
+            inducer_name='IPTG',
+            inducer_units=u'µM',
+            hill_params={'y0': 10, 'dy':1000, 'K': 50, 'n': 2})
+        rr_expression_levels = numpy.logspace(1,3,12)
+        rr.expression_levels = rr_expression_levels
+        sk = platedesign.inducer.ChemicalGeneExpression(
+            name='SK',
+            units='MEFL',
+            inducer_name='Xylose',
+            inducer_units=u'%',
+            hill_params={'y0': 1, 'dy':200, 'K': 0.05, 'n': 1.5})
+        sk_expression_levels = numpy.logspace(0,2,12)
+        sk.expression_levels = sk_expression_levels
+        # Sync shuffling
+        rr.sync_shuffling(sk)
+        # Check attributes
+        self.assertTrue(rr.shuffling_enabled)
+        self.assertFalse(sk.shuffling_enabled)
+        self.assertEqual(rr.shuffling_sync_list, [sk])
+
+    def test_sync_shuffling_no_shuffling_in_dependent(self):
+        rr = platedesign.inducer.ChemicalGeneExpression(
+            name='RR',
+            units='MEFL',
+            inducer_name='IPTG',
+            inducer_units=u'µM',
+            hill_params={'y0': 10, 'dy':1000, 'K': 50, 'n': 2})
+        rr_expression_levels = numpy.logspace(1,3,12)
+        rr_concentrations = self.hill_inverse(y0=10,
+                                              dy=1000.,
+                                              K=50.,
+                                              n=2,
+                                              y=rr_expression_levels)
+        rr.expression_levels = rr_expression_levels
+        sk = platedesign.inducer.ChemicalGeneExpression(
+            name='SK',
+            units='MEFL',
+            inducer_name='Xylose',
+            inducer_units=u'%',
+            hill_params={'y0': 1, 'dy':200, 'K': 0.05, 'n': 1.5})
+        sk_expression_levels = numpy.logspace(0,2,12)
+        sk_concentrations = self.hill_inverse(y0=1,
+                                              dy=200.,
+                                              K=0.05,
+                                              n=1.5,
+                                              y=sk_expression_levels)
+        sk.expression_levels = sk_expression_levels
+        # Sync shuffling
+        rr.sync_shuffling(sk)
+        # Shuffle dependent inducer
+        random.seed(1)
+        sk.shuffle()
+        # Check expression levels and concentrations
+        numpy.testing.assert_almost_equal(rr.concentrations,
+                                          rr_concentrations)
+        numpy.testing.assert_almost_equal(rr.expression_levels,
+                                          rr_expression_levels)
+        numpy.testing.assert_almost_equal(sk.concentrations,
+                                          sk_concentrations)
+        numpy.testing.assert_almost_equal(sk.expression_levels,
+                                          sk_expression_levels)
+        # Check that doses table remain unshuffled
+        rr_df = pandas.DataFrame(
+            index=['R{:03d}'.format(i + 1) for i in range(12)])
+        rr_df.index.name='ID'
+        rr_df[u'IPTG Concentration (µM)'] = rr_concentrations
+        rr_df[u'RR Expression (MEFL)'] = rr_expression_levels
+        pandas.util.testing.assert_frame_equal(rr._doses_table, rr_df)
+        # Check shuffled doses table
+        pandas.util.testing.assert_frame_equal(rr.doses_table, rr_df)
+        sk_df = pandas.DataFrame(
+            index=['S{:03d}'.format(i + 1) for i in range(12)])
+        sk_df[u'Xylose Concentration (%)'] = sk_concentrations
+        sk_df[u'SK Expression (MEFL)'] = sk_expression_levels
+        sk_df.index.name='ID'
+        pandas.util.testing.assert_frame_equal(sk._doses_table, sk_df)
+        # Check shuffled doses table
+        pandas.util.testing.assert_frame_equal(sk.doses_table, sk_df)
+
+    def test_sync_shuffling(self):
+        rr = platedesign.inducer.ChemicalGeneExpression(
+            name='RR',
+            units='MEFL',
+            inducer_name='IPTG',
+            inducer_units=u'µM',
+            hill_params={'y0': 10, 'dy':1000, 'K': 50, 'n': 2})
+        rr_expression_levels = numpy.logspace(1,3,12)
+        rr_concentrations = self.hill_inverse(y0=10,
+                                              dy=1000.,
+                                              K=50.,
+                                              n=2,
+                                              y=rr_expression_levels)
+        rr.expression_levels = rr_expression_levels
+        sk = platedesign.inducer.ChemicalGeneExpression(
+            name='SK',
+            units='MEFL',
+            inducer_name='Xylose',
+            inducer_units=u'%',
+            hill_params={'y0': 1, 'dy':200, 'K': 0.05, 'n': 1.5})
+        sk_expression_levels = numpy.logspace(0,2,12)
+        sk_concentrations = self.hill_inverse(y0=1,
+                                              dy=200.,
+                                              K=0.05,
+                                              n=1.5,
+                                              y=sk_expression_levels)
+        sk.expression_levels = sk_expression_levels
+        # Sync shuffling
+        rr.sync_shuffling(sk)
+        # Shuffle main inducer
+        random.seed(1)
+        rr.shuffle()
+        # The following indices give the correct shuffled concentrations array
+        # after setting the random seed to one.
+        shuffling_ind = [8, 11, 4, 0, 5, 6, 10, 3, 2, 7, 9, 1]
+        # Check expression levels and concentrations
+        numpy.testing.assert_almost_equal(rr.concentrations,
+                                          rr_concentrations[shuffling_ind])
+        numpy.testing.assert_almost_equal(rr.expression_levels,
+                                          rr_expression_levels[shuffling_ind])
+        numpy.testing.assert_almost_equal(sk.concentrations,
+                                          sk_concentrations[shuffling_ind])
+        numpy.testing.assert_almost_equal(sk.expression_levels,
+                                          sk_expression_levels[shuffling_ind])
+        # Check that doses table remain unshuffled
+        rr_df = pandas.DataFrame(
+            index=['R{:03d}'.format(i + 1) for i in range(12)])
+        rr_df.index.name='ID'
+        rr_df[u'IPTG Concentration (µM)'] = rr_concentrations
+        rr_df[u'RR Expression (MEFL)'] = rr_expression_levels
+        pandas.util.testing.assert_frame_equal(rr._doses_table, rr_df)
+        # Check shuffled doses table
+        pandas.util.testing.assert_frame_equal(rr.doses_table,
+                                               rr_df.iloc[shuffling_ind])
+        sk_df = pandas.DataFrame(
+            index=['S{:03d}'.format(i + 1) for i in range(12)])
+        sk_df[u'Xylose Concentration (%)'] = sk_concentrations
+        sk_df[u'SK Expression (MEFL)'] = sk_expression_levels
+        sk_df.index.name='ID'
+        pandas.util.testing.assert_frame_equal(sk._doses_table, sk_df)
+        # Check shuffled doses table
+        pandas.util.testing.assert_frame_equal(sk.doses_table,
+                                               sk_df.iloc[shuffling_ind])
+
+    def test_save_exp_setup_instructions_error_1(self):
+        rr = platedesign.inducer.ChemicalGeneExpression(
+            name='RR',
+            units='MEFL',
+            inducer_name='IPTG',
+            inducer_units=u'µM',
+            hill_params={'y0': 10, 'dy':1000, 'K': 50, 'n': 2})
+        # Set attributes for calculations
+        # rr.stock_conc = 1e6
+        rr.media_vol = 500.
+        rr.shot_vol = 5.
+        rr.total_vol = 100.
+        # Set expression levels
+        rr_expression_levels = numpy.logspace(1,3,12)
+        rr_concentrations = self.hill_inverse(y0=10,
+                                              dy=1000.,
+                                              K=50.,
+                                              n=2,
+                                              y=rr_expression_levels)
+        rr.expression_levels = rr_expression_levels
+        # Try to generate setup instructions
+        with self.assertRaises(AttributeError):
+            rr.save_exp_setup_instructions(file_name=os.path.join(
+                self.temp_dir,
+                'RR.xlsx'))
+
+    def test_save_exp_setup_instructions_error_2(self):
+        rr = platedesign.inducer.ChemicalGeneExpression(
+            name='RR',
+            units='MEFL',
+            inducer_name='IPTG',
+            inducer_units=u'µM',
+            hill_params={'y0': 10, 'dy':1000, 'K': 50, 'n': 2})
+        # Set attributes for calculations
+        rr.stock_conc = 1e6
+        # rr.media_vol = 500.
+        rr.shot_vol = 5.
+        rr.total_vol = 100.
+        # Set expression levels
+        rr_expression_levels = numpy.logspace(1,3,12)
+        rr_concentrations = self.hill_inverse(y0=10,
+                                              dy=1000.,
+                                              K=50.,
+                                              n=2,
+                                              y=rr_expression_levels)
+        rr.expression_levels = rr_expression_levels
+        # Try to generate setup instructions
+        with self.assertRaises(AttributeError):
+            rr.save_exp_setup_instructions(file_name=os.path.join(
+                self.temp_dir,
+                'RR.xlsx'))
+
+    def test_save_exp_setup_instructions_error_3(self):
+        rr = platedesign.inducer.ChemicalGeneExpression(
+            name='RR',
+            units='MEFL',
+            inducer_name='IPTG',
+            inducer_units=u'µM',
+            hill_params={'y0': 10, 'dy':1000, 'K': 50, 'n': 2})
+        # Set attributes for calculations
+        rr.stock_conc = 1e6
+        rr.media_vol = 500.
+        # rr.shot_vol = 5.
+        rr.total_vol = 100.
+        # Set expression levels
+        rr_expression_levels = numpy.logspace(1,3,12)
+        rr_concentrations = self.hill_inverse(y0=10,
+                                              dy=1000.,
+                                              K=50.,
+                                              n=2,
+                                              y=rr_expression_levels)
+        rr.expression_levels = rr_expression_levels
+        # Try to generate setup instructions
+        with self.assertRaises(AttributeError):
+            rr.save_exp_setup_instructions(file_name=os.path.join(
+                self.temp_dir,
+                'RR.xlsx'))
+
+    def test_save_exp_setup_instructions_error_4(self):
+        rr = platedesign.inducer.ChemicalGeneExpression(
+            name='RR',
+            units='MEFL',
+            inducer_name='IPTG',
+            inducer_units=u'µM',
+            hill_params={'y0': 10, 'dy':1000, 'K': 50, 'n': 2})
+        # Set attributes for calculations
+        rr.stock_conc = 1e6
+        rr.media_vol = 500.
+        rr.shot_vol = 5.
+        # rr.total_vol = 100.
+        # Set expression levels
+        rr_expression_levels = numpy.logspace(1,3,12)
+        rr_concentrations = self.hill_inverse(y0=10,
+                                              dy=1000.,
+                                              K=50.,
+                                              n=2,
+                                              y=rr_expression_levels)
+        rr.expression_levels = rr_expression_levels
+        # Try to generate setup instructions
+        with self.assertRaises(AttributeError):
+            rr.save_exp_setup_instructions(file_name=os.path.join(
+                self.temp_dir,
+                'RR.xlsx'))
+
+    def test_save_exp_setup_instructions_error_5(self):
+        rr = platedesign.inducer.ChemicalGeneExpression(
+            name='RR',
+            units='MEFL',
+            inducer_name='IPTG',
+            inducer_units=u'µM',
+            hill_params={'y0': 10, 'dy':1000, 'K': 50, 'n': 2})
+        # Set attributes for calculations
+        rr.stock_conc = 1e6
+        rr.media_vol = 500.
+        rr.shot_vol = 5.
+        rr.total_vol = 100.
+        # Set expression levels
+        rr_expression_levels = numpy.logspace(1,3,12)
+        rr_concentrations = self.hill_inverse(y0=10,
+                                              dy=1000.,
+                                              K=50.,
+                                              n=2,
+                                              y=rr_expression_levels)
+        rr.expression_levels = rr_expression_levels
+        # Try to generate setup instructions
+        with self.assertRaises(ValueError):
+            rr.save_exp_setup_instructions()
+
+    def test_save_exp_setup_instructions_1(self):
+        rr = platedesign.inducer.ChemicalGeneExpression(
+            name='RR',
+            units='MEFL',
+            inducer_name='IPTG',
+            inducer_units=u'µM',
+            hill_params={'y0': 10, 'dy':1000, 'K': 50, 'n': 2})
+        # Set attributes for calculations
+        rr.stock_conc = 1e6
+        rr.media_vol = 500.
+        rr.shot_vol = 5.
+        rr.total_vol = 100.
+        # Set expression levels from gradient
+        rr.set_gradient(min=10,
+                        max=1000,
+                        n=12,
+                        scale='log')
+        # Try to generate setup instructions
+        file_name = os.path.join(self.temp_dir, 'RR_test1.xlsx')
+        rr.save_exp_setup_instructions(file_name=file_name)
+        # Load instructions file
+        df_in_file = pandas.read_excel(file_name)
+        # Expected result
+        c = self.hill_inverse(y0=10,
+                              dy=1000.,
+                              K=50.,
+                              n=2,
+                              y=numpy.logspace(1,3,12))
+        d = numpy.array([1., 100., 100., 100., 100., 100.,
+                         100., 10., 10., 10., 10., 1.])
+        ind = numpy.round(500*c/5*100/1e6*d, decimals=2)
+        water = numpy.round(100 - ind, decimals=1)
+        actual_conc = 1e6/d*ind/(ind + water)*5/500.
+        # Expected dataframe
+        df = pandas.DataFrame()
+        df[u'IPTG Concentration (µM)'] = actual_conc
+        df[u'Stock dilution'] = d
+        df[u'Inducer volume (µL)'] = ind
+        df[u'Water volume (µL)'] = water
+        df[u'Total volume (µL)'] = 100.
+        df[u'Aliquot IDs'] = ['R{:03d}'.format(i + 1) for i in range(12)]
+        # Add two empty rows
+        df = df.reindex(df.index.union([len(c), len(c) + 1]))
+        # Add message in first column, last row
+        df[u'IPTG Concentration (µM)'] = \
+            df[u'IPTG Concentration (µM)'].astype('object')
+        df.set_value(
+            len(c) + 1,
+            u'IPTG Concentration (µM)',
+            u'Distribute in aliquots of {} µL.'.format(100.))
+        # Test for equality
+        pandas.util.testing.assert_frame_equal(df_in_file, df)
+
+    def test_save_exp_setup_instructions_2(self):
+        rr = platedesign.inducer.ChemicalGeneExpression(
+            name='RR',
+            units='MEFL',
+            inducer_name='IPTG',
+            inducer_units=u'µM',
+            hill_params={'y0': 10, 'dy':1000, 'K': 50, 'n': 2})
+        # Set attributes for calculations
+        rr.stock_conc = 1e6
+        rr.media_vol = 500.
+        rr.shot_vol = 5.
+        rr.total_vol = 100.
+        # Set concentrations from gradient
+        rr.set_gradient(min=10,
+                        max=1000,
+                        n=12,
+                        scale='log',
+                        n_repeat=2)
+        # Try to generate setup instructions
+        file_name = os.path.join(self.temp_dir, 'RR_test1.xlsx')
+        rr.save_exp_setup_instructions(file_name=file_name)
+        # Load instructions file
+        df_in_file = pandas.read_excel(file_name)
+        # Expected result
+        c = self.hill_inverse(y0=10,
+                              dy=1000.,
+                              K=50.,
+                              n=2,
+                              y=numpy.logspace(1,3,6))
+        d = numpy.array([1., 100., 10., 10., 10., 1.])
+        ind = numpy.round(500*c/5*200/1e6*d, decimals=2)
+        water = numpy.round(200 - ind, decimals=1)
+        actual_conc = 1e6/d*ind/(ind + water)*5/500.
+        # Expected dataframe
+        df = pandas.DataFrame()
+        df[u'IPTG Concentration (µM)'] = actual_conc
+        df[u'Stock dilution'] = d
+        df[u'Inducer volume (µL)'] = ind
+        df[u'Water volume (µL)'] = water
+        df[u'Total volume (µL)'] = 200.
+        df[u'Aliquot IDs'] = ["R001, R002", "R003, R004", "R005, R006",
+                              "R007, R008", "R009, R010", "R011, R012"]
+        # Add two empty rows
+        df = df.reindex(df.index.union([len(c), len(c) + 1]))
+        # Add message in first column, last row
+        df[u'IPTG Concentration (µM)'] = \
+            df[u'IPTG Concentration (µM)'].astype('object')
+        df.set_value(
+            len(c) + 1,
+            u'IPTG Concentration (µM)',
+            u'Distribute in aliquots of {} µL.'.format(100.))
+        # Test for equality
+        pandas.util.testing.assert_frame_equal(df_in_file, df)
+
+    def test_save_exp_setup_instructions_3(self):
+        rr = platedesign.inducer.ChemicalGeneExpression(
+            name='RR',
+            units='MEFL',
+            inducer_name='IPTG',
+            inducer_units=u'µM',
+            hill_params={'y0': 10, 'dy':1000, 'K': 50, 'n': 2})
+        # Set attributes for calculations
+        rr.stock_conc = 1e6
+        rr.media_vol = 500.
+        rr.shot_vol = 5.
+        rr.vol_safety_factor = 1.2
+        # Call function to set volumes
+        rr.set_vol_from_shots(n_shots=6, n_replicates=5)
+        # Check attributes
+        self.assertEqual(rr.replicate_vol, 40)
+        self.assertEqual(rr.total_vol, 300)
+        # Set concentrations from gradient
+        rr.set_gradient(min=10,
+                        max=1000,
+                        n=12,
+                        scale='log',
+                        n_repeat=2)
+        # Try to generate setup instructions
+        file_name = os.path.join(self.temp_dir, 'RR_test1.xlsx')
+        rr.save_exp_setup_instructions(file_name=file_name)
+        # Load instructions file
+        df_in_file = pandas.read_excel(file_name)
+        # Expected result
+        c = self.hill_inverse(y0=10,
+                              dy=1000.,
+                              K=50.,
+                              n=2,
+                              y=numpy.logspace(1,3,6))
+        d = numpy.array([1., 10., 10., 10., 1., 1.])
+        ind = numpy.round(500*c/5*600/1e6*d, decimals=2)
+        water = numpy.round(600 - ind, decimals=1)
+        actual_conc = 1e6/d*ind/(ind + water)*5/500.
+        # Expected dataframe
+        df = pandas.DataFrame()
+        df[u'IPTG Concentration (µM)'] = actual_conc
+        df[u'Stock dilution'] = d
+        df[u'Inducer volume (µL)'] = ind
+        df[u'Water volume (µL)'] = water
+        df[u'Total volume (µL)'] = 600.
+        df[u'Aliquot IDs'] = ["R001, R002", "R003, R004", "R005, R006",
+                              "R007, R008", "R009, R010", "R011, R012"]
+        # Add two empty rows
+        df = df.reindex(df.index.union([len(c), len(c) + 1]))
+        # Add message in first column, last row
+        df[u'IPTG Concentration (µM)'] = \
+            df[u'IPTG Concentration (µM)'].astype('object')
+        df.set_value(
+            len(c) + 1,
+            u'IPTG Concentration (µM)',
+            u'Distribute in aliquots of {} µL.'.format(40.))
+        # Test for equality
+        pandas.util.testing.assert_frame_equal(df_in_file, df)
+
+    def test_save_exp_setup_instructions_workbook(self):
+        rr = platedesign.inducer.ChemicalGeneExpression(
+            name='RR',
+            units='MEFL',
+            inducer_name='IPTG',
+            inducer_units=u'µM',
+            hill_params={'y0': 10, 'dy':1000, 'K': 50, 'n': 2})
+        # Set attributes for calculations
+        rr.stock_conc = 1e6
+        rr.media_vol = 500.
+        rr.shot_vol = 5.
+        rr.total_vol = 100.
+        # Set expression levels from gradient
+        rr.set_gradient(min=10,
+                        max=1000,
+                        n=12,
+                        scale='log')
+        # Create new spreadsheet
+        wb_test = openpyxl.Workbook()
+        # Remove sheet created by default
+        wb_test.remove_sheet(wb_test.active)
+        # Try to generate setup instructions
+        rr.save_exp_setup_instructions(workbook=wb_test)
+        # Extract data from worksheet and convert into dataframe
+        ws_values = wb_test.get_sheet_by_name('RR').values
+        cols = next(ws_values)
+        ws_values = list(ws_values)
+        df_in_wb = pandas.DataFrame(ws_values, columns=cols)
+        # Expected result
+        c = self.hill_inverse(y0=10,
+                              dy=1000.,
+                              K=50.,
+                              n=2,
+                              y=numpy.logspace(1,3,12))
+        d = numpy.array([1., 100., 100., 100., 100., 100.,
+                         100., 10., 10., 10., 10., 1.])
+        ind = numpy.round(500*c/5*100/1e6*d, decimals=2)
+        water = numpy.round(100 - ind, decimals=1)
+        actual_conc = 1e6/d*ind/(ind + water)*5/500.
+        # Expected dataframe
+        df = pandas.DataFrame()
+        df[u'IPTG Concentration (µM)'] = actual_conc
+        df[u'Stock dilution'] = d
+        df[u'Inducer volume (µL)'] = ind
+        df[u'Water volume (µL)'] = water
+        df[u'Total volume (µL)'] = 100.
+        df[u'Aliquot IDs'] = ['R{:03d}'.format(i + 1) for i in range(12)]
+        # Add two empty rows
+        df = df.reindex(df.index.union([len(c), len(c) + 1]))
+        # Add message in first column, last row
+        df[u'IPTG Concentration (µM)'] = \
+            df[u'IPTG Concentration (µM)'].astype('object')
+        df.set_value(
+            len(c) + 1,
+            u'IPTG Concentration (µM)',
+            u'Distribute in aliquots of {} µL.'.format(100.))
+        # Test for equality
+        pandas.util.testing.assert_frame_equal(df_in_wb, df)
