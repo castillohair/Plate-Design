@@ -76,7 +76,7 @@ class Experiment(object):
     def __init__(self):
         # Initialize properties
         self.n_replicates = 3
-        self.randomize = False
+        self.randomize_inducer = False
         # Initialize containers of plates and inducers.
         self.plates = []
         self.inducers = []
@@ -215,7 +215,7 @@ class Experiment(object):
 
             # Shuffle inducer and save replicate setup files
             for inducer in self.inducers:
-                if self.randomize:
+                if self.randomize_inducer:
                     inducer.shuffle()
                 inducer.save_rep_setup_instructions(workbook=wb_rep_setup)
                 inducer.save_rep_setup_files(
