@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 import platedesign
 
 exp = platedesign.experiment.Experiment()
@@ -11,7 +12,7 @@ rr = platedesign.inducer.ChemicalGeneExpression(
   name='RR',
   units='MEFL',
   inducer_name='IPTG',
-  inducer_units='µM',
+  inducer_units=u'µM',
   hill_params={'y0': 1e1,
                'dy': 3000.,
                'K': 40.,
