@@ -3,7 +3,7 @@ import platedesign
 
 exp = platedesign.experiment.Experiment()
 exp.n_replicates = 5
-exp.randomize = True
+exp.randomize_inducer = True
 exp.measurement_template = '../supporting_files/template_FlowCal.xlsx'
 exp.plate_measurements = ['Final OD600', 'Incubation time (min)']
 
