@@ -153,9 +153,6 @@ class Plate(object):
         # Initialize list of inducers
         self.inducers = {'rows': [], 'cols': [], 'wells': [], 'media': []}
 
-        # Calling this with no inducers will initialize an empty samples table
-        self.update_samples_table()
-
     def apply_inducer_media_vol(self, apply_to):
         """
         Get the media volume to which an inducer will be applied.
@@ -603,18 +600,19 @@ class Plate(object):
         """
         pass
 
-    def update_samples_table(self):
+    def close_plates(self):
         """
-        Update samples table.
+        Create ClosedPlate objects and fill their table of samples
 
         """
-        # Initialize dataframe with sample IDs
+        # Initialize samples table as a dataframe
         ids = ['{}{:03d}'.format(self.id_prefix, i)
                for i in range(self.id_offset + 1,
                               self.n_rows*self.n_cols + self.id_offset + 1)]
-        self.samples_table = pandas.DataFrame({'ID': ids})
-        self.samples_table.set_index('ID', inplace=True)
-        # Add metadata
+        samples_table = pandas.DataFrame({'ID': ids})
+        samples_table.set_index('ID', inplace=True)
+
+        # Add plate metadata
         # The following try-catch block is needed to ensure compatibility with
         # both python2 and python3.
         try:
@@ -622,33 +620,34 @@ class Plate(object):
         except AttributeError:
             items = self.metadata.items()
         for k, v in items:
-            self.samples_table[k] = v
-        # Add plate name
-        self.samples_table['Plate'] = self.name
+            samples_table[k] = v
+
+        # Add plate name, row and column number for each sample
+        samples_table['Plate'] = self.name
         # Add row and column numbers
-        self.samples_table['Row'] = numpy.nan
-        self.samples_table['Column'] = numpy.nan
+        samples_table['Row'] = numpy.nan
+        samples_table['Column'] = numpy.nan
         for i in range(self.n_rows):
             for j in range(self.n_cols):
-                self.samples_table.set_value(
-                    self.samples_table.index[i*self.n_cols + j],
+                samples_table.set_value(
+                    samples_table.index[i*self.n_cols + j],
                     'Row',
                     i + 1)
-                self.samples_table.set_value(
-                    self.samples_table.index[i*self.n_cols + j],
+                samples_table.set_value(
+                    samples_table.index[i*self.n_cols + j],
                     'Column',
                     j + 1)
         # Only preserve table rows that will be measured
-        self.samples_table = self.samples_table.iloc[:self.samples_to_measure]
+        samples_table = samples_table.iloc[:self.samples_to_measure]
 
         # Add cell info
-        self.samples_table['Strain'] = self.cell_strain_name
+        samples_table['Strain'] = self.cell_strain_name
         if self.cell_setup_method=='fixed_od600':
-            self.samples_table['Cell Predilution'] = self.cell_predilution
-            self.samples_table['Initial OD600'] = self.cell_initial_od600
+            samples_table['Cell Predilution'] = self.cell_predilution
+            samples_table['Initial OD600'] = self.cell_initial_od600
         elif self.cell_setup_method=='fixed_volume':
-            self.samples_table['Cell Predilution'] = self.cell_predilution
-            self.samples_table['Cell Inoculated Vol.'] = self.cell_shot_vol
+            samples_table['Cell Predilution'] = self.cell_predilution
+            samples_table['Cell Inoculated Vol.'] = self.cell_shot_vol
 
         # Add inducer info
         # The following try-catch block is needed to ensure compatibility with
@@ -663,27 +662,34 @@ class Plate(object):
                     for column in inducer.doses_table.columns:
                         for i in range(self.n_rows):
                             for j in range(self.n_cols):
-                                self.samples_table.set_value(
-                                    self.samples_table.index[i*self.n_cols + j],
+                                samples_table.set_value(
+                                    samples_table.index[i*self.n_cols + j],
                                     column,
                                     inducer.doses_table.iloc[j][column])
                 elif apply_to=='cols':
                     for column in inducer.doses_table.columns:
                         for i in range(self.n_rows):
                             for j in range(self.n_cols):
-                                self.samples_table.set_value(
-                                    self.samples_table.index[i*self.n_cols + j],
+                                samples_table.set_value(
+                                    samples_table.index[i*self.n_cols + j],
                                     column,
                                     inducer.doses_table.iloc[i][column])
                 elif apply_to=='wells':
                     for column in inducer.doses_table.columns:
-                        self.samples_table[column] = \
+                        samples_table[column] = \
                             inducer.doses_table[column].values
                 elif apply_to=='media':
                     for column in inducer.doses_table.columns:
-                        self.samples_table[column] = \
+                        samples_table[column] = \
                             inducer.doses_table[column].value
 
+        # Create closed plate object
+        closed_plate = ClosedPlate(id_prefix = self.id_prefix,
+                                   id_offset = self.id_offset,
+                                   samples_table = samples_table)
+        closed_plates = [closed_plate]
+
+        return closed_plates
 
 class PlateArray(Plate):
     """
@@ -824,9 +830,6 @@ class PlateArray(Plate):
         # Initialize list of inducers
         self.inducers = {'rows': [], 'cols': [], 'wells': [], 'media': []}
 
-        # Calling this with no inducers will initialize an empty samples table
-        self.update_samples_table()
-
     @property
     def n_rows(self):
         """
@@ -842,53 +845,6 @@ class PlateArray(Plate):
         
         """
         return self.array_n_cols*self.plate_n_cols
-
-    def start_replicate(self):
-        """
-        Initialize an empty samples table and inducers dictionary.
-
-        """
-        # Initialize dataframe with sample IDs
-        ids = ['{}{:03d}'.format(self.id_prefix, i)
-               for i in range(self.id_offset + 1,
-                              self.n_rows*self.n_cols + self.id_offset + 1)]
-        self.samples_table = pandas.DataFrame({'ID': ids})
-        self.samples_table.set_index('ID', inplace=True)
-        # Add metadata
-        # The following try-catch block is needed to ensure compatibility with
-        # both python2 and python3.
-        try:
-            items = self.metadata.iteritems()
-        except AttributeError:
-            items = self.metadata.items()
-        for k, v in items:
-            self.samples_table[k] = v
-        # Add plate array name
-        self.samples_table["Plate Array"] = self.name
-        # Add plate name, and row and column numbers
-        self.samples_table['Plate'] = ''
-        self.samples_table['Row'] = numpy.nan
-        self.samples_table['Column'] = numpy.nan
-        samples_table_idx = 0
-        for i in range(self.array_n_rows):
-            for j in range(self.array_n_cols):
-                for k in range(self.plate_n_rows):
-                    for l in range(self.plate_n_cols):
-                        self.samples_table.set_value(
-                            self.samples_table.index[samples_table_idx],
-                            'Plate',
-                            self.plate_names[i*self.array_n_cols + j])
-                        self.samples_table.set_value(
-                            self.samples_table.index[samples_table_idx],
-                            'Row',
-                            k + 1)
-                        self.samples_table.set_value(
-                            self.samples_table.index[samples_table_idx],
-                            'Column',
-                            l + 1)
-                        samples_table_idx += 1
-        # Only preserve table rows that will be measured
-        self.samples_table = self.samples_table.iloc[:self.samples_to_measure]
 
     def save_rep_setup_instructions(self, file_name=None, workbook=None):
         """
@@ -1047,17 +1003,17 @@ class PlateArray(Plate):
                     cell.border = plate_border
                     cell.alignment = plate_alignment
 
-    def update_samples_table(self):
+    def close_plates(self):
         """
-        Update samples table.
+        Create ClosedPlate objects and fill their table of samples
 
         """
         # Initialize dataframe with sample IDs
         ids = ['{}{:03d}'.format(self.id_prefix, i)
                for i in range(self.id_offset + 1,
                               self.n_rows*self.n_cols + self.id_offset + 1)]
-        self.samples_table = pandas.DataFrame({'ID': ids})
-        self.samples_table.set_index('ID', inplace=True)
+        samples_table = pandas.DataFrame({'ID': ids})
+        samples_table.set_index('ID', inplace=True)
         # Add metadata
         # The following try-catch block is needed to ensure compatibility with
         # both python2 and python3.
@@ -1066,42 +1022,42 @@ class PlateArray(Plate):
         except AttributeError:
             items = self.metadata.items()
         for k, v in items:
-            self.samples_table[k] = v
+            samples_table[k] = v
         # Add plate array name
-        self.samples_table["Plate Array"] = self.name
+        samples_table["Plate Array"] = self.name
         # Add plate name, and row and column numbers
-        self.samples_table['Plate'] = ''
-        self.samples_table['Row'] = numpy.nan
-        self.samples_table['Column'] = numpy.nan
+        samples_table['Plate'] = ''
+        samples_table['Row'] = numpy.nan
+        samples_table['Column'] = numpy.nan
         samples_table_idx = 0
         for i in range(self.array_n_rows):
             for j in range(self.array_n_cols):
                 for k in range(self.plate_n_rows):
                     for l in range(self.plate_n_cols):
-                        self.samples_table.set_value(
-                            self.samples_table.index[samples_table_idx],
+                        samples_table.set_value(
+                            samples_table.index[samples_table_idx],
                             'Plate',
                             self.plate_names[i*self.array_n_cols + j])
-                        self.samples_table.set_value(
-                            self.samples_table.index[samples_table_idx],
+                        samples_table.set_value(
+                            samples_table.index[samples_table_idx],
                             'Row',
                             k + 1)
-                        self.samples_table.set_value(
-                            self.samples_table.index[samples_table_idx],
+                        samples_table.set_value(
+                            samples_table.index[samples_table_idx],
                             'Column',
                             l + 1)
                         samples_table_idx += 1
         # Only preserve table rows that will be measured
-        self.samples_table = self.samples_table.iloc[:self.samples_to_measure]
+        samples_table = samples_table.iloc[:self.samples_to_measure]
 
         # Add cell info
-        self.samples_table['Strain'] = self.cell_strain_name
+        samples_table['Strain'] = self.cell_strain_name
         if self.cell_setup_method=='fixed_od600':
-            self.samples_table['Cell Predilution'] = self.cell_predilution
-            self.samples_table['Initial OD600'] = self.cell_initial_od600
+            samples_table['Cell Predilution'] = self.cell_predilution
+            samples_table['Initial OD600'] = self.cell_initial_od600
         elif self.cell_setup_method=='fixed_volume':
-            self.samples_table['Cell Predilution'] = self.cell_predilution
-            self.samples_table['Cell Inoculated Vol.'] = self.cell_shot_vol
+            samples_table['Cell Predilution'] = self.cell_predilution
+            samples_table['Cell Inoculated Vol.'] = self.cell_shot_vol
 
         # Add inducer info
         # The following try-catch block is needed to ensure compatibility with
@@ -1116,23 +1072,59 @@ class PlateArray(Plate):
                     for column in inducer.doses_table.columns:
                         for i in range(self.n_rows):
                             for j in range(self.n_cols):
-                                self.samples_table.set_value(
-                                    self.samples_table.index[i*self.n_cols + j],
+                                samples_table.set_value(
+                                    samples_table.index[i*self.n_cols + j],
                                     column,
                                     inducer.doses_table.iloc[j][column])
                 elif apply_to=='cols':
                     for column in inducer.doses_table.columns:
                         for i in range(self.n_rows):
                             for j in range(self.n_cols):
-                                self.samples_table.set_value(
-                                    self.samples_table.index[i*self.n_cols + j],
+                                samples_table.set_value(
+                                    samples_table.index[i*self.n_cols + j],
                                     column,
                                     inducer.doses_table.iloc[i][column])
                 elif apply_to=='wells':
                     for column in inducer.doses_table.columns:
-                        self.samples_table[column] = \
+                        samples_table[column] = \
                             inducer.doses_table[column].values
                 elif apply_to=='media':
                     for column in inducer.doses_table.columns:
-                        self.samples_table[column] = \
+                        samples_table[column] = \
                             inducer.doses_table[column].value
+
+        # Create closed plate objects
+        closed_plates = []
+        for i in range(self.array_n_rows):
+            for j in range(self.array_n_cols):
+                # Filter samples table using the plate name
+                plate_name = self.plate_names[i*self.array_n_cols + j]
+                plate_samples_table = \
+                    samples_table[samples_table['Plate']==plate_name]
+                # Extract id info directly from ID row
+                plate_id_prefix = plate_samples_table.iloc[0]['ID'][:-3]
+                plate_id_offset = int(plate_samples_table.iloc[0]['ID'][-3:])
+                # Create closed plate
+                closed_plate = ClosedPlate(id_prefix=plate_id_prefix,
+                                           id_offset=plate_id_offset,
+                                           samples_table=plate_samples_table)
+                closed_plates.append(closed_plate)
+
+        return closed_plates
+
+class ClosedPlate(object):
+    def __init__(self, id_prefix, id_offset, samples_table):
+        self.id_prefix = id_prefix
+        self.id_offset = id_offset
+        self.samples_table = samples_table
+
+    def update_ids(self):
+        """
+        Update ids in samples table from id_offset and id_prefix
+
+        """
+        # Recreate IDs
+        ids = ['{}{:03d}'.format(self.id_prefix, i)
+               for i in range(self.id_offset + 1,
+                              len(self.samples_table) + self.id_offset + 1)]
+        self.samples_table['ID'] = ids

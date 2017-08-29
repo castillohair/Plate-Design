@@ -221,12 +221,17 @@ class Experiment(object):
                 inducer.save_rep_setup_files(
                     path=replicate_folders[replicate_idx])
 
-            # Run all plate calculations
+            # Generate and save replicate setup information
             for plate in self.plates:
                 # Save files
                 plate.save_rep_setup_instructions(workbook=wb_rep_setup)
                 plate.save_rep_setup_files(
                     path=replicate_folders[replicate_idx])
+
+            # Close plates
+            closed_plates = []
+            for plate in self.plates:
+                closed_plates.extend(plate.close_plates())
 
             # Save spreadsheet
             wb_rep_setup_filename = os.path.join(
@@ -251,11 +256,11 @@ class Experiment(object):
             samples_table = pandas.DataFrame()
             samples_table_columns = []
 
-            for plate in self.plates:
+            for plate in closed_plates:
                 # Set the plate offset from the number of samples so far
                 plate.id_offset = len(samples_table)
-                # Update samples table
-                plate.update_samples_table()
+                # Update IDs in samples table
+                plate.update_ids()
                 # The following is necessary to preserve the order of the
                 # columns when appending
                 for column in plate.samples_table.columns:
@@ -263,7 +268,7 @@ class Experiment(object):
                         samples_table_columns.append(column)
                 # Append plate's samples table to samples table
                 samples_table = samples_table.append(plate.samples_table)
-                # Sort columns
+                # Reorganize columns
                 samples_table = samples_table[samples_table_columns]
 
             # File name for replicate measurement file
