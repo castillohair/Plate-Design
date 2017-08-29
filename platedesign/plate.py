@@ -1127,4 +1127,4 @@ class ClosedPlate(object):
         ids = ['{}{:03d}'.format(self.id_prefix, i)
                for i in range(self.id_offset + 1,
                               len(self.samples_table) + self.id_offset + 1)]
-        self.samples_table['ID'] = ids
+        self.samples_table.index = ids
