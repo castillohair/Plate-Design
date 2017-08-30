@@ -1101,9 +1101,9 @@ class PlateArray(Plate):
                 plate_name = self.plate_names[i*self.array_n_cols + j]
                 plate_samples_table = \
                     samples_table[samples_table['Plate']==plate_name]
-                # Extract id info directly from ID row
-                plate_id_prefix = plate_samples_table.iloc[0]['ID'][:-3]
-                plate_id_offset = int(plate_samples_table.iloc[0]['ID'][-3:])
+                # Extract id info directly from index
+                plate_id_prefix = plate_samples_table.index[0][:-3]
+                plate_id_offset = int(plate_samples_table.index[0][-3:])
                 # Create closed plate
                 closed_plate = ClosedPlate(id_prefix=plate_id_prefix,
                                            id_offset=plate_id_offset,
