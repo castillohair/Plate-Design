@@ -4,6 +4,8 @@ import platedesign
 exp = platedesign.experiment.Experiment()
 exp.n_replicates = 5
 exp.randomize_inducer = True
+exp.randomize_plate = True
+exp.plate_locations = ['Stack 1-1', 'Stack 1-2', 'Stack 1-3', 'Stack 1-4']
 exp.measurement_template = '../supporting_files/template_FlowCal.xlsx'
 
 # Inducers

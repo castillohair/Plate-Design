@@ -4,6 +4,20 @@ import platedesign
 exp = platedesign.experiment.Experiment()
 exp.n_replicates = 5
 exp.randomize_inducer = True
+exp.randomize_plate = True
+exp.plate_locations = ['Stack 1-1',
+                       'Stack 1-2',
+                       'Stack 1-3',
+                       'Stack 1-4',
+                       'Stack 2-1',
+                       'Stack 2-2',
+                       'Stack 2-3',
+                       'Stack 2-4',
+                       'Stack 3-1',
+                       'Stack 3-2',
+                       'Stack 3-3',
+                       'Stack 3-4',
+                       ]
 exp.measurement_template = '../supporting_files/template_FlowCal.xlsx'
 exp.plate_measurements = ['Final OD600', 'Incubation time (min)']
 
