@@ -1114,9 +1114,38 @@ class PlateArray(Plate):
 
 class ClosedPlate(object):
     def __init__(self, id_prefix, id_offset, samples_table):
+        # Store id prefix and offset
         self.id_prefix = id_prefix
         self.id_offset = id_offset
+        # Sanity checks on samples table
+        plate_name = samples_table.iloc[0]['Plate']
+        if not (samples_table['Plate']==plate_name).all():
+            raise ValueError('values of "Plate" column should be identical')
+        # Save samples table
         self.samples_table = samples_table
+
+    @property
+    def name(self):
+        """
+        Plate name.
+
+        """
+        return self.samples_table.iloc[0]['Plate']
+
+    @property
+    def location(self):
+        """
+        Name of assigned location. Returns None if location not set.
+
+        """
+        if 'Location' in self.samples_table.columns:
+            return self.samples_table.iloc[0]['Location']
+        else:
+            return None
+
+    @location.setter
+    def location(self, value):
+        self.samples_table['Location'] = value
 
     def update_ids(self):
         """

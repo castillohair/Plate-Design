@@ -6,6 +6,7 @@ Module that contains the experiment class.
 
 import copy
 import os
+import random
 
 import numpy
 import openpyxl
@@ -77,6 +78,7 @@ class Experiment(object):
         # Initialize properties
         self.n_replicates = 3
         self.randomize_inducer = False
+        self.randomize_plate_order = False
         # Initialize containers of plates and inducers.
         self.plates = []
         self.inducers = []
@@ -84,6 +86,8 @@ class Experiment(object):
         self.measurement_template = None
         # List of measurements per plate to take
         self.plate_measurements = []
+        # List of locations available for plates
+        self.locations = []
 
     def add_plate(self, plate):
         """
@@ -221,6 +225,24 @@ class Experiment(object):
                 inducer.save_rep_setup_files(
                     path=replicate_folders[replicate_idx])
 
+            # Close plates
+            closed_plates = []
+            for plate in self.plates:
+                closed_plates.extend(plate.close_plates())
+
+            # Randomize plate order if requested
+            if self.randomize_plate_order:
+                random.shuffle(closed_plates)
+
+            # Set location to each closed plate
+            if self.locations:
+                # Check that enough locations are available
+                if len(self.locations) < len(closed_plates):
+                    raise ValueError('Not enough locations specified for '
+                        'plates.')
+                for closed_plate_idx, closed_plate in enumerate(closed_plates):
+                    closed_plate.location = self.locations[closed_plate_idx]
+
             # Generate and save replicate setup information
             for plate in self.plates:
                 # Save files
@@ -228,10 +250,18 @@ class Experiment(object):
                 plate.save_rep_setup_files(
                     path=replicate_folders[replicate_idx])
 
-            # Close plates
-            closed_plates = []
-            for plate in self.plates:
-                closed_plates.extend(plate.close_plates())
+            # Add sheet with location info
+            if self.locations:
+                # Generate table
+                locations_table = pandas.DataFrame()
+                locations_table['Plate']=[p.name for p in closed_plates]
+                locations_table['Location']=[p.location for p in closed_plates]
+                # Generate pandas writer and reassign workbook
+                writer = pandas.ExcelWriter('temp', engine='openpyxl')
+                writer.book = wb_rep_setup
+                locations_table.to_excel(writer,
+                                         sheet_name='Plate locations',
+                                         index=False)
 
             # Save spreadsheet
             wb_rep_setup_filename = os.path.join(
