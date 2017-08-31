@@ -35,17 +35,17 @@ class Plate(object):
 
     This class manages inducers that can be applied to individual rows,
     columns, wells, or to all the media in the plate. These are used to
-    generate instructions for inducer inoculation during the Replicate
-    Setup stage. In addition, a list of samples with the corresponding
-    inducer concentrations are generated for the Replicate Measurement
-    stage.
+    generate instructions for cell and inducer inoculation during the
+    Replicate Setup stage. Finally, this class can generate a ClosedPlate
+    instance, which contains final inducer concentrations, initial cell
+    densities, and other information about each well in the plate.
 
     Parameters
     ----------
     name : str
         Name of the plate, to be used in generated files.
     n_rows, n_cols : int, optional
-        Number of rows and columns in the plate.
+        Number of rows and columns in the plate. Defaults: 4 and 6.
     id_prefix : str, optional
         Prefix to be used for the ID that identifies each sample. Default:
         'S'.
@@ -84,15 +84,15 @@ class Plate(object):
         Volume of diluted preculture to inoculate in media. Only used if
         `cell_setup_method` is "fixed_volume".
     metadata : OrderedDict
-        A column in the samples table will be created for each ``(key,
-        value)`` pair in this dictionary. ``key`` will be the name of the
-        column, with all rows set to ``value``.
+        Additional information about the plate, in a ``key: value`` format.
+        The ClosedPlate instance returned by ``close_plates()`` will
+        include this information in its ``samples_table`` attribute. In it,
+        a column with name ``key`` will be created, and all rows will be
+        set to ``value``.
     inducers : OrderedDict
         Keys in this dictionary represent how each inducer is applied
         ("rows", "cols", "wells", "media"), and the values are lists of
         inducers to be applied as specified by the key.
-    samples_table : DataFrame
-        Table containing information of all samples.
 
     Methods
     -------
@@ -114,8 +114,8 @@ class Plate(object):
         Add sheet with cell inoculation instructions to specified workbook.
     save_rep_setup_files
         Save additional files required for the Replicate Setup stage.
-    update_samples_table
-        Update samples table.
+    close_plates
+        Get ``ClosedPlate`` objects with information of each well.
 
     """
     def __init__(self,
@@ -602,7 +602,24 @@ class Plate(object):
 
     def close_plates(self):
         """
-        Create ClosedPlate objects and fill their table of samples
+        Get ``ClosedPlate`` objects with information of each well.
+
+        The individual ``ClosedPlate`` instances contain information of all
+        final inducer concentrations, initial cell densities, and position
+        in the plate (row, colum) for each well in the plate, along with
+        plate name and metadata. All this info is calculated when calling
+        `close_plates()`, and will remain fixed even after modifying
+        inducers or other information in the ``Plate`` object.
+
+        Within an experiment workflow, this function is meant to be called
+        at the end of the Replicate Setup stage.
+
+        Return
+        ------
+        list
+            ``ClosedPlate`` instances with information about each sample.
+            This list will only contain one ``ClosedPlate`` instance, as
+            ``Plate`` represents a single plate.
 
         """
         # Initialize samples table as a dataframe
@@ -697,10 +714,11 @@ class PlateArray(Plate):
 
     This class manages inducers that can be applied to individual rows,
     columns, wells, or to all the media in the array. These are used to
-    generate instructions for inducer inoculation during the Replicate
-    Setup stage. In addition, a list of samples with the corresponding
-    inducer concentrations are generated for the Replicate Measurement
-    stage.
+    generate instructions for cell and inducer inoculation during the
+    Replicate Setup stage. Finally, this class can generate ClosedPlate
+    instances, one for each plate in the array, with a table containing
+    fixed information about each sample such as final inducer
+    concentration, useful for the Replicate Measurement stage.
 
     Parameters
     ----------
@@ -711,7 +729,7 @@ class PlateArray(Plate):
     plate_names : list
         Names of the plates, to be used in generated files.
     plate_n_rows, plate_n_cols : int, optional
-        Number of rows and columns in each plate.
+        Number of rows and columns in each plate. Defaults: 4 and 6.
     id_prefix : str, optional
         Prefix to be used for the ID that identifies each sample. Default:
         'S'.
@@ -756,11 +774,11 @@ class PlateArray(Plate):
         Volume of diluted preculture to inoculate in media. Only used if
         `cell_setup_method` is "fixed_volume".
     metadata : OrderedDict
-        A column in the samples table will be created for each ``(key,
-        value)`` pair in this dictionary. ``key`` will be the name of the
-        column, with all rows set to ``value``.
-    samples_table : DataFrame
-        Table containing information of all samples.
+        Additional information about the array, in a ``key: value`` format.
+        ClosedPlate instances returned by ``close_plates()`` will include
+        this information in their ``samples_table`` attribute. In them, a
+        column with name ``key`` will be created, and all rows will be
+        set to ``value``.
     inducers : OrderedDict
         Keys in this dictionary represent how each inducer is applied
         ("rows", "cols", "wells", "media"), and the values are lists of
@@ -780,8 +798,8 @@ class PlateArray(Plate):
         Add sheet with inducer pipetting instructions to specified workbook.
     add_cell_setup_instructions
         Add sheet with cell inoculation instructions to specified workbook.
-    update_samples_table
-        Update samples table.
+    close_plates
+        Get ``ClosedPlate`` objects with information of each well.
 
     """
     def __init__(self,
@@ -1005,7 +1023,24 @@ class PlateArray(Plate):
 
     def close_plates(self):
         """
-        Create ClosedPlate objects and fill their table of samples
+        Get ``ClosedPlate`` objects with information of each well.
+
+        The individual ``ClosedPlate`` instances contain information of all
+        final inducer concentrations, initial cell densities, and position
+        in the plate (row, colum) for each well in the plate, along with
+        plate name and metadata. All this info is calculated when calling
+        `close_plates()`, and will remain fixed even after modifying
+        inducers or other information in the ``PlateArray`` object.
+
+        Within an experiment workflow, this function is meant to be called
+        at the end of the Replicate Setup stage.
+
+        Return
+        ------
+        list
+            ``ClosedPlate`` instances with information about each sample.
+            The number of closed plates in this list is the number of
+            plates in the array, i.e., ``array_n_rows*array_n_cols``.
 
         """
         # Initialize dataframe with sample IDs
@@ -1113,6 +1148,55 @@ class PlateArray(Plate):
         return closed_plates
 
 class ClosedPlate(object):
+    """
+    Object that represents a closed plate.
+
+    This class represents a physical plate in which samples have been
+    inoculated with cells and inducers at the end of the Replicate Setup
+    stage. Information about each sample, including inducer concentrations,
+    are contained in the ``samples_table`` attribute. Because a
+    `ClosedPlate` object represents a plate after all pipetting has taken
+    place, its contents are not meant to be modified. The exceptions are
+    the ``location`` attribute, as the user decides where to place the
+    plate, and the IDs of ``samples_table``, which may need to be
+    regenerated to make a samples table with information of multiple
+    plates.
+
+    A `ClosedPlate` object is not meant to be created by a user. Rather,
+    the user is expected to design a plate experiment using classes
+    `Plate`, `PlateArray`, or any derived class.
+
+    Parameters
+    ----------
+    id_prefix : str
+        Prefix to be used for the ID that identifies each sample
+    id_offset : int
+        Offset from which to generate the ID that identifies each sample./
+    samples_table : DataFrame
+        Table containing information of all samples.
+
+    Attributes
+    ----------
+    name : str
+        Name of the plate. Extracted from the "Plate" column of
+        ``samples_table``. Read-only.
+    location : str
+        Name of the location in which the plate will be incubated.
+        Extracted and written into the "Location" column of
+        ``samples_table``.
+    id_prefix : str
+        Prefix to be used for the ID that identifies each sample.
+    id_offset : int
+        Offset from which to generate the ID that identifies each sample.
+    samples_table : DataFrame
+        Table containing information of all samples.
+
+    Methods
+    -------
+    update_ids
+        Update IDs in `samples_table` using `id_offset` and `id_prefix`.
+
+    """
     def __init__(self, id_prefix, id_offset, samples_table):
         # Store id prefix and offset
         self.id_prefix = id_prefix
@@ -1149,7 +1233,7 @@ class ClosedPlate(object):
 
     def update_ids(self):
         """
-        Update ids in samples table from id_offset and id_prefix
+        Update IDs in `samples_table` using `id_offset` and `id_prefix`.
 
         """
         # Recreate IDs
