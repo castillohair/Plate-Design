@@ -300,10 +300,6 @@ class Experiment(object):
             samples_table_columns = []
 
             for closed_plate in closed_plates:
-                # Set the plate offset from the number of samples so far
-                closed_plate.id_offset = len(samples_table)
-                # Update IDs in samples table
-                closed_plate.update_ids()
                 # The following is necessary to preserve the order of the
                 # columns when appending
                 for column in closed_plate.samples_table.columns:
@@ -313,6 +309,11 @@ class Experiment(object):
                 samples_table = samples_table.append(closed_plate.samples_table)
                 # Reorganize columns
                 samples_table = samples_table[samples_table_columns]
+
+            # Create ID column and set as the index
+            samples_table['ID'] = ['S{:04d}'.format(i+1)
+                                   for i in range(len(samples_table))]
+            samples_table.set_index('ID', inplace=True)
 
             # File name for replicate measurement file
             wb_rep_measurement_filename = os.path.join(

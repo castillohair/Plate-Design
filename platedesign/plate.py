@@ -46,12 +46,6 @@ class Plate(object):
         Name of the plate, to be used in generated files.
     n_rows, n_cols : int, optional
         Number of rows and columns in the plate. Defaults: 4 and 6.
-    id_prefix : str, optional
-        Prefix to be used for the ID that identifies each sample. Default:
-        'S'.
-    id_offset : int, optional
-        Offset from which to generate the ID that identifies each sample.
-        Default: 0 (no offset).
 
     Attributes
     ----------
@@ -59,10 +53,6 @@ class Plate(object):
         Name of the plate, to be used in generated files.
     n_rows, n_cols : int
         Number of rows and columns in the plate.
-    id_prefix : str
-        Prefix to be used for the ID that identifies each sample.
-    id_offset : int
-        Offset from which to generate the ID that identifies each sample.
     samples_to_measure : int
         Number of samples to be measured.
     sample_vol : float
@@ -121,17 +111,12 @@ class Plate(object):
     def __init__(self,
                  name,
                  n_rows=4,
-                 n_cols=6,
-                 id_prefix='S',
-                 id_offset=0):
+                 n_cols=6):
         # Store name
         self.name = name
         # Store dimensions
         self.n_rows = n_rows
         self.n_cols = n_cols
-        # Store ID modifiers for samples table
-        self.id_prefix = id_prefix
-        self.id_offset = id_offset
 
         # Measure all samples by default
         self.samples_to_measure = n_rows*n_cols
@@ -623,11 +608,7 @@ class Plate(object):
 
         """
         # Initialize samples table as a dataframe
-        ids = ['{}{:03d}'.format(self.id_prefix, i)
-               for i in range(self.id_offset + 1,
-                              self.n_rows*self.n_cols + self.id_offset + 1)]
-        samples_table = pandas.DataFrame({'ID': ids})
-        samples_table.set_index('ID', inplace=True)
+        samples_table = pandas.DataFrame(index=range(self.n_rows*self.n_cols))
 
         # Add plate metadata
         # The following try-catch block is needed to ensure compatibility with
@@ -701,9 +682,7 @@ class Plate(object):
                             inducer.doses_table[column].value
 
         # Create closed plate object
-        closed_plate = ClosedPlate(id_prefix = self.id_prefix,
-                                   id_offset = self.id_offset,
-                                   samples_table = samples_table)
+        closed_plate = ClosedPlate(samples_table=samples_table)
         closed_plates = [closed_plate]
 
         return closed_plates
@@ -730,12 +709,6 @@ class PlateArray(Plate):
         Names of the plates, to be used in generated files.
     plate_n_rows, plate_n_cols : int, optional
         Number of rows and columns in each plate. Defaults: 4 and 6.
-    id_prefix : str, optional
-        Prefix to be used for the ID that identifies each sample. Default:
-        'S'.
-    id_offset : int, optional
-        Offset from which to generate the ID that identifies each sample.
-        Default: 0 (no offset).
 
     Attributes
     ----------
@@ -749,10 +722,6 @@ class PlateArray(Plate):
         Number of rows and columns in each plate.        
     n_rows, n_cols : int
         Total number of rows and columns in the plate array.
-    id_prefix : str
-        Prefix to be used for the ID that identifies each sample.
-    id_offset : int
-        Offset from which to generate the ID that identifies each sample.
     samples_to_measure : int
         Number of samples to be measured.
     sample_vol : float
@@ -823,10 +792,6 @@ class PlateArray(Plate):
             raise ValueError("plate_names should have {} elements".format(
                 array_n_rows*array_n_cols))
         self.plate_names = plate_names
-        # Mea
-        # Store ID modifiers for samples table
-        self.id_prefix = id_prefix
-        self.id_offset = id_offset
 
         # Measure all samples by default
         self.samples_to_measure = self.n_rows*self.n_cols
@@ -1043,12 +1008,9 @@ class PlateArray(Plate):
             plates in the array, i.e., ``array_n_rows*array_n_cols``.
 
         """
-        # Initialize dataframe with sample IDs
-        ids = ['{}{:03d}'.format(self.id_prefix, i)
-               for i in range(self.id_offset + 1,
-                              self.n_rows*self.n_cols + self.id_offset + 1)]
-        samples_table = pandas.DataFrame({'ID': ids})
-        samples_table.set_index('ID', inplace=True)
+        # Initialize samples table as a dataframe
+        samples_table = pandas.DataFrame(index=range(self.n_rows*self.n_cols))
+
         # Add metadata
         # The following try-catch block is needed to ensure compatibility with
         # both python2 and python3.
@@ -1136,13 +1098,8 @@ class PlateArray(Plate):
                 plate_name = self.plate_names[i*self.array_n_cols + j]
                 plate_samples_table = \
                     samples_table[samples_table['Plate']==plate_name]
-                # Extract id info directly from index
-                plate_id_prefix = plate_samples_table.index[0][:-3]
-                plate_id_offset = int(plate_samples_table.index[0][-3:])
                 # Create closed plate
-                closed_plate = ClosedPlate(id_prefix=plate_id_prefix,
-                                           id_offset=plate_id_offset,
-                                           samples_table=plate_samples_table)
+                closed_plate = ClosedPlate(samples_table=plate_samples_table)
                 closed_plates.append(closed_plate)
 
         return closed_plates
@@ -1156,11 +1113,8 @@ class ClosedPlate(object):
     stage. Information about each sample, including inducer concentrations,
     are contained in the ``samples_table`` attribute. Because a
     `ClosedPlate` object represents a plate after all pipetting has taken
-    place, its contents are not meant to be modified. The exceptions are
-    the ``location`` attribute, as the user decides where to place the
-    plate, and the IDs of ``samples_table``, which may need to be
-    regenerated to make a samples table with information of multiple
-    plates.
+    place, its contents are not meant to be modified. The exception is the
+    ``location`` attribute, as the user decides where to place the plate.
 
     A `ClosedPlate` object is not meant to be created by a user. Rather,
     the user is expected to design a plate experiment using classes
@@ -1168,10 +1122,6 @@ class ClosedPlate(object):
 
     Parameters
     ----------
-    id_prefix : str
-        Prefix to be used for the ID that identifies each sample
-    id_offset : int
-        Offset from which to generate the ID that identifies each sample./
     samples_table : DataFrame
         Table containing information of all samples.
 
@@ -1184,23 +1134,11 @@ class ClosedPlate(object):
         Name of the location in which the plate will be incubated.
         Extracted and written into the "Location" column of
         ``samples_table``.
-    id_prefix : str
-        Prefix to be used for the ID that identifies each sample.
-    id_offset : int
-        Offset from which to generate the ID that identifies each sample.
     samples_table : DataFrame
         Table containing information of all samples.
 
-    Methods
-    -------
-    update_ids
-        Update IDs in `samples_table` using `id_offset` and `id_prefix`.
-
     """
-    def __init__(self, id_prefix, id_offset, samples_table):
-        # Store id prefix and offset
-        self.id_prefix = id_prefix
-        self.id_offset = id_offset
+    def __init__(self, samples_table):
         # Sanity checks on samples table
         plate_name = samples_table.iloc[0]['Plate']
         if not (samples_table['Plate']==plate_name).all():
@@ -1230,14 +1168,3 @@ class ClosedPlate(object):
     @location.setter
     def location(self, value):
         self.samples_table['Location'] = value
-
-    def update_ids(self):
-        """
-        Update IDs in `samples_table` using `id_offset` and `id_prefix`.
-
-        """
-        # Recreate IDs
-        ids = ['{}{:03d}'.format(self.id_prefix, i)
-               for i in range(self.id_offset + 1,
-                              len(self.samples_table) + self.id_offset + 1)]
-        self.samples_table.index = ids
