@@ -55,10 +55,10 @@ class Plate(object):
         Number of rows and columns in the plate.
     samples_to_measure : int
         Number of samples to be measured.
-    sample_vol : float
+    sample_media_vol : float
         Volume of media per sample (well).
-    media_vol : float
-        Starting total volume of media, to be added to the plate.
+    total_media_vol : float
+        Starting total volume of media, to be distributed into wells.
     cell_strain_name : str
         Name of the cell strain to be inoculated in this plate.
     cell_setup_method : {None, 'fixed_volume', 'fixed_od600'}
@@ -105,7 +105,7 @@ class Plate(object):
     save_rep_setup_files
         Save additional files required for the Replicate Setup stage.
     close_plates
-        Get ``ClosedPlate`` objects with information of each well.
+        Generate a ``ClosedPlate`` object using this plate's information.
 
     """
     def __init__(self,
@@ -120,9 +120,9 @@ class Plate(object):
 
         # Measure all samples by default
         self.samples_to_measure = n_rows*n_cols
-        # Initialize sample and media volumes
-        self.sample_vol = None
-        self.media_vol = None
+        # Initialize sample and total media volumes
+        self.sample_media_vol = None
+        self.total_media_vol = None
 
         # Initialize parameters for cell setup
         self.cell_strain_name = None
@@ -151,6 +151,12 @@ class Plate(object):
             beginning of the replicate setup stage.
 
         """
+        # Check for the presence of required attributes
+        if self.sample_media_vol is None:
+            raise AttributeError("sample_media_vol should be set")
+        if self.total_media_vol is None:
+            raise AttributeError("total_media_vol should be set")
+
         # Check "apply_to" input
         if apply_to not in ['rows', 'cols', 'wells', 'media']:
             raise ValueError('"{}"" not recognized'.format(apply_to))
@@ -162,9 +168,9 @@ class Plate(object):
 
         # Calculate number of samples to apply
         if apply_to in ['rows', 'cols', 'wells']:
-            return self.sample_vol
+            return self.sample_media_vol
         elif apply_to=='media':
-            return self.media_vol
+            return self.total_media_vol
 
     def apply_inducer_n_shots(self, apply_to):
         """
@@ -489,11 +495,11 @@ class Plate(object):
 
                 worksheet.cell(row=9, column=1).value = "Predilution volume"
                 worksheet.cell(row=9, column=2).value = "={}/B6".format(
-                    self.media_vol*self.cell_initial_od600)
+                    self.total_media_vol*self.cell_initial_od600)
                 worksheet.cell(row=9, column=3).value = "µL"
 
                 worksheet.cell(row=10, column=1).value = \
-                    "Add into {:.0f}mL media, ".format(self.media_vol/1000.) + \
+                    "Add into {:.0f}mL media, ".format(self.total_media_vol/1000.) + \
                     "and distribute into plate wells."
             else:
                 worksheet.cell(row=2, column=1).value = "Preculture OD600"
@@ -504,11 +510,11 @@ class Plate(object):
 
                 worksheet.cell(row=4, column=1).value = "Predilution volume"
                 worksheet.cell(row=4, column=2).value = "={}/B2".format(
-                    self.media_vol*self.cell_initial_od600)
+                    self.total_media_vol*self.cell_initial_od600)
                 worksheet.cell(row=4, column=3).value = "µL"
 
                 worksheet.cell(row=5, column=1).value = \
-                    "Add into {:.0f}mL media, ".format(self.media_vol/1000.) + \
+                    "Add into {:.0f}mL media, ".format(self.total_media_vol/1000.) + \
                     "and distribute into plate wells."
 
         elif self.cell_setup_method=='fixed_volume':
@@ -558,7 +564,7 @@ class Plate(object):
                 worksheet.cell(row=7, column=3).value = "µL"
 
                 worksheet.cell(row=8, column=1).value = \
-                    "Add into {:.0f}mL media, ".format(self.media_vol/1000.) + \
+                    "Add into {:.0f}mL media, ".format(self.total_media_vol/1000.) + \
                     "and distribute into plate wells."
             else:
                 # Instructions for inoculating into plate media
@@ -567,7 +573,7 @@ class Plate(object):
                 worksheet.cell(row=2, column=3).value = "µL"
 
                 worksheet.cell(row=3, column=1).value = \
-                    "Add into {:.0f}mL media, ".format(self.media_vol/1000.) + \
+                    "Add into {:.0f}mL media, ".format(self.total_media_vol/1000.) + \
                     "and distribute into plate wells."
         else:
             raise ValueError("cell setup method {} not recognized".format(
@@ -587,12 +593,12 @@ class Plate(object):
 
     def close_plates(self):
         """
-        Get ``ClosedPlate`` objects with information of each well.
+        Generate a ``ClosedPlate`` object using this plate's information.
 
-        The individual ``ClosedPlate`` instances contain information of all
-        final inducer concentrations, initial cell densities, and position
-        in the plate (row, colum) for each well in the plate, along with
-        plate name and metadata. All this info is calculated when calling
+        The individual ``ClosedPlate`` instances contain general plate
+        information such as plate name, dimensions, cell inoculation
+        conditions, and metadata, as well as well-specific information such
+        as inducer concentrations. All this info is generated when calling
         `close_plates()`, and will remain fixed even after modifying
         inducers or other information in the ``Plate`` object.
 
@@ -607,10 +613,19 @@ class Plate(object):
             ``Plate`` represents a single plate.
 
         """
-        # Initialize samples table as a dataframe
-        samples_table = pandas.DataFrame(index=range(self.n_rows*self.n_cols))
+        # Prepare plate info
+        plate_info = collections.OrderedDict()
 
-        # Add plate metadata
+        # Add cell info
+        plate_info['Strain'] = self.cell_strain_name
+        if self.cell_setup_method=='fixed_od600':
+            plate_info['Cell Predilution'] = self.cell_predilution
+            plate_info['Initial OD600'] = self.cell_initial_od600
+        elif self.cell_setup_method=='fixed_volume':
+            plate_info['Cell Predilution'] = self.cell_predilution
+            plate_info['Cell Inoculated Vol.'] = self.cell_shot_vol
+
+        # Add additional plate metadata
         # The following try-catch block is needed to ensure compatibility with
         # both python2 and python3.
         try:
@@ -618,34 +633,13 @@ class Plate(object):
         except AttributeError:
             items = self.metadata.items()
         for k, v in items:
-            samples_table[k] = v
+            plate_info[k] = v
 
-        # Add plate name, row and column number for each sample
-        samples_table['Plate'] = self.name
-        # Add row and column numbers
-        samples_table['Row'] = numpy.nan
-        samples_table['Column'] = numpy.nan
-        for i in range(self.n_rows):
-            for j in range(self.n_cols):
-                samples_table.set_value(
-                    samples_table.index[i*self.n_cols + j],
-                    'Row',
-                    i + 1)
-                samples_table.set_value(
-                    samples_table.index[i*self.n_cols + j],
-                    'Column',
-                    j + 1)
-        # Only preserve table rows that will be measured
-        samples_table = samples_table.iloc[:self.samples_to_measure]
-
-        # Add cell info
-        samples_table['Strain'] = self.cell_strain_name
-        if self.cell_setup_method=='fixed_od600':
-            samples_table['Cell Predilution'] = self.cell_predilution
-            samples_table['Initial OD600'] = self.cell_initial_od600
-        elif self.cell_setup_method=='fixed_volume':
-            samples_table['Cell Predilution'] = self.cell_predilution
-            samples_table['Cell Inoculated Vol.'] = self.cell_shot_vol
+        # Prepare well info
+        well_info = pandas.DataFrame(index=range(self.n_rows*self.n_cols))
+        # Make boolean array indicating which samples should be measured
+        samples_to_measure_bool = (numpy.arange(self.n_rows*self.n_cols) < \
+            self.samples_to_measure)
 
         # Add inducer info
         # The following try-catch block is needed to ensure compatibility with
@@ -660,32 +654,38 @@ class Plate(object):
                     for column in inducer.doses_table.columns:
                         for i in range(self.n_rows):
                             for j in range(self.n_cols):
-                                samples_table.set_value(
-                                    samples_table.index[i*self.n_cols + j],
+                                well_info.set_value(
+                                    well_info.index[i*self.n_cols + j],
                                     column,
                                     inducer.doses_table.iloc[j][column])
                 elif apply_to=='cols':
                     for column in inducer.doses_table.columns:
                         for i in range(self.n_rows):
                             for j in range(self.n_cols):
-                                samples_table.set_value(
-                                    samples_table.index[i*self.n_cols + j],
+                                well_info.set_value(
+                                    well_info.index[i*self.n_cols + j],
                                     column,
                                     inducer.doses_table.iloc[i][column])
                 elif apply_to=='wells':
                     for column in inducer.doses_table.columns:
-                        samples_table[column] = \
+                        well_info.loc[samples_to_measure_bool, column] = \
                             inducer.doses_table[column].values
                 elif apply_to=='media':
                     for column in inducer.doses_table.columns:
-                        samples_table[column] = \
+                        well_info[column] = \
                             inducer.doses_table[column].value
 
-        # Create closed plate object
-        closed_plate = ClosedPlate(samples_table=samples_table)
-        closed_plates = [closed_plate]
+        # Add which wells should be measured
+        well_info['Measure'] = samples_to_measure_bool
 
-        return closed_plates
+        # Create closed plate object
+        closed_plate = ClosedPlate(name=self.name,
+                                   n_rows=self.n_rows,
+                                   n_cols=self.n_cols,
+                                   plate_info=plate_info,
+                                   well_info=well_info)
+
+        return [closed_plate]
 
 class PlateArray(Plate):
     """
@@ -724,10 +724,10 @@ class PlateArray(Plate):
         Total number of rows and columns in the plate array.
     samples_to_measure : int
         Number of samples to be measured.
-    sample_vol : float
+    sample_media_vol : float
         Volume of media per sample (well).
-    media_vol : float
-        Starting total volume of media, to be added to the plate.
+    total_media_vol : float
+        Starting total volume of media, to be distributed into wells.
     cell_strain_name : str
         Name of the cell strain to be inoculated in this plate.
     cell_setup_method : {None, 'fixed_volume', 'fixed_od600'}
@@ -768,7 +768,7 @@ class PlateArray(Plate):
     add_cell_setup_instructions
         Add sheet with cell inoculation instructions to specified workbook.
     close_plates
-        Get ``ClosedPlate`` objects with information of each well.
+        Generate ``ClosedPlate`` objects for each plate in the array.
 
     """
     def __init__(self,
@@ -795,9 +795,9 @@ class PlateArray(Plate):
 
         # Measure all samples by default
         self.samples_to_measure = self.n_rows*self.n_cols
-        # Initialize sample and media volumes
-        self.sample_vol = None
-        self.media_vol = None
+        # Initialize sample and total media volumes
+        self.sample_media_vol = None
+        self.total_media_vol = None
 
         # Initialize parameters for cell setup
         self.cell_strain_name = None
@@ -988,12 +988,12 @@ class PlateArray(Plate):
 
     def close_plates(self):
         """
-        Get ``ClosedPlate`` objects with information of each well.
+        Generate ``ClosedPlate`` objects for each plate in the array.
 
-        The individual ``ClosedPlate`` instances contain information of all
-        final inducer concentrations, initial cell densities, and position
-        in the plate (row, colum) for each well in the plate, along with
-        plate name and metadata. All this info is calculated when calling
+        The individual ``ClosedPlate`` instances contain general plate
+        information such as plate name, dimensions, cell inoculation
+        conditions, and metadata, as well as well-specific information such
+        as inducer concentrations. All this info is generated when calling
         `close_plates()`, and will remain fixed even after modifying
         inducers or other information in the ``PlateArray`` object.
 
@@ -1005,13 +1005,26 @@ class PlateArray(Plate):
         list
             ``ClosedPlate`` instances with information about each sample.
             The number of closed plates in this list is the number of
-            plates in the array, i.e., ``array_n_rows*array_n_cols``.
+            plates in the array, i.e., ``array_n_rows * array_n_cols``.
 
         """
-        # Initialize samples table as a dataframe
-        samples_table = pandas.DataFrame(index=range(self.n_rows*self.n_cols))
+        # Prepare plate info
+        # Plate info will be the same on all plates, so it can be made once.
+        plate_info = collections.OrderedDict()
 
-        # Add metadata
+        # Add plate array name
+        plate_info["Plate Array"] = self.name
+
+        # Add cell info
+        plate_info['Strain'] = self.cell_strain_name
+        if self.cell_setup_method=='fixed_od600':
+            plate_info['Cell Predilution'] = self.cell_predilution
+            plate_info['Initial OD600'] = self.cell_initial_od600
+        elif self.cell_setup_method=='fixed_volume':
+            plate_info['Cell Predilution'] = self.cell_predilution
+            plate_info['Cell Inoculated Vol.'] = self.cell_shot_vol
+
+        # Add additional plate metadata
         # The following try-catch block is needed to ensure compatibility with
         # both python2 and python3.
         try:
@@ -1019,42 +1032,22 @@ class PlateArray(Plate):
         except AttributeError:
             items = self.metadata.items()
         for k, v in items:
-            samples_table[k] = v
-        # Add plate array name
-        samples_table["Plate Array"] = self.name
-        # Add plate name, and row and column numbers
-        samples_table['Plate'] = ''
-        samples_table['Row'] = numpy.nan
-        samples_table['Column'] = numpy.nan
-        samples_table_idx = 0
-        for i in range(self.array_n_rows):
-            for j in range(self.array_n_cols):
-                for k in range(self.plate_n_rows):
-                    for l in range(self.plate_n_cols):
-                        samples_table.set_value(
-                            samples_table.index[samples_table_idx],
-                            'Plate',
-                            self.plate_names[i*self.array_n_cols + j])
-                        samples_table.set_value(
-                            samples_table.index[samples_table_idx],
-                            'Row',
-                            k + 1)
-                        samples_table.set_value(
-                            samples_table.index[samples_table_idx],
-                            'Column',
-                            l + 1)
-                        samples_table_idx += 1
-        # Only preserve table rows that will be measured
-        samples_table = samples_table.iloc[:self.samples_to_measure]
+            plate_info[k] = v
 
-        # Add cell info
-        samples_table['Strain'] = self.cell_strain_name
-        if self.cell_setup_method=='fixed_od600':
-            samples_table['Cell Predilution'] = self.cell_predilution
-            samples_table['Initial OD600'] = self.cell_initial_od600
-        elif self.cell_setup_method=='fixed_volume':
-            samples_table['Cell Predilution'] = self.cell_predilution
-            samples_table['Cell Inoculated Vol.'] = self.cell_shot_vol
+        # Prepare well info
+        # Well info will be prepared for all the wells in the array. Later,
+        # wells corresponding to each individual plate will be separated.
+        # For this to be possible, two additional columns with the plate
+        # position in the array will be added.
+        well_info_array = pandas.DataFrame(index=range(self.n_rows*self.n_cols))
+        well_info_array['Array Row'] = (numpy.repeat(numpy.arange(self.n_rows),
+            self.n_cols) // self.plate_n_rows) + 1
+        well_info_array['Array Column'] = (numpy.tile(numpy.arange(self.n_cols),
+            self.n_rows) // self.plate_n_cols) + 1
+
+        # Make boolean array indicating which samples should be measured
+        samples_to_measure_bool = (numpy.arange(self.n_rows*self.n_cols) < \
+            self.samples_to_measure)
 
         # Add inducer info
         # The following try-catch block is needed to ensure compatibility with
@@ -1069,37 +1062,50 @@ class PlateArray(Plate):
                     for column in inducer.doses_table.columns:
                         for i in range(self.n_rows):
                             for j in range(self.n_cols):
-                                samples_table.set_value(
-                                    samples_table.index[i*self.n_cols + j],
+                                well_info_array.set_value(
+                                    well_info_array.index[i*self.n_cols + j],
                                     column,
                                     inducer.doses_table.iloc[j][column])
                 elif apply_to=='cols':
                     for column in inducer.doses_table.columns:
                         for i in range(self.n_rows):
                             for j in range(self.n_cols):
-                                samples_table.set_value(
-                                    samples_table.index[i*self.n_cols + j],
+                                well_info_array.set_value(
+                                    well_info_array.index[i*self.n_cols + j],
                                     column,
                                     inducer.doses_table.iloc[i][column])
                 elif apply_to=='wells':
                     for column in inducer.doses_table.columns:
-                        samples_table[column] = \
+                        well_info_array.loc[samples_to_measure_bool, column] = \
                             inducer.doses_table[column].values
                 elif apply_to=='media':
                     for column in inducer.doses_table.columns:
-                        samples_table[column] = \
+                        well_info_array[column] = \
                             inducer.doses_table[column].value
+
+        # Add which wells should be measured
+        well_info_array['Measure'] = samples_to_measure_bool
 
         # Create closed plate objects
         closed_plates = []
         for i in range(self.array_n_rows):
             for j in range(self.array_n_cols):
-                # Filter samples table using the plate name
+                # Get plate name
                 plate_name = self.plate_names[i*self.array_n_cols + j]
-                plate_samples_table = \
-                    samples_table[samples_table['Plate']==plate_name]
+                # Filter well info
+                well_info = well_info_array[(well_info_array['Array Row']==i+1)\
+                                       & (well_info_array['Array Column']==j+1)]
+                # Drop columns "Array Row" and "Array Column"
+                well_info = well_info.drop('Array Row', axis=1)
+                well_info = well_info.drop('Array Column', axis=1)
+                # Reset index
+                well_info.reset_index(drop=True, inplace=True)
                 # Create closed plate
-                closed_plate = ClosedPlate(samples_table=plate_samples_table)
+                closed_plate = ClosedPlate(name=plate_name,
+                                   n_rows=self.plate_n_rows,
+                                   n_cols=self.plate_n_cols,
+                                   plate_info=plate_info,
+                                   well_info=well_info)
                 closed_plates.append(closed_plate)
 
         return closed_plates
@@ -1110,11 +1116,11 @@ class ClosedPlate(object):
 
     This class represents a physical plate in which samples have been
     inoculated with cells and inducers at the end of the Replicate Setup
-    stage. Information about each sample, including inducer concentrations,
-    are contained in the ``samples_table`` attribute. Because a
-    `ClosedPlate` object represents a plate after all pipetting has taken
-    place, its contents are not meant to be modified. The exception is the
-    ``location`` attribute, as the user decides where to place the plate.
+    stage. General information about the plate (e.g. name, dimensions,
+    other metadata) and well-specific information (e.g. inducer
+    concentrations) are retained here. Because a `ClosedPlate` object
+    represents a plate after all pipetting has taken place, its contents
+    are not meant to be modified.
 
     A `ClosedPlate` object is not meant to be created by a user. Rather,
     the user is expected to design a plate experiment using classes
@@ -1122,49 +1128,106 @@ class ClosedPlate(object):
 
     Parameters
     ----------
-    samples_table : DataFrame
-        Table containing information of all samples.
+    name : str
+        Name of the plate.
+    n_rows, n_cols : int, optional
+        Number of rows and columns in the plate. Defaults: 4 and 6.
+    plate_info : dict, optional
+        General information about the plate, in a ``key:value`` format.
+    well_info : DataFrame, optional
+        Information about each well in the plate. Should have ``n_rows *
+        n_cols`` rows.
 
     Attributes
     ----------
     name : str
-        Name of the plate. Extracted from the "Plate" column of
-        ``samples_table``. Read-only.
-    location : str
-        Name of the location in which the plate will be incubated.
-        Extracted and written into the "Location" column of
-        ``samples_table``.
+        Name of the plate.
+    n_rows, n_cols : int
+        Number of rows and columns in the plate
+    plate_info : dict
+        General information about the plate, in a ``key:value`` format.
+    well_info : DataFrame
+        Information about each well in the plate
     samples_table : DataFrame
-        Table containing information of all samples.
+        Table with full information about each well in the plate, to be
+        used in the Replicate Measurement stage. This table is calculated
+        from all the other attributes upon object creation. If any
+        attribute is modified, changes will not be reflected in
+        `samples_table` unless the method `update_samples_table()` is
+        called. `samples_table` contains one row per well in the plate. In
+        it, the well position is indicated, and the plate name and all
+        ``key:value`` pairs in `plate_info` are repeated in all rows. All
+        the contents in `well_info` are copied into `samples_table` without
+        modification.
+
+    Methods
+    -------
+    update_samples_table
+        Updates `samples_table` from all other attributes.
 
     """
-    def __init__(self, samples_table):
-        # Sanity checks on samples table
-        plate_name = samples_table.iloc[0]['Plate']
-        if not (samples_table['Plate']==plate_name).all():
-            raise ValueError('values of "Plate" column should be identical')
+    def __init__(self,
+                 name,
+                 n_rows=4,
+                 n_cols=6,
+                 plate_info=None,
+                 well_info=None):
+        # Store name
+        self.name = name
+        # Store dimensions
+        self.n_rows = n_rows
+        self.n_cols = n_cols
+
+        # Check that well info has proper length
+        if (len(well_info) is not None) and \
+                (len(well_info)!=self.n_rows*self.n_cols):
+            raise ValueError('number of rows in well_info does not match plate '
+                'dimensions')
+
+        # Store well and plate info
+        self.well_info = well_info
+        self.plate_info = plate_info
+
+        # The following initializes the samples table from current information
+        self.update_samples_table()
+
+    def update_samples_table(self):
+        """
+        Updates `samples_table` from all other attributes.
+
+        """
+        # Initialize samples table as a DataFrame
+        samples_table = pandas.DataFrame(index=range(self.n_rows*self.n_cols))
+
+        # Add plate name
+        samples_table['Plate'] = self.name
+
+        # Add plate information
+        if self.plate_info is not None:
+            # The following try-catch block is needed to ensure compatibility with
+            # both python2 and python3.
+            try:
+                items = self.plate_info.iteritems()
+            except AttributeError:
+                items = self.plate_info.items()
+            for k, v in items:
+                samples_table[k] = v
+
+        # Add row and column numbers
+        samples_table['Row'] = numpy.repeat(numpy.arange(self.n_rows) + 1,
+            self.n_cols)
+        samples_table['Column'] = numpy.tile(numpy.arange(self.n_cols) + 1,
+            self.n_rows)
+
+        # Add well information
+        if self.well_info is not None:
+            # Check proper dimensions first
+            if (len(self.well_info) != self.n_rows*self.n_cols):
+                raise ValueError('number of rows in well_info does not match '
+                    'plate dimensions')
+            # Add information
+            samples_table = pandas.concat([samples_table, self.well_info],
+                                          axis=1)
+
         # Save samples table
         self.samples_table = samples_table
-
-    @property
-    def name(self):
-        """
-        Plate name.
-
-        """
-        return self.samples_table.iloc[0]['Plate']
-
-    @property
-    def location(self):
-        """
-        Name of assigned location. Returns None if location not set.
-
-        """
-        if 'Location' in self.samples_table.columns:
-            return self.samples_table.iloc[0]['Location']
-        else:
-            return None
-
-    @location.setter
-    def location(self, value):
-        self.samples_table['Location'] = value
