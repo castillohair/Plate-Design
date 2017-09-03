@@ -47,7 +47,7 @@ exp.add_inducer(xyl)
 plate = platedesign.plate.Plate('P9', n_rows=4, n_cols=6)
 plate.cell_strain_name = 'Autofluorescence Control Strain'
 plate.samples_to_measure = 4
-plate.media_vol = 16000.
+plate.total_media_vol = 16000.
 exp.add_plate(plate)
 
 # Plate array
@@ -59,14 +59,14 @@ platearray = platedesign.plate.PlateArray(
     plate_n_rows=4,
     plate_n_cols=6)
 platearray.cell_strain_name = 'Test Strain 1'
-platearray.media_vol = 16000.*8
+platearray.total_media_vol = 16000.*8
 platearray.apply_inducer(inducer=xyl, apply_to='rows')
 platearray.apply_inducer(inducer=iptg, apply_to='cols')
 exp.add_plate(platearray)
 
 # Add common settings to plates
 for plate in exp.plates:
-    plate.sample_vol = 500.
+    plate.sample_media_vol = 500.
     plate.cell_setup_method = 'fixed_od600'
     plate.cell_predilution = 100
     plate.cell_predilution_vol = 1000
