@@ -60,8 +60,8 @@ exp.add_plate(plate)
 
 # Add common settings to plates
 for plate in exp.plates:
-    plate.media_vol = 16000.
-    plate.sample_vol = 500.
+    plate.total_media_vol = 16000.
+    plate.sample_media_vol = 500.
     plate.cell_setup_method = 'fixed_od600'
     plate.cell_predilution = 100
     plate.cell_predilution_vol = 1000

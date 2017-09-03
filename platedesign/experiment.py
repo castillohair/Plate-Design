@@ -24,8 +24,7 @@ class Experiment(object):
 
     Setting up a plate experiment is performed in several stages:
         - Experiment setup: Inducers and plates are prepared and stored.
-          Media is prepared if necessary. No cells are cultured during this
-          stage.
+          No cells are cultured during this stage.
         - Replicate setup: Plates are set up with the indicated amount of
           of inducer, inoculated with cells, and placed under growth
           conditions (optionally in distinct named locations) for a
@@ -253,7 +252,7 @@ class Experiment(object):
                     raise ValueError('Not enough locations specified for '
                         'plates.')
                 for closed_plate_idx, closed_plate in enumerate(closed_plates):
-                    closed_plate.location = \
+                    closed_plate.plate_info['Location'] = \
                         self.plate_locations[closed_plate_idx]
 
             # Generate and save replicate setup information
@@ -267,8 +266,9 @@ class Experiment(object):
             if self.plate_locations:
                 # Generate table
                 locations_table = pandas.DataFrame()
-                locations_table['Plate']=[p.name for p in closed_plates]
-                locations_table['Location']=[p.location for p in closed_plates]
+                locations_table['Plate'] = [p.name for p in closed_plates]
+                locations_table['Location'] = [p.plate_info['Location']
+                                               for p in closed_plates]
                 # Generate pandas writer and reassign workbook
                 writer = pandas.ExcelWriter('temp', engine='openpyxl')
                 writer.book = wb_rep_setup
@@ -300,13 +300,20 @@ class Experiment(object):
             samples_table_columns = []
 
             for closed_plate in closed_plates:
+                # Update and extract samples table from plate, and eliminate
+                # samples that should not be measured
+                closed_plate.update_samples_table()
+                plate_table = closed_plate.samples_table.copy()
+                if 'Measure' in plate_table.columns:
+                    plate_table = plate_table[plate_table['Measure']]
+                    plate_table.drop('Measure', axis=1, inplace=True)
                 # The following is necessary to preserve the order of the
                 # columns when appending
-                for column in closed_plate.samples_table.columns:
+                for column in plate_table.columns:
                     if column not in samples_table_columns:
                         samples_table_columns.append(column)
                 # Append plate's samples table to samples table
-                samples_table = samples_table.append(closed_plate.samples_table)
+                samples_table = samples_table.append(plate_table)
                 # Reorganize columns
                 samples_table = samples_table[samples_table_columns]
 
