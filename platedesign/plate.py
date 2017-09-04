@@ -254,12 +254,17 @@ class Plate(object):
         Parameters
         ----------
         file_name : str, optional
-            Name of the Excel file to save.
+            Name of the Excel file to save. Either this or `workbook`
+            should not be None.
         workbook : Workbook, optional
             If not None, `file_name` is ignored, and a sheet with the
-            instructions is directly added to workbook `workbook`.
+            instructions is directly added to workbook `workbook`. Either
+            this or `file_name` should not be None.
 
         """
+        if (file_name is None) and (workbook is None):
+            raise ValueError('either file_name or workbook should be specified')
+
         pass
 
     def save_exp_setup_files(self, path='.'):
@@ -291,6 +296,9 @@ class Plate(object):
             instructions is directly added to workbook `workbook`.
 
         """
+        if (file_name is None) and (workbook is None):
+            raise ValueError('either file_name or workbook should be specified')
+
         # Create workbook if not provided
         if workbook is None:
             # Create and remove empty sheet created by default
@@ -1179,7 +1187,7 @@ class ClosedPlate(object):
         self.n_cols = n_cols
 
         # Check that well info has proper length
-        if (len(well_info) is not None) and \
+        if (well_info is not None) and \
                 (len(well_info)!=self.n_rows*self.n_cols):
             raise ValueError('number of rows in well_info does not match plate '
                 'dimensions')
@@ -1204,8 +1212,8 @@ class ClosedPlate(object):
 
         # Add plate information
         if self.plate_info is not None:
-            # The following try-catch block is needed to ensure compatibility with
-            # both python2 and python3.
+            # The following try-catch block is needed to ensure compatibility
+            # with both python2 and python3.
             try:
                 items = self.plate_info.iteritems()
             except AttributeError:
