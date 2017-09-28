@@ -318,6 +318,8 @@ class Plate(object):
 
         # Save
         if save_workbook:
+            if not workbook.sheetnames:
+                workbook.create_sheet("Sheet 1")
             workbook.save(filename=file_name)
 
     def add_inducer_setup_instructions(self, workbook, sheet_name):
@@ -335,6 +337,11 @@ class Plate(object):
             Name to give to the new sheet.
 
         """
+        # Check that a sheet with the specified name doesn't exist
+        if sheet_name in [ws.title for ws in workbook.worksheets]:
+            raise ValueError("sheet \"{}\"already present in workbook".\
+                format(sheet_name))
+
         # Get only inducers that have ``shot_vol``
         inducers_rows = [ind
                          for ind in self.inducers['rows']
@@ -353,11 +360,6 @@ class Plate(object):
         if not(inducers_rows or inducers_cols or \
                 inducers_wells or inducers_media):
             return
-
-        # Check that a sheet with the specified name doesn't exist
-        if sheet_name in [ws.title for ws in workbook.worksheets]:
-            raise ValueError("sheet \"{}\"already present in workbook".\
-                format(sheet_name))
 
         # Only "wells" or "media" supported if not measuring full plate
         if (self.samples_to_measure != self.n_cols*self.n_rows) and \
@@ -454,6 +456,9 @@ class Plate(object):
         worksheet = workbook.create_sheet(title=sheet_name)
         # Add setup instructions
         if self.cell_setup_method=='fixed_od600':
+            # Check if initial od600 has been specified
+            if self.cell_initial_od600 is None:
+                raise ValueError("cell initial OD600 should be specified")
             # Set width
             worksheet.column_dimensions['A'].width = 22
             worksheet.column_dimensions['B'].width = 7
@@ -462,6 +467,10 @@ class Plate(object):
             worksheet.cell(row=1, column=1).value = "Strain Name"
             worksheet.cell(row=1, column=2).value = self.cell_strain_name
             if self.cell_predilution != 1:
+                # Check if predilution volume has been specified
+                if self.cell_predilution_vol is None:
+                    raise ValueError("cell predilution volume should be "
+                        "specified")
                 # Instructions for making predilution
                 worksheet.cell(row=2, column=1).value = "Predilution"
                 worksheet.cell(row=2, column=1).alignment = header_alignment
@@ -475,13 +484,13 @@ class Plate(object):
                 worksheet.cell(row=3, column=2).value = self.cell_predilution
                 worksheet.cell(row=3, column=3).value = "x"
 
-                media_vol = self.cell_predilution_vol / \
+                cell_vol = self.cell_predilution_vol / \
                     float(self.cell_predilution)
+                media_vol = self.cell_predilution_vol - cell_vol
                 worksheet.cell(row=4, column=1).value = "Media volume"
                 worksheet.cell(row=4, column=2).value = media_vol
                 worksheet.cell(row=4, column=3).value = "µL"
 
-                cell_vol = self.cell_predilution_vol - media_vol
                 worksheet.cell(row=5, column=1).value = "Preculture volume"
                 worksheet.cell(row=5, column=2).value = cell_vol
                 worksheet.cell(row=5, column=3).value = "µL"
@@ -507,7 +516,7 @@ class Plate(object):
                 worksheet.cell(row=9, column=3).value = "µL"
 
                 worksheet.cell(row=10, column=1).value = \
-                    "Add into {:.0f}mL media, ".format(self.total_media_vol/1000.) + \
+                    "Add into {:.2f}mL media, ".format(self.total_media_vol/1000.) + \
                     "and distribute into plate wells."
             else:
                 worksheet.cell(row=2, column=1).value = "Preculture OD600"
@@ -516,16 +525,19 @@ class Plate(object):
                 worksheet.cell(row=3, column=1).value = "Target OD600"
                 worksheet.cell(row=3, column=2).value = self.cell_initial_od600
 
-                worksheet.cell(row=4, column=1).value = "Predilution volume"
+                worksheet.cell(row=4, column=1).value = "Preculture volume"
                 worksheet.cell(row=4, column=2).value = "={}/B2".format(
                     self.total_media_vol*self.cell_initial_od600)
                 worksheet.cell(row=4, column=3).value = "µL"
 
                 worksheet.cell(row=5, column=1).value = \
-                    "Add into {:.0f}mL media, ".format(self.total_media_vol/1000.) + \
+                    "Add into {:.2f}mL media, ".format(self.total_media_vol/1000.) + \
                     "and distribute into plate wells."
 
         elif self.cell_setup_method=='fixed_volume':
+            # Check if shot volume has been specified
+            if self.cell_shot_vol is None:
+                raise ValueError("cell shot volume should be specified")
             # Set width
             worksheet.column_dimensions['A'].width = 22
             worksheet.column_dimensions['B'].width = 7
@@ -534,6 +546,10 @@ class Plate(object):
             worksheet.cell(row=1, column=1).value = "Strain Name"
             worksheet.cell(row=1, column=2).value = self.cell_strain_name
             if self.cell_predilution != 1:
+                # Check if predilution volume has been specified
+                if self.cell_predilution_vol is None:
+                    raise ValueError("cell predilution volume should be "
+                        "specified")
                 # Instructions for making predilution
                 worksheet.cell(row=2, column=1).value = "Predilution"
                 worksheet.cell(row=2, column=1).alignment = header_alignment
@@ -547,13 +563,13 @@ class Plate(object):
                 worksheet.cell(row=3, column=2).value = self.cell_predilution
                 worksheet.cell(row=3, column=3).value = "x"
 
-                media_vol = self.cell_predilution_vol / \
+                cell_vol = self.cell_predilution_vol / \
                     float(self.cell_predilution)
+                media_vol = self.cell_predilution_vol - cell_vol
                 worksheet.cell(row=4, column=1).value = "Media volume"
                 worksheet.cell(row=4, column=2).value = media_vol
                 worksheet.cell(row=4, column=3).value = "µL"
 
-                cell_vol = self.cell_predilution_vol - media_vol
                 worksheet.cell(row=5, column=1).value = "Preculture volume"
                 worksheet.cell(row=5, column=2).value = cell_vol
                 worksheet.cell(row=5, column=3).value = "µL"
@@ -572,7 +588,7 @@ class Plate(object):
                 worksheet.cell(row=7, column=3).value = "µL"
 
                 worksheet.cell(row=8, column=1).value = \
-                    "Add into {:.0f}mL media, ".format(self.total_media_vol/1000.) + \
+                    "Add into {:.2f}mL media, ".format(self.total_media_vol/1000.) + \
                     "and distribute into plate wells."
             else:
                 # Instructions for inoculating into plate media
@@ -581,7 +597,7 @@ class Plate(object):
                 worksheet.cell(row=2, column=3).value = "µL"
 
                 worksheet.cell(row=3, column=1).value = \
-                    "Add into {:.0f}mL media, ".format(self.total_media_vol/1000.) + \
+                    "Add into {:.2f}mL media, ".format(self.total_media_vol/1000.) + \
                     "and distribute into plate wells."
         else:
             raise ValueError("cell setup method {} not recognized".format(
@@ -627,10 +643,10 @@ class Plate(object):
         # Add cell info
         plate_info['Strain'] = self.cell_strain_name
         if self.cell_setup_method=='fixed_od600':
-            plate_info['Cell Predilution'] = self.cell_predilution
+            plate_info['Preculture Dilution'] = self.cell_predilution
             plate_info['Initial OD600'] = self.cell_initial_od600
         elif self.cell_setup_method=='fixed_volume':
-            plate_info['Cell Predilution'] = self.cell_predilution
+            plate_info['Preculture Dilution'] = self.cell_predilution
             plate_info['Cell Inoculated Vol.'] = self.cell_shot_vol
 
         # Add additional plate metadata
@@ -680,8 +696,8 @@ class Plate(object):
                             inducer.doses_table[column].values
                 elif apply_to=='media':
                     for column in inducer.doses_table.columns:
-                        well_info[column] = \
-                            inducer.doses_table[column].value
+                        well_info.loc[samples_to_measure_bool, column] = \
+                            inducer.doses_table[column].values[0]
 
         # Add which wells should be measured
         well_info['Measure'] = samples_to_measure_bool
