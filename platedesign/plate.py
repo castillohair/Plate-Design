@@ -801,9 +801,7 @@ class PlateArray(Plate):
                  array_n_cols,
                  plate_names,
                  plate_n_rows=4,
-                 plate_n_cols=6,
-                 id_prefix='S',
-                 id_offset=0):
+                 plate_n_cols=6):
         # Store name
         self.name = name
         # Store dimensions
@@ -871,6 +869,9 @@ class PlateArray(Plate):
             instructions is directly added to workbook `workbook`.
 
         """
+        if (file_name is None) and (workbook is None):
+            raise ValueError('either file_name or workbook should be specified')
+
         # Create workbook if not provided
         if workbook is None:
             # Create and remove empty sheet created by default
@@ -890,6 +891,8 @@ class PlateArray(Plate):
 
         # Save
         if save_workbook:
+            if not workbook.sheetnames:
+                workbook.create_sheet("Sheet 1")
             workbook.save(filename=file_name)
 
     def add_inducer_setup_instructions(self, workbook, sheet_name):
@@ -907,6 +910,11 @@ class PlateArray(Plate):
             Name to give to the new sheet.
 
         """
+        # Check that a sheet with the specified name doesn't exist
+        if sheet_name in [ws.title for ws in workbook.worksheets]:
+            raise ValueError("sheet \"{}\"already present in workbook".\
+                format(sheet_name))
+
         # Get only inducers that have ``shot_vol``
         inducers_rows = [ind
                          for ind in self.inducers['rows']
@@ -1042,10 +1050,10 @@ class PlateArray(Plate):
         # Add cell info
         plate_info['Strain'] = self.cell_strain_name
         if self.cell_setup_method=='fixed_od600':
-            plate_info['Cell Predilution'] = self.cell_predilution
+            plate_info['Preculture Dilution'] = self.cell_predilution
             plate_info['Initial OD600'] = self.cell_initial_od600
         elif self.cell_setup_method=='fixed_volume':
-            plate_info['Cell Predilution'] = self.cell_predilution
+            plate_info['Preculture Dilution'] = self.cell_predilution
             plate_info['Cell Inoculated Vol.'] = self.cell_shot_vol
 
         # Add additional plate metadata
