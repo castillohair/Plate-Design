@@ -461,105 +461,6 @@ class TestPlate(unittest.TestCase):
         # Spreadsheet should only contain an empty sheet named "Sheet 1"
         self.assertEqual(wb.sheetnames, ["Sheet 1"])
 
-    def test_save_rep_setup_instructions_cell_setup_fixed_volume_1(self):
-        # Create plate
-        p = platedesign.plate.Plate(name='P1')
-        p.total_media_vol = 15000.
-        # Add some information for cell setup
-        p.cell_strain_name = 'Test strain 1'
-        p.cell_setup_method = 'fixed_volume'
-        p.cell_shot_vol = 5
-        # Run save_rep_setup_instructions
-        p.save_rep_setup_instructions(file_name=os.path.join(self.temp_dir,
-                                                             'plate_rep.xlsx'))
-        # Load spreadsheet
-        wb = openpyxl.load_workbook(filename=os.path.join(self.temp_dir,
-                                                          'plate_rep.xlsx'))
-        # Spreadsheet should contain one sheet
-        self.assertEqual(wb.sheetnames, ["Cells for Plate P1"])
-        # Check cell inoculation instructions
-        ws = wb.get_sheet_by_name("Cells for Plate P1")
-        self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
-        self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
-        self.assertEqual(ws.cell(row=2, column=1).value, "Preculture volume")
-        self.assertEqual(ws.cell(row=2, column=2).value, 5)
-        self.assertEqual(ws.cell(row=2, column=3).value, u"µL")
-        self.assertEqual(ws.cell(row=3, column=1).value, "Add into 15.00mL "
-            "media, and distribute into plate wells.")
-
-    def test_save_rep_setup_instructions_cell_setup_fixed_volume_2(self):
-        # Create plate
-        p = platedesign.plate.Plate(name='P1')
-        p.total_media_vol = 15000.
-        # Add some information for cell setup
-        p.cell_strain_name = 'Test strain 1'
-        p.cell_setup_method = 'fixed_volume'
-        p.cell_predilution = 100
-        p.cell_predilution_vol = 1000
-        p.cell_shot_vol = 5
-        # Run save_rep_setup_instructions
-        p.save_rep_setup_instructions(file_name=os.path.join(self.temp_dir,
-                                                             'plate_rep.xlsx'))
-        # Load spreadsheet
-        wb = openpyxl.load_workbook(filename=os.path.join(self.temp_dir,
-                                                          'plate_rep.xlsx'))
-        # Spreadsheet should contain one sheet
-        self.assertEqual(wb.sheetnames, ["Cells for Plate P1"])
-        # Check cell inoculation instructions
-        ws = wb.get_sheet_by_name("Cells for Plate P1")
-        self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
-        self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
-        self.assertTrue('A2:C2' in ws.merged_cell_ranges)
-        self.assertEqual(ws.cell(row=2, column=1).value, "Predilution")
-        self.assertEqual(ws.cell(row=3, column=1).value, "Predilution factor")
-        self.assertEqual(ws.cell(row=3, column=2).value, 100)
-        self.assertEqual(ws.cell(row=3, column=3).value, "x")
-        self.assertEqual(ws.cell(row=4, column=1).value, "Media volume")
-        self.assertEqual(ws.cell(row=4, column=2).value, 990)
-        self.assertEqual(ws.cell(row=4, column=3).value, u"µL")
-        self.assertEqual(ws.cell(row=5, column=1).value, "Preculture volume")
-        self.assertEqual(ws.cell(row=5, column=2).value, 10)
-        self.assertEqual(ws.cell(row=5, column=3).value, u"µL")
-        self.assertTrue('A6:C6' in ws.merged_cell_ranges)
-        self.assertEqual(ws.cell(row=6, column=1).value, "Inoculation")
-        self.assertEqual(ws.cell(row=7, column=1).value, "Predilution volume")
-        self.assertEqual(ws.cell(row=7, column=2).value, 5)
-        self.assertEqual(ws.cell(row=7, column=3).value, u"µL")
-        self.assertEqual(ws.cell(row=8, column=1).value, "Add into 15.00mL "
-            "media, and distribute into plate wells.")
-
-    def test_save_rep_setup_instructions_cell_setup_fixed_volume_error_1(self):
-        # Create plate
-        p = platedesign.plate.Plate(name='P1')
-        p.total_media_vol = 15000.
-        # Add some information for cell setup
-        # Do not include shot volume
-        p.cell_strain_name = 'Test strain 1'
-        p.cell_setup_method = 'fixed_volume'
-        p.cell_predilution = 100
-        p.cell_predilution_vol = 1000
-        # Run save_rep_setup_instructions
-        self.assertRaises(
-            ValueError,
-            p.save_rep_setup_instructions,
-            file_name=os.path.join(self.temp_dir, 'plate_rep.xlsx'))
-
-    def test_save_rep_setup_instructions_cell_setup_fixed_volume_error_2(self):
-        # Create plate
-        p = platedesign.plate.Plate(name='P1')
-        p.total_media_vol = 15000.
-        # Add some information for cell setup
-        # Do not include predilution volume
-        p.cell_strain_name = 'Test strain 1'
-        p.cell_setup_method = 'fixed_volume'
-        p.cell_predilution = 100
-        p.cell_shot_vol = 5
-        # Run save_rep_setup_instructions
-        self.assertRaises(
-            ValueError,
-            p.save_rep_setup_instructions,
-            file_name=os.path.join(self.temp_dir, 'plate_rep.xlsx'))
-
     def test_save_rep_setup_instructions_cell_setup_fixed_od600_1(self):
         # Create plate
         p = platedesign.plate.Plate(name='P1')
@@ -665,6 +566,204 @@ class TestPlate(unittest.TestCase):
         p.cell_setup_method = 'fixed_od600'
         p.cell_predilution = 100
         p.cell_initial_od600 = 1e-5
+        # Run save_rep_setup_instructions
+        self.assertRaises(
+            ValueError,
+            p.save_rep_setup_instructions,
+            file_name=os.path.join(self.temp_dir, 'plate_rep.xlsx'))
+
+    def test_save_rep_setup_instructions_cell_setup_fixed_volume_1(self):
+        # Create plate
+        p = platedesign.plate.Plate(name='P1')
+        p.total_media_vol = 15000.
+        # Add some information for cell setup
+        p.cell_strain_name = 'Test strain 1'
+        p.cell_setup_method = 'fixed_volume'
+        p.cell_shot_vol = 5
+        # Run save_rep_setup_instructions
+        p.save_rep_setup_instructions(file_name=os.path.join(self.temp_dir,
+                                                             'plate_rep.xlsx'))
+        # Load spreadsheet
+        wb = openpyxl.load_workbook(filename=os.path.join(self.temp_dir,
+                                                          'plate_rep.xlsx'))
+        # Spreadsheet should contain one sheet
+        self.assertEqual(wb.sheetnames, ["Cells for Plate P1"])
+        # Check cell inoculation instructions
+        ws = wb.get_sheet_by_name("Cells for Plate P1")
+        self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
+        self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
+        self.assertEqual(ws.cell(row=2, column=1).value, "Preculture volume")
+        self.assertEqual(ws.cell(row=2, column=2).value, 5)
+        self.assertEqual(ws.cell(row=2, column=3).value, u"µL")
+        self.assertEqual(ws.cell(row=3, column=1).value, "Add into 15.00mL "
+            "media, and distribute into plate wells.")
+
+    def test_save_rep_setup_instructions_cell_setup_fixed_volume_2(self):
+        # Create plate
+        p = platedesign.plate.Plate(name='P1')
+        p.total_media_vol = 15000.
+        # Add some information for cell setup
+        p.cell_strain_name = 'Test strain 1'
+        p.cell_setup_method = 'fixed_volume'
+        p.cell_predilution = 100
+        p.cell_predilution_vol = 1000
+        p.cell_shot_vol = 5
+        # Run save_rep_setup_instructions
+        p.save_rep_setup_instructions(file_name=os.path.join(self.temp_dir,
+                                                             'plate_rep.xlsx'))
+        # Load spreadsheet
+        wb = openpyxl.load_workbook(filename=os.path.join(self.temp_dir,
+                                                          'plate_rep.xlsx'))
+        # Spreadsheet should contain one sheet
+        self.assertEqual(wb.sheetnames, ["Cells for Plate P1"])
+        # Check cell inoculation instructions
+        ws = wb.get_sheet_by_name("Cells for Plate P1")
+        self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
+        self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
+        self.assertTrue('A2:C2' in ws.merged_cell_ranges)
+        self.assertEqual(ws.cell(row=2, column=1).value, "Predilution")
+        self.assertEqual(ws.cell(row=3, column=1).value, "Predilution factor")
+        self.assertEqual(ws.cell(row=3, column=2).value, 100)
+        self.assertEqual(ws.cell(row=3, column=3).value, "x")
+        self.assertEqual(ws.cell(row=4, column=1).value, "Media volume")
+        self.assertEqual(ws.cell(row=4, column=2).value, 990)
+        self.assertEqual(ws.cell(row=4, column=3).value, u"µL")
+        self.assertEqual(ws.cell(row=5, column=1).value, "Preculture volume")
+        self.assertEqual(ws.cell(row=5, column=2).value, 10)
+        self.assertEqual(ws.cell(row=5, column=3).value, u"µL")
+        self.assertTrue('A6:C6' in ws.merged_cell_ranges)
+        self.assertEqual(ws.cell(row=6, column=1).value, "Inoculation")
+        self.assertEqual(ws.cell(row=7, column=1).value, "Predilution volume")
+        self.assertEqual(ws.cell(row=7, column=2).value, 5)
+        self.assertEqual(ws.cell(row=7, column=3).value, u"µL")
+        self.assertEqual(ws.cell(row=8, column=1).value, "Add into 15.00mL "
+            "media, and distribute into plate wells.")
+
+    def test_save_rep_setup_instructions_cell_setup_fixed_volume_error_1(self):
+        # Create plate
+        p = platedesign.plate.Plate(name='P1')
+        p.total_media_vol = 15000.
+        # Add some information for cell setup
+        # Do not include shot volume
+        p.cell_strain_name = 'Test strain 1'
+        p.cell_setup_method = 'fixed_volume'
+        p.cell_predilution = 100
+        p.cell_predilution_vol = 1000
+        # Run save_rep_setup_instructions
+        self.assertRaises(
+            ValueError,
+            p.save_rep_setup_instructions,
+            file_name=os.path.join(self.temp_dir, 'plate_rep.xlsx'))
+
+    def test_save_rep_setup_instructions_cell_setup_fixed_volume_error_2(self):
+        # Create plate
+        p = platedesign.plate.Plate(name='P1')
+        p.total_media_vol = 15000.
+        # Add some information for cell setup
+        # Do not include predilution volume
+        p.cell_strain_name = 'Test strain 1'
+        p.cell_setup_method = 'fixed_volume'
+        p.cell_predilution = 100
+        p.cell_shot_vol = 5
+        # Run save_rep_setup_instructions
+        self.assertRaises(
+            ValueError,
+            p.save_rep_setup_instructions,
+            file_name=os.path.join(self.temp_dir, 'plate_rep.xlsx'))
+
+    def test_save_rep_setup_instructions_cell_setup_fixed_dilution_1(self):
+        # Create plate
+        p = platedesign.plate.Plate(name='P1')
+        p.total_media_vol = 15000.
+        # Add some information for cell setup
+        p.cell_strain_name = 'Test strain 1'
+        p.cell_setup_method = 'fixed_dilution'
+        p.cell_total_dilution = 1e4
+        # Run save_rep_setup_instructions
+        p.save_rep_setup_instructions(file_name=os.path.join(self.temp_dir,
+                                                             'plate_rep.xlsx'))
+        # Load spreadsheet
+        wb = openpyxl.load_workbook(filename=os.path.join(self.temp_dir,
+                                                          'plate_rep.xlsx'))
+        # Spreadsheet should contain one sheet
+        self.assertEqual(wb.sheetnames, ["Cells for Plate P1"])
+        # Check cell inoculation instructions
+        ws = wb.get_sheet_by_name("Cells for Plate P1")
+        self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
+        self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
+        self.assertEqual(ws.cell(row=2, column=1).value, "Preculture volume")
+        self.assertEqual(ws.cell(row=2, column=2).value, 1.5)
+        self.assertEqual(ws.cell(row=2, column=3).value, u"µL")
+        self.assertEqual(ws.cell(row=3, column=1).value, "Add into 15.00mL "
+            "media, and distribute into plate wells.")
+
+    def test_save_rep_setup_instructions_cell_setup_fixed_dilution_2(self):
+        # Create plate
+        p = platedesign.plate.Plate(name='P1')
+        p.total_media_vol = 15000.
+        # Add some information for cell setup
+        p.cell_strain_name = 'Test strain 1'
+        p.cell_setup_method = 'fixed_dilution'
+        p.cell_predilution = 100
+        p.cell_predilution_vol = 1000
+        p.cell_total_dilution = 1e5
+        # Run save_rep_setup_instructions
+        p.save_rep_setup_instructions(file_name=os.path.join(self.temp_dir,
+                                                             'plate_rep.xlsx'))
+        # Load spreadsheet
+        wb = openpyxl.load_workbook(filename=os.path.join(self.temp_dir,
+                                                          'plate_rep.xlsx'))
+        # Spreadsheet should contain one sheet
+        self.assertEqual(wb.sheetnames, ["Cells for Plate P1"])
+        # Check cell inoculation instructions
+        ws = wb.get_sheet_by_name("Cells for Plate P1")
+        self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
+        self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
+        self.assertTrue('A2:C2' in ws.merged_cell_ranges)
+        self.assertEqual(ws.cell(row=2, column=1).value, "Predilution")
+        self.assertEqual(ws.cell(row=3, column=1).value, "Predilution factor")
+        self.assertEqual(ws.cell(row=3, column=2).value, 100)
+        self.assertEqual(ws.cell(row=3, column=3).value, "x")
+        self.assertEqual(ws.cell(row=4, column=1).value, "Media volume")
+        self.assertEqual(ws.cell(row=4, column=2).value, 990)
+        self.assertEqual(ws.cell(row=4, column=3).value, u"µL")
+        self.assertEqual(ws.cell(row=5, column=1).value, "Preculture volume")
+        self.assertEqual(ws.cell(row=5, column=2).value, 10)
+        self.assertEqual(ws.cell(row=5, column=3).value, u"µL")
+        self.assertTrue('A6:C6' in ws.merged_cell_ranges)
+        self.assertEqual(ws.cell(row=6, column=1).value, "Inoculation")
+        self.assertEqual(ws.cell(row=7, column=1).value, "Predilution volume")
+        self.assertEqual(ws.cell(row=7, column=2).value, 15)
+        self.assertEqual(ws.cell(row=7, column=3).value, u"µL")
+        self.assertEqual(ws.cell(row=8, column=1).value, "Add into 15.00mL "
+            "media, and distribute into plate wells.")
+
+    def test_save_rep_setup_instructions_cell_setup_fixed_dilution_error_1(self):
+        # Create plate
+        p = platedesign.plate.Plate(name='P1')
+        p.total_media_vol = 15000.
+        # Add some information for cell setup
+        # Do not include total dilution
+        p.cell_strain_name = 'Test strain 1'
+        p.cell_setup_method = 'fixed_dilution'
+        p.cell_predilution = 100
+        p.cell_predilution_vol = 1000
+        # Run save_rep_setup_instructions
+        self.assertRaises(
+            ValueError,
+            p.save_rep_setup_instructions,
+            file_name=os.path.join(self.temp_dir, 'plate_rep.xlsx'))
+
+    def test_save_rep_setup_instructions_cell_setup_fixed_dilution_error_2(self):
+        # Create plate
+        p = platedesign.plate.Plate(name='P1')
+        p.total_media_vol = 15000.
+        # Add some information for cell setup
+        # Do not include predilution volume
+        p.cell_strain_name = 'Test strain 1'
+        p.cell_setup_method = 'fixed_dilution'
+        p.cell_predilution = 100
+        p.cell_total_dilution = 1e5
         # Run save_rep_setup_instructions
         self.assertRaises(
             ValueError,
@@ -1750,8 +1849,8 @@ class TestPlate(unittest.TestCase):
         p = platedesign.plate.Plate(name='P1')
         p.cell_strain_name = 'Test strain 1'
         # Add cell inoculation info
-        p.cell_setup_method = 'fixed_volume'
-        p.cell_shot_vol = 5
+        p.cell_setup_method = 'fixed_od600'
+        p.cell_initial_od600 = 1e-5
         # Call close plates and check length of output
         cps = p.close_plates()
         self.assertEqual(len(cps), 1)
@@ -1767,8 +1866,8 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
         self.assertTrue('Preculture Dilution' in cp.plate_info)
         self.assertEqual(cp.plate_info['Preculture Dilution'], 1)
-        self.assertTrue('Cell Inoculated Vol.' in cp.plate_info)
-        self.assertEqual(cp.plate_info['Cell Inoculated Vol.'], 5)
+        self.assertTrue('Initial OD600' in cp.plate_info)
+        self.assertEqual(cp.plate_info['Initial OD600'], 1e-5)
         # Check well info
         well_info = pandas.DataFrame()
         well_info['Measure'] = [True]*24
@@ -1779,6 +1878,66 @@ class TestPlate(unittest.TestCase):
         p = platedesign.plate.Plate(name='P1')
         p.cell_strain_name = 'Test strain 1'
         # Add cell inoculation info
+        p.cell_setup_method = 'fixed_od600'
+        p.cell_predilution = 100
+        p.cell_predilution_vol = 1000
+        p.cell_initial_od600 = 1e-5
+        # Call close plates and check length of output
+        cps = p.close_plates()
+        self.assertEqual(len(cps), 1)
+        # Get the only closed place
+        cp = cps[0]
+        # Check basic properties
+        self.assertEqual(cp.name, 'P1')
+        self.assertEqual(cp.n_rows, 4)
+        self.assertEqual(cp.n_cols, 6)
+        # Check plate info
+        self.assertEqual(len(cp.plate_info), 3)
+        self.assertTrue('Strain' in cp.plate_info)
+        self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
+        self.assertTrue('Preculture Dilution' in cp.plate_info)
+        self.assertEqual(cp.plate_info['Preculture Dilution'], 100)
+        self.assertTrue('Initial OD600' in cp.plate_info)
+        self.assertEqual(cp.plate_info['Initial OD600'], 1e-5)
+        # Check well info
+        well_info = pandas.DataFrame()
+        well_info['Measure'] = [True]*24
+        pandas.util.testing.assert_frame_equal(cp.well_info, well_info)
+
+    def test_close_plates_cell_inoculation_3(self):
+        # Create plate
+        p = platedesign.plate.Plate(name='P1')
+        p.cell_strain_name = 'Test strain 1'
+        # Add cell inoculation info
+        p.cell_setup_method = 'fixed_volume'
+        p.cell_shot_vol = 5
+        # Call close plates and check length of output
+        cps = p.close_plates()
+        self.assertEqual(len(cps), 1)
+        # Get the only closed place
+        cp = cps[0]
+        # Check basic properties
+        self.assertEqual(cp.name, 'P1')
+        self.assertEqual(cp.n_rows, 4)
+        self.assertEqual(cp.n_cols, 6)
+        # Check plate info
+        self.assertEqual(len(cp.plate_info), 3)
+        self.assertTrue('Strain' in cp.plate_info)
+        self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
+        self.assertTrue('Preculture Dilution' in cp.plate_info)
+        self.assertEqual(cp.plate_info['Preculture Dilution'], 1)
+        self.assertTrue('Cell Inoculated Vol.' in cp.plate_info)
+        self.assertEqual(cp.plate_info['Cell Inoculated Vol.'], 5)
+        # Check well info
+        well_info = pandas.DataFrame()
+        well_info['Measure'] = [True]*24
+        pandas.util.testing.assert_frame_equal(cp.well_info, well_info)
+
+    def test_close_plates_cell_inoculation_4(self):
+        # Create plate
+        p = platedesign.plate.Plate(name='P1')
+        p.cell_strain_name = 'Test strain 1'
+        # Add cell inoculation info
         p.cell_setup_method = 'fixed_volume'
         p.cell_predilution = 100
         p.cell_predilution_vol = 1000
@@ -1805,13 +1964,13 @@ class TestPlate(unittest.TestCase):
         well_info['Measure'] = [True]*24
         pandas.util.testing.assert_frame_equal(cp.well_info, well_info)
 
-    def test_close_plates_cell_inoculation_3(self):
+    def test_close_plates_cell_inoculation_5(self):
         # Create plate
         p = platedesign.plate.Plate(name='P1')
         p.cell_strain_name = 'Test strain 1'
         # Add cell inoculation info
-        p.cell_setup_method = 'fixed_od600'
-        p.cell_initial_od600 = 1e-5
+        p.cell_setup_method = 'fixed_dilution'
+        p.cell_total_dilution = 1e4
         # Call close plates and check length of output
         cps = p.close_plates()
         self.assertEqual(len(cps), 1)
@@ -1827,22 +1986,22 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
         self.assertTrue('Preculture Dilution' in cp.plate_info)
         self.assertEqual(cp.plate_info['Preculture Dilution'], 1)
-        self.assertTrue('Initial OD600' in cp.plate_info)
-        self.assertEqual(cp.plate_info['Initial OD600'], 1e-5)
+        self.assertTrue('Total Cell Dilution' in cp.plate_info)
+        self.assertEqual(cp.plate_info['Total Cell Dilution'], 1e4)
         # Check well info
         well_info = pandas.DataFrame()
         well_info['Measure'] = [True]*24
         pandas.util.testing.assert_frame_equal(cp.well_info, well_info)
 
-    def test_close_plates_cell_inoculation_4(self):
+    def test_close_plates_cell_inoculation_6(self):
         # Create plate
         p = platedesign.plate.Plate(name='P1')
         p.cell_strain_name = 'Test strain 1'
         # Add cell inoculation info
-        p.cell_setup_method = 'fixed_od600'
+        p.cell_setup_method = 'fixed_dilution'
         p.cell_predilution = 100
         p.cell_predilution_vol = 1000
-        p.cell_initial_od600 = 1e-5
+        p.cell_total_dilution = 1e5
         # Call close plates and check length of output
         cps = p.close_plates()
         self.assertEqual(len(cps), 1)
@@ -1858,8 +2017,8 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
         self.assertTrue('Preculture Dilution' in cp.plate_info)
         self.assertEqual(cp.plate_info['Preculture Dilution'], 100)
-        self.assertTrue('Initial OD600' in cp.plate_info)
-        self.assertEqual(cp.plate_info['Initial OD600'], 1e-5)
+        self.assertTrue('Total Cell Dilution' in cp.plate_info)
+        self.assertEqual(cp.plate_info['Total Cell Dilution'], 1e5)
         # Check well info
         well_info = pandas.DataFrame()
         well_info['Measure'] = [True]*24
@@ -3015,121 +3174,6 @@ class TestPlateArray(unittest.TestCase):
         # Spreadsheet should only contain an empty sheet named "Sheet 1"
         self.assertEqual(wb.sheetnames, ["Sheet 1"])
 
-    def test_save_rep_setup_instructions_cell_setup_fixed_volume_1(self):
-        # Create plate
-        p = platedesign.plate.PlateArray(name='A1',
-                                         array_n_rows=2,
-                                         array_n_cols=3,
-                                         plate_names=['P{}'.format(i+1)
-                                                      for i in range(6)])
-        p.total_media_vol = 80000.
-        # Add some information for cell setup
-        p.cell_strain_name = 'Test strain 1'
-        p.cell_setup_method = 'fixed_volume'
-        p.cell_shot_vol = 5
-        # Run save_rep_setup_instructions
-        p.save_rep_setup_instructions(file_name=os.path.join(self.temp_dir,
-                                                             'plate_rep.xlsx'))
-        # Load spreadsheet
-        wb = openpyxl.load_workbook(filename=os.path.join(self.temp_dir,
-                                                          'plate_rep.xlsx'))
-        # Spreadsheet should contain one sheet
-        self.assertEqual(wb.sheetnames, ["Cells for Plate Array A1"])
-        # Check cell inoculation instructions
-        ws = wb.get_sheet_by_name("Cells for Plate Array A1")
-        self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
-        self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
-        self.assertEqual(ws.cell(row=2, column=1).value, "Preculture volume")
-        self.assertEqual(ws.cell(row=2, column=2).value, 5)
-        self.assertEqual(ws.cell(row=2, column=3).value, u"µL")
-        self.assertEqual(ws.cell(row=3, column=1).value, "Add into 80.00mL "
-            "media, and distribute into plate wells.")
-
-    def test_save_rep_setup_instructions_cell_setup_fixed_volume_2(self):
-        # Create plate
-        p = platedesign.plate.PlateArray(name='A1',
-                                         array_n_rows=2,
-                                         array_n_cols=3,
-                                         plate_names=['P{}'.format(i+1)
-                                                      for i in range(6)])
-        p.total_media_vol = 80000.
-        # Add some information for cell setup
-        p.cell_strain_name = 'Test strain 1'
-        p.cell_setup_method = 'fixed_volume'
-        p.cell_predilution = 100
-        p.cell_predilution_vol = 1000
-        p.cell_shot_vol = 5
-        # Run save_rep_setup_instructions
-        p.save_rep_setup_instructions(file_name=os.path.join(self.temp_dir,
-                                                             'plate_rep.xlsx'))
-        # Load spreadsheet
-        wb = openpyxl.load_workbook(filename=os.path.join(self.temp_dir,
-                                                          'plate_rep.xlsx'))
-        # Spreadsheet should contain one sheet
-        self.assertEqual(wb.sheetnames, ["Cells for Plate Array A1"])
-        # Check cell inoculation instructions
-        ws = wb.get_sheet_by_name("Cells for Plate Array A1")
-        self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
-        self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
-        self.assertTrue('A2:C2' in ws.merged_cell_ranges)
-        self.assertEqual(ws.cell(row=2, column=1).value, "Predilution")
-        self.assertEqual(ws.cell(row=3, column=1).value, "Predilution factor")
-        self.assertEqual(ws.cell(row=3, column=2).value, 100)
-        self.assertEqual(ws.cell(row=3, column=3).value, "x")
-        self.assertEqual(ws.cell(row=4, column=1).value, "Media volume")
-        self.assertEqual(ws.cell(row=4, column=2).value, 990)
-        self.assertEqual(ws.cell(row=4, column=3).value, u"µL")
-        self.assertEqual(ws.cell(row=5, column=1).value, "Preculture volume")
-        self.assertEqual(ws.cell(row=5, column=2).value, 10)
-        self.assertEqual(ws.cell(row=5, column=3).value, u"µL")
-        self.assertTrue('A6:C6' in ws.merged_cell_ranges)
-        self.assertEqual(ws.cell(row=6, column=1).value, "Inoculation")
-        self.assertEqual(ws.cell(row=7, column=1).value, "Predilution volume")
-        self.assertEqual(ws.cell(row=7, column=2).value, 5)
-        self.assertEqual(ws.cell(row=7, column=3).value, u"µL")
-        self.assertEqual(ws.cell(row=8, column=1).value, "Add into 80.00mL "
-            "media, and distribute into plate wells.")
-
-    def test_save_rep_setup_instructions_cell_setup_fixed_volume_error_1(self):
-        # Create plate
-        p = platedesign.plate.PlateArray(name='A1',
-                                         array_n_rows=2,
-                                         array_n_cols=3,
-                                         plate_names=['P{}'.format(i+1)
-                                                      for i in range(6)])
-        p.total_media_vol = 80000.
-        # Add some information for cell setup
-        # Do not include shot volume
-        p.cell_strain_name = 'Test strain 1'
-        p.cell_setup_method = 'fixed_volume'
-        p.cell_predilution = 100
-        p.cell_predilution_vol = 1000
-        # Run save_rep_setup_instructions
-        self.assertRaises(
-            ValueError,
-            p.save_rep_setup_instructions,
-            file_name=os.path.join(self.temp_dir, 'plate_rep.xlsx'))
-
-    def test_save_rep_setup_instructions_cell_setup_fixed_volume_error_2(self):
-        # Create plate
-        p = platedesign.plate.PlateArray(name='A1',
-                                         array_n_rows=2,
-                                         array_n_cols=3,
-                                         plate_names=['P{}'.format(i+1)
-                                                      for i in range(6)])
-        p.total_media_vol = 80000.
-        # Add some information for cell setup
-        # Do not include predilution volume
-        p.cell_strain_name = 'Test strain 1'
-        p.cell_setup_method = 'fixed_volume'
-        p.cell_predilution = 100
-        p.cell_shot_vol = 5
-        # Run save_rep_setup_instructions
-        self.assertRaises(
-            ValueError,
-            p.save_rep_setup_instructions,
-            file_name=os.path.join(self.temp_dir, 'plate_rep.xlsx'))
-
     def test_save_rep_setup_instructions_cell_setup_fixed_od600_1(self):
         # Create plate
         p = platedesign.plate.PlateArray(name='A1',
@@ -3251,6 +3295,236 @@ class TestPlateArray(unittest.TestCase):
         p.cell_setup_method = 'fixed_od600'
         p.cell_predilution = 100
         p.cell_initial_od600 = 1e-5
+        # Run save_rep_setup_instructions
+        self.assertRaises(
+            ValueError,
+            p.save_rep_setup_instructions,
+            file_name=os.path.join(self.temp_dir, 'plate_rep.xlsx'))
+
+    def test_save_rep_setup_instructions_cell_setup_fixed_volume_1(self):
+        # Create plate
+        p = platedesign.plate.PlateArray(name='A1',
+                                         array_n_rows=2,
+                                         array_n_cols=3,
+                                         plate_names=['P{}'.format(i+1)
+                                                      for i in range(6)])
+        p.total_media_vol = 80000.
+        # Add some information for cell setup
+        p.cell_strain_name = 'Test strain 1'
+        p.cell_setup_method = 'fixed_volume'
+        p.cell_shot_vol = 5
+        # Run save_rep_setup_instructions
+        p.save_rep_setup_instructions(file_name=os.path.join(self.temp_dir,
+                                                             'plate_rep.xlsx'))
+        # Load spreadsheet
+        wb = openpyxl.load_workbook(filename=os.path.join(self.temp_dir,
+                                                          'plate_rep.xlsx'))
+        # Spreadsheet should contain one sheet
+        self.assertEqual(wb.sheetnames, ["Cells for Plate Array A1"])
+        # Check cell inoculation instructions
+        ws = wb.get_sheet_by_name("Cells for Plate Array A1")
+        self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
+        self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
+        self.assertEqual(ws.cell(row=2, column=1).value, "Preculture volume")
+        self.assertEqual(ws.cell(row=2, column=2).value, 5)
+        self.assertEqual(ws.cell(row=2, column=3).value, u"µL")
+        self.assertEqual(ws.cell(row=3, column=1).value, "Add into 80.00mL "
+            "media, and distribute into plate wells.")
+
+    def test_save_rep_setup_instructions_cell_setup_fixed_volume_2(self):
+        # Create plate
+        p = platedesign.plate.PlateArray(name='A1',
+                                         array_n_rows=2,
+                                         array_n_cols=3,
+                                         plate_names=['P{}'.format(i+1)
+                                                      for i in range(6)])
+        p.total_media_vol = 80000.
+        # Add some information for cell setup
+        p.cell_strain_name = 'Test strain 1'
+        p.cell_setup_method = 'fixed_volume'
+        p.cell_predilution = 100
+        p.cell_predilution_vol = 1000
+        p.cell_shot_vol = 5
+        # Run save_rep_setup_instructions
+        p.save_rep_setup_instructions(file_name=os.path.join(self.temp_dir,
+                                                             'plate_rep.xlsx'))
+        # Load spreadsheet
+        wb = openpyxl.load_workbook(filename=os.path.join(self.temp_dir,
+                                                          'plate_rep.xlsx'))
+        # Spreadsheet should contain one sheet
+        self.assertEqual(wb.sheetnames, ["Cells for Plate Array A1"])
+        # Check cell inoculation instructions
+        ws = wb.get_sheet_by_name("Cells for Plate Array A1")
+        self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
+        self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
+        self.assertTrue('A2:C2' in ws.merged_cell_ranges)
+        self.assertEqual(ws.cell(row=2, column=1).value, "Predilution")
+        self.assertEqual(ws.cell(row=3, column=1).value, "Predilution factor")
+        self.assertEqual(ws.cell(row=3, column=2).value, 100)
+        self.assertEqual(ws.cell(row=3, column=3).value, "x")
+        self.assertEqual(ws.cell(row=4, column=1).value, "Media volume")
+        self.assertEqual(ws.cell(row=4, column=2).value, 990)
+        self.assertEqual(ws.cell(row=4, column=3).value, u"µL")
+        self.assertEqual(ws.cell(row=5, column=1).value, "Preculture volume")
+        self.assertEqual(ws.cell(row=5, column=2).value, 10)
+        self.assertEqual(ws.cell(row=5, column=3).value, u"µL")
+        self.assertTrue('A6:C6' in ws.merged_cell_ranges)
+        self.assertEqual(ws.cell(row=6, column=1).value, "Inoculation")
+        self.assertEqual(ws.cell(row=7, column=1).value, "Predilution volume")
+        self.assertEqual(ws.cell(row=7, column=2).value, 5)
+        self.assertEqual(ws.cell(row=7, column=3).value, u"µL")
+        self.assertEqual(ws.cell(row=8, column=1).value, "Add into 80.00mL "
+            "media, and distribute into plate wells.")
+
+    def test_save_rep_setup_instructions_cell_setup_fixed_volume_error_1(self):
+        # Create plate
+        p = platedesign.plate.PlateArray(name='A1',
+                                         array_n_rows=2,
+                                         array_n_cols=3,
+                                         plate_names=['P{}'.format(i+1)
+                                                      for i in range(6)])
+        p.total_media_vol = 80000.
+        # Add some information for cell setup
+        # Do not include shot volume
+        p.cell_strain_name = 'Test strain 1'
+        p.cell_setup_method = 'fixed_volume'
+        p.cell_predilution = 100
+        p.cell_predilution_vol = 1000
+        # Run save_rep_setup_instructions
+        self.assertRaises(
+            ValueError,
+            p.save_rep_setup_instructions,
+            file_name=os.path.join(self.temp_dir, 'plate_rep.xlsx'))
+
+    def test_save_rep_setup_instructions_cell_setup_fixed_volume_error_2(self):
+        # Create plate
+        p = platedesign.plate.PlateArray(name='A1',
+                                         array_n_rows=2,
+                                         array_n_cols=3,
+                                         plate_names=['P{}'.format(i+1)
+                                                      for i in range(6)])
+        p.total_media_vol = 80000.
+        # Add some information for cell setup
+        # Do not include predilution volume
+        p.cell_strain_name = 'Test strain 1'
+        p.cell_setup_method = 'fixed_volume'
+        p.cell_predilution = 100
+        p.cell_shot_vol = 5
+        # Run save_rep_setup_instructions
+        self.assertRaises(
+            ValueError,
+            p.save_rep_setup_instructions,
+            file_name=os.path.join(self.temp_dir, 'plate_rep.xlsx'))
+
+    def test_save_rep_setup_instructions_cell_setup_fixed_dilution_1(self):
+        # Create plate
+        p = platedesign.plate.PlateArray(name='A1',
+                                         array_n_rows=2,
+                                         array_n_cols=3,
+                                         plate_names=['P{}'.format(i+1)
+                                                      for i in range(6)])
+        p.total_media_vol = 80000.
+        # Add some information for cell setup
+        p.cell_strain_name = 'Test strain 1'
+        p.cell_setup_method = 'fixed_dilution'
+        p.cell_total_dilution = 1e4
+        # Run save_rep_setup_instructions
+        p.save_rep_setup_instructions(file_name=os.path.join(self.temp_dir,
+                                                             'plate_rep.xlsx'))
+        # Load spreadsheet
+        wb = openpyxl.load_workbook(filename=os.path.join(self.temp_dir,
+                                                          'plate_rep.xlsx'))
+        # Spreadsheet should contain one sheet
+        self.assertEqual(wb.sheetnames, ["Cells for Plate Array A1"])
+        # Check cell inoculation instructions
+        ws = wb.get_sheet_by_name("Cells for Plate Array A1")
+        self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
+        self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
+        self.assertEqual(ws.cell(row=2, column=1).value, "Preculture volume")
+        self.assertEqual(ws.cell(row=2, column=2).value, 8)
+        self.assertEqual(ws.cell(row=2, column=3).value, u"µL")
+        self.assertEqual(ws.cell(row=3, column=1).value, "Add into 80.00mL "
+            "media, and distribute into plate wells.")
+
+    def test_save_rep_setup_instructions_cell_setup_fixed_dilution_2(self):
+        # Create plate
+        p = platedesign.plate.PlateArray(name='A1',
+                                         array_n_rows=2,
+                                         array_n_cols=3,
+                                         plate_names=['P{}'.format(i+1)
+                                                      for i in range(6)])
+        p.total_media_vol = 80000.
+        # Add some information for cell setup
+        p.cell_strain_name = 'Test strain 1'
+        p.cell_setup_method = 'fixed_dilution'
+        p.cell_predilution = 100
+        p.cell_predilution_vol = 1000
+        p.cell_total_dilution = 1e5
+        # Run save_rep_setup_instructions
+        p.save_rep_setup_instructions(file_name=os.path.join(self.temp_dir,
+                                                             'plate_rep.xlsx'))
+        # Load spreadsheet
+        wb = openpyxl.load_workbook(filename=os.path.join(self.temp_dir,
+                                                          'plate_rep.xlsx'))
+        # Spreadsheet should contain one sheet
+        self.assertEqual(wb.sheetnames, ["Cells for Plate Array A1"])
+        # Check cell inoculation instructions
+        ws = wb.get_sheet_by_name("Cells for Plate Array A1")
+        self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
+        self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
+        self.assertTrue('A2:C2' in ws.merged_cell_ranges)
+        self.assertEqual(ws.cell(row=2, column=1).value, "Predilution")
+        self.assertEqual(ws.cell(row=3, column=1).value, "Predilution factor")
+        self.assertEqual(ws.cell(row=3, column=2).value, 100)
+        self.assertEqual(ws.cell(row=3, column=3).value, "x")
+        self.assertEqual(ws.cell(row=4, column=1).value, "Media volume")
+        self.assertEqual(ws.cell(row=4, column=2).value, 990)
+        self.assertEqual(ws.cell(row=4, column=3).value, u"µL")
+        self.assertEqual(ws.cell(row=5, column=1).value, "Preculture volume")
+        self.assertEqual(ws.cell(row=5, column=2).value, 10)
+        self.assertEqual(ws.cell(row=5, column=3).value, u"µL")
+        self.assertTrue('A6:C6' in ws.merged_cell_ranges)
+        self.assertEqual(ws.cell(row=6, column=1).value, "Inoculation")
+        self.assertEqual(ws.cell(row=7, column=1).value, "Predilution volume")
+        self.assertEqual(ws.cell(row=7, column=2).value, 80)
+        self.assertEqual(ws.cell(row=7, column=3).value, u"µL")
+        self.assertEqual(ws.cell(row=8, column=1).value, "Add into 80.00mL "
+            "media, and distribute into plate wells.")
+
+    def test_save_rep_setup_instructions_cell_setup_fixed_dilution_error_1(self):
+        # Create plate
+        p = platedesign.plate.PlateArray(name='A1',
+                                         array_n_rows=2,
+                                         array_n_cols=3,
+                                         plate_names=['P{}'.format(i+1)
+                                                      for i in range(6)])
+        p.total_media_vol = 80000.
+        # Add some information for cell setup
+        # Do not include total dilution
+        p.cell_strain_name = 'Test strain 1'
+        p.cell_setup_method = 'fixed_dilution'
+        p.cell_predilution = 100
+        p.cell_predilution_vol = 1000
+        # Run save_rep_setup_instructions
+        self.assertRaises(
+            ValueError,
+            p.save_rep_setup_instructions,
+            file_name=os.path.join(self.temp_dir, 'plate_rep.xlsx'))
+
+    def test_save_rep_setup_instructions_cell_setup_fixed_dilution_error_2(self):
+        # Create plate
+        p = platedesign.plate.PlateArray(name='A1',
+                                         array_n_rows=2,
+                                         array_n_cols=3,
+                                         plate_names=['P{}'.format(i+1)
+                                                      for i in range(6)])
+        p.total_media_vol = 80000.
+        # Add some information for cell setup
+        # Do not include predilution volume
+        p.cell_strain_name = 'Test strain 1'
+        p.cell_setup_method = 'fixed_dilution'
+        p.cell_predilution = 100
+        p.cell_total_dilution = 1e5
         # Run save_rep_setup_instructions
         self.assertRaises(
             ValueError,
@@ -6348,8 +6622,8 @@ class TestPlateArray(unittest.TestCase):
                                                       for i in range(6)])
         p.cell_strain_name = 'Test strain 1'
         # Add cell inoculation info
-        p.cell_setup_method = 'fixed_volume'
-        p.cell_shot_vol = 5
+        p.cell_setup_method = 'fixed_od600'
+        p.cell_initial_od600 = 1e-5
         # Call close plates and check length of output
         cps = p.close_plates()
         self.assertEqual(len(cps), 6)
@@ -6371,8 +6645,8 @@ class TestPlateArray(unittest.TestCase):
             self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
             self.assertTrue('Preculture Dilution' in cp.plate_info)
             self.assertEqual(cp.plate_info['Preculture Dilution'], 1)
-            self.assertTrue('Cell Inoculated Vol.' in cp.plate_info)
-            self.assertEqual(cp.plate_info['Cell Inoculated Vol.'], 5)
+            self.assertTrue('Initial OD600' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Initial OD600'], 1e-5)
             # Check well info
             well_info = pandas.DataFrame()
             well_info['Measure'] = [True]*24
@@ -6388,6 +6662,88 @@ class TestPlateArray(unittest.TestCase):
                                                       for i in range(6)])
         p.cell_strain_name = 'Test strain 1'
         # Add cell inoculation info
+        p.cell_setup_method = 'fixed_od600'
+        p.cell_predilution = 100
+        p.cell_predilution_vol = 1000
+        p.cell_initial_od600 = 1e-5
+        # Call close plates and check length of output
+        cps = p.close_plates()
+        self.assertEqual(len(cps), 6)
+        # Check basic properties
+        self.assertEqual(cps[0].name, 'P1')
+        self.assertEqual(cps[1].name, 'P2')
+        self.assertEqual(cps[2].name, 'P3')
+        self.assertEqual(cps[3].name, 'P4')
+        self.assertEqual(cps[4].name, 'P5')
+        self.assertEqual(cps[5].name, 'P6')
+        for cp in cps:
+            self.assertEqual(cp.n_rows, 4)
+            self.assertEqual(cp.n_cols, 6)
+            # Check plate info
+            self.assertEqual(len(cp.plate_info), 4)
+            self.assertTrue('Plate Array' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Plate Array'], 'A1')
+            self.assertTrue('Strain' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
+            self.assertTrue('Preculture Dilution' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Preculture Dilution'], 100)
+            self.assertTrue('Initial OD600' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Initial OD600'], 1e-5)
+            # Check well info
+            well_info = pandas.DataFrame()
+            well_info['Measure'] = [True]*24
+            pandas.util.testing.assert_frame_equal(cp.well_info, well_info)
+
+    def test_close_plates_cell_inoculation_3(self):
+        # Create plate
+        # Create plate
+        p = platedesign.plate.PlateArray(name='A1',
+                                         array_n_rows=2,
+                                         array_n_cols=3,
+                                         plate_names=['P{}'.format(i+1)
+                                                      for i in range(6)])
+        p.cell_strain_name = 'Test strain 1'
+        # Add cell inoculation info
+        p.cell_setup_method = 'fixed_volume'
+        p.cell_shot_vol = 5
+        # Call close plates and check length of output
+        cps = p.close_plates()
+        self.assertEqual(len(cps), 6)
+        # Check basic properties
+        self.assertEqual(cps[0].name, 'P1')
+        self.assertEqual(cps[1].name, 'P2')
+        self.assertEqual(cps[2].name, 'P3')
+        self.assertEqual(cps[3].name, 'P4')
+        self.assertEqual(cps[4].name, 'P5')
+        self.assertEqual(cps[5].name, 'P6')
+        for cp in cps:
+            self.assertEqual(cp.n_rows, 4)
+            self.assertEqual(cp.n_cols, 6)
+            # Check plate info
+            self.assertEqual(len(cp.plate_info), 4)
+            self.assertTrue('Plate Array' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Plate Array'], 'A1')
+            self.assertTrue('Strain' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
+            self.assertTrue('Preculture Dilution' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Preculture Dilution'], 1)
+            self.assertTrue('Cell Inoculated Vol.' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Cell Inoculated Vol.'], 5)
+            # Check well info
+            well_info = pandas.DataFrame()
+            well_info['Measure'] = [True]*24
+            pandas.util.testing.assert_frame_equal(cp.well_info, well_info)
+
+    def test_close_plates_cell_inoculation_4(self):
+        # Create plate
+        # Create plate
+        p = platedesign.plate.PlateArray(name='A1',
+                                         array_n_rows=2,
+                                         array_n_cols=3,
+                                         plate_names=['P{}'.format(i+1)
+                                                      for i in range(6)])
+        p.cell_strain_name = 'Test strain 1'
+        # Add cell inoculation info
         p.cell_setup_method = 'fixed_volume'
         p.cell_predilution = 100
         p.cell_predilution_vol = 1000
@@ -6420,7 +6776,7 @@ class TestPlateArray(unittest.TestCase):
             well_info['Measure'] = [True]*24
             pandas.util.testing.assert_frame_equal(cp.well_info, well_info)
 
-    def test_close_plates_cell_inoculation_3(self):
+    def test_close_plates_cell_inoculation_5(self):
         # Create plate
         # Create plate
         p = platedesign.plate.PlateArray(name='A1',
@@ -6430,8 +6786,8 @@ class TestPlateArray(unittest.TestCase):
                                                       for i in range(6)])
         p.cell_strain_name = 'Test strain 1'
         # Add cell inoculation info
-        p.cell_setup_method = 'fixed_od600'
-        p.cell_initial_od600 = 1e-5
+        p.cell_setup_method = 'fixed_dilution'
+        p.cell_total_dilution = 1e4
         # Call close plates and check length of output
         cps = p.close_plates()
         self.assertEqual(len(cps), 6)
@@ -6453,14 +6809,14 @@ class TestPlateArray(unittest.TestCase):
             self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
             self.assertTrue('Preculture Dilution' in cp.plate_info)
             self.assertEqual(cp.plate_info['Preculture Dilution'], 1)
-            self.assertTrue('Initial OD600' in cp.plate_info)
-            self.assertEqual(cp.plate_info['Initial OD600'], 1e-5)
+            self.assertTrue('Total Cell Dilution' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Total Cell Dilution'], 1e4)
             # Check well info
             well_info = pandas.DataFrame()
             well_info['Measure'] = [True]*24
             pandas.util.testing.assert_frame_equal(cp.well_info, well_info)
 
-    def test_close_plates_cell_inoculation_4(self):
+    def test_close_plates_cell_inoculation_6(self):
         # Create plate
         # Create plate
         p = platedesign.plate.PlateArray(name='A1',
@@ -6470,10 +6826,10 @@ class TestPlateArray(unittest.TestCase):
                                                       for i in range(6)])
         p.cell_strain_name = 'Test strain 1'
         # Add cell inoculation info
-        p.cell_setup_method = 'fixed_od600'
+        p.cell_setup_method = 'fixed_dilution'
         p.cell_predilution = 100
         p.cell_predilution_vol = 1000
-        p.cell_initial_od600 = 1e-5
+        p.cell_total_dilution = 1e5
         # Call close plates and check length of output
         cps = p.close_plates()
         self.assertEqual(len(cps), 6)
@@ -6495,8 +6851,8 @@ class TestPlateArray(unittest.TestCase):
             self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
             self.assertTrue('Preculture Dilution' in cp.plate_info)
             self.assertEqual(cp.plate_info['Preculture Dilution'], 100)
-            self.assertTrue('Initial OD600' in cp.plate_info)
-            self.assertEqual(cp.plate_info['Initial OD600'], 1e-5)
+            self.assertTrue('Total Cell Dilution' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Total Cell Dilution'], 1e5)
             # Check well info
             well_info = pandas.DataFrame()
             well_info['Measure'] = [True]*24
