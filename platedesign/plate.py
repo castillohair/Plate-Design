@@ -61,8 +61,10 @@ class Plate(object):
         Starting total volume of media, to be distributed into wells.
     cell_strain_name : str
         Name of the cell strain to be inoculated in this plate.
-    cell_setup_method : {None, 'fixed_volume', 'fixed_od600'}
-        Method used to determine how much volume of cells to inoculate.
+    cell_setup_method : str or None
+        Method used to determine how much volume of cells to inoculate. Can
+        be one of the following: "fixed_od600", "fixed_volume", or
+        "fixed_dilution".
     cell_predilution : float
         Dilution factor for the cell preculture before inoculating.
     cell_predilution_vol : float
@@ -73,6 +75,9 @@ class Plate(object):
     cell_shot_vol : float
         Volume of diluted preculture to inoculate in media. Only used if
         `cell_setup_method` is "fixed_volume".
+    cell_total_dilution : float
+        Total dilution from preculture to be inoculated in the media. Only
+        used if `cell_setup_method` is "fixed_dilution".
     metadata : OrderedDict
         Additional information about the plate, in a ``key: value`` format.
         The ClosedPlate instance returned by ``close_plates()`` will
@@ -131,6 +136,7 @@ class Plate(object):
         self.cell_predilution_vol = None
         self.cell_initial_od600 = None
         self.cell_shot_vol = None
+        self.cell_total_dilution = None
 
         # Initialize metadata dictionary
         self.metadata = collections.OrderedDict()
@@ -599,6 +605,77 @@ class Plate(object):
                 worksheet.cell(row=3, column=1).value = \
                     "Add into {:.2f}mL media, ".format(self.total_media_vol/1000.) + \
                     "and distribute into plate wells."
+
+        elif self.cell_setup_method=='fixed_dilution':
+            # Check if total dilution has been specified
+            if self.cell_total_dilution is None:
+                raise ValueError("cell total dilution should be specified")
+            # Set width
+            worksheet.column_dimensions['A'].width = 22
+            worksheet.column_dimensions['B'].width = 7
+            worksheet.column_dimensions['C'].width = 5
+            # Info about strain
+            worksheet.cell(row=1, column=1).value = "Strain Name"
+            worksheet.cell(row=1, column=2).value = self.cell_strain_name
+            if self.cell_predilution != 1:
+                # Check if predilution volume has been specified
+                if self.cell_predilution_vol is None:
+                    raise ValueError("cell predilution volume should be "
+                        "specified")
+                # Instructions for making predilution
+                worksheet.cell(row=2, column=1).value = "Predilution"
+                worksheet.cell(row=2, column=1).alignment = header_alignment
+                worksheet.cell(row=2, column=1).font = header_font
+                worksheet.merge_cells(start_row=2,
+                                      end_row=2,
+                                      start_column=1,
+                                      end_column=3)
+
+                worksheet.cell(row=3, column=1).value = "Predilution factor"
+                worksheet.cell(row=3, column=2).value = self.cell_predilution
+                worksheet.cell(row=3, column=3).value = "x"
+
+                cell_vol = self.cell_predilution_vol / \
+                    float(self.cell_predilution)
+                media_vol = self.cell_predilution_vol - cell_vol
+                worksheet.cell(row=4, column=1).value = "Media volume"
+                worksheet.cell(row=4, column=2).value = media_vol
+                worksheet.cell(row=4, column=3).value = "µL"
+
+                worksheet.cell(row=5, column=1).value = "Preculture volume"
+                worksheet.cell(row=5, column=2).value = cell_vol
+                worksheet.cell(row=5, column=3).value = "µL"
+
+                # Instructions for inoculating into plate media
+                worksheet.cell(row=6, column=1).value = "Inoculation"
+                worksheet.cell(row=6, column=1).alignment = header_alignment
+                worksheet.cell(row=6, column=1).font = header_font
+                worksheet.merge_cells(start_row=6,
+                                      end_row=6,
+                                      start_column=1,
+                                      end_column=3)
+
+                cell_shot_vol = self.total_media_vol / \
+                    float(self.cell_total_dilution) * self.cell_predilution
+                worksheet.cell(row=7, column=1).value = "Predilution volume"
+                worksheet.cell(row=7, column=2).value = cell_shot_vol
+                worksheet.cell(row=7, column=3).value = "µL"
+
+                worksheet.cell(row=8, column=1).value = \
+                    "Add into {:.2f}mL media, ".format(self.total_media_vol/1000.) + \
+                    "and distribute into plate wells."
+            else:
+                cell_shot_vol = self.total_media_vol / \
+                    float(self.cell_total_dilution)
+                # Instructions for inoculating into plate media
+                worksheet.cell(row=2, column=1).value = "Preculture volume"
+                worksheet.cell(row=2, column=2).value = cell_shot_vol
+                worksheet.cell(row=2, column=3).value = "µL"
+
+                worksheet.cell(row=3, column=1).value = \
+                    "Add into {:.2f}mL media, ".format(self.total_media_vol/1000.) + \
+                    "and distribute into plate wells."
+
         else:
             raise ValueError("cell setup method {} not recognized".format(
                 self.cell_setup_method))
@@ -648,6 +725,9 @@ class Plate(object):
         elif self.cell_setup_method=='fixed_volume':
             plate_info['Preculture Dilution'] = self.cell_predilution
             plate_info['Cell Inoculated Vol.'] = self.cell_shot_vol
+        elif self.cell_setup_method=='fixed_dilution':
+            plate_info['Preculture Dilution'] = self.cell_predilution
+            plate_info['Total Cell Dilution'] = self.cell_total_dilution
 
         # Add additional plate metadata
         # The following try-catch block is needed to ensure compatibility with
@@ -754,8 +834,10 @@ class PlateArray(Plate):
         Starting total volume of media, to be distributed into wells.
     cell_strain_name : str
         Name of the cell strain to be inoculated in this plate.
-    cell_setup_method : {None, 'fixed_volume', 'fixed_od600'}
-        Method used to determine how much volume of cells to inoculate.
+    cell_setup_method : str or None
+        Method used to determine how much volume of cells to inoculate. Can
+        be one of the following: "fixed_od600", "fixed_volume", or
+        "fixed_dilution".
     cell_predilution : float
         Dilution factor for the cell preculture before inoculating.
     cell_predilution_vol : float
@@ -766,6 +848,9 @@ class PlateArray(Plate):
     cell_shot_vol : float
         Volume of diluted preculture to inoculate in media. Only used if
         `cell_setup_method` is "fixed_volume".
+    cell_total_dilution : float
+        Total dilution from preculture to be inoculated in the media. Only
+        used if `cell_setup_method` is "fixed_dilution".
     metadata : OrderedDict
         Additional information about the array, in a ``key: value`` format.
         ClosedPlate instances returned by ``close_plates()`` will include
@@ -828,6 +913,7 @@ class PlateArray(Plate):
         self.cell_predilution_vol = None
         self.cell_initial_od600 = None
         self.cell_shot_vol = None
+        self.cell_total_dilution = None
 
         # Initialize metadata dictionary
         self.metadata = collections.OrderedDict()
@@ -1055,6 +1141,9 @@ class PlateArray(Plate):
         elif self.cell_setup_method=='fixed_volume':
             plate_info['Preculture Dilution'] = self.cell_predilution
             plate_info['Cell Inoculated Vol.'] = self.cell_shot_vol
+        elif self.cell_setup_method=='fixed_dilution':
+            plate_info['Preculture Dilution'] = self.cell_predilution
+            plate_info['Total Cell Dilution'] = self.cell_total_dilution
 
         # Add additional plate metadata
         # The following try-catch block is needed to ensure compatibility with
