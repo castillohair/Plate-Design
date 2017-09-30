@@ -6502,6 +6502,1256 @@ class TestPlateArray(unittest.TestCase):
             well_info['Measure'] = [True]*24
             pandas.util.testing.assert_frame_equal(cp.well_info, well_info)
 
+    def test_close_plates_inducer_row_1(self):
+        # Create plate
+        # Create plate
+        p = platedesign.plate.PlateArray(name='A1',
+                                         array_n_rows=2,
+                                         array_n_cols=3,
+                                         plate_names=['P{}'.format(i+1)
+                                                      for i in range(6)])
+        p.cell_strain_name = 'Test strain 1'
+
+        # Create inducer for plate rows
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        iptg.concentrations = numpy.arange(18) + 3
+        p.apply_inducer(iptg, apply_to='rows')
+
+        # Call close plates and check length of output
+        cps = p.close_plates()
+        self.assertEqual(len(cps), 6)
+        # Check basic properties
+        self.assertEqual(cps[0].name, 'P1')
+        self.assertEqual(cps[1].name, 'P2')
+        self.assertEqual(cps[2].name, 'P3')
+        self.assertEqual(cps[3].name, 'P4')
+        self.assertEqual(cps[4].name, 'P5')
+        self.assertEqual(cps[5].name, 'P6')
+        for cp in cps:
+            self.assertEqual(cp.n_rows, 4)
+            self.assertEqual(cp.n_cols, 6)
+            # Check plate info
+            self.assertEqual(len(cp.plate_info), 2)
+            self.assertTrue('Plate Array' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Plate Array'], 'A1')
+            self.assertTrue('Strain' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
+
+        # Check well info
+        well_info_1 = pandas.DataFrame()
+        well_info_1[u'IPTG Concentration (µM)'] = \
+            [3., 4., 5., 6., 7., 8.,
+             3., 4., 5., 6., 7., 8.,
+             3., 4., 5., 6., 7., 8.,
+             3., 4., 5., 6., 7., 8.]
+        well_info_1['Measure'] = [True]*24
+
+        well_info_2 = pandas.DataFrame()
+        well_info_2[u'IPTG Concentration (µM)'] = \
+            [9., 10., 11., 12., 13., 14.,
+             9., 10., 11., 12., 13., 14.,
+             9., 10., 11., 12., 13., 14.,
+             9., 10., 11., 12., 13., 14.,]
+        well_info_2['Measure'] = [True]*24
+
+        well_info_3 = pandas.DataFrame()
+        well_info_3[u'IPTG Concentration (µM)'] = \
+            [15., 16., 17., 18., 19., 20,
+             15., 16., 17., 18., 19., 20,
+             15., 16., 17., 18., 19., 20,
+             15., 16., 17., 18., 19., 20,]
+        well_info_3['Measure'] = [True]*24
+
+        pandas.util.testing.assert_frame_equal(cps[0].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[1].well_info, well_info_2)
+        pandas.util.testing.assert_frame_equal(cps[2].well_info, well_info_3)
+        pandas.util.testing.assert_frame_equal(cps[3].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[4].well_info, well_info_2)
+        pandas.util.testing.assert_frame_equal(cps[5].well_info, well_info_3)
+
+    def test_close_plates_inducer_row_2(self):
+        # Create plate
+        # Create plate
+        p = platedesign.plate.PlateArray(name='A1',
+                                         array_n_rows=2,
+                                         array_n_cols=3,
+                                         plate_names=['P{}'.format(i+1)
+                                                      for i in range(6)])
+        p.cell_strain_name = 'Test strain 1'
+
+        # Create inducer for plate rows
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        iptg.concentrations = numpy.arange(18) + 3
+        p.apply_inducer(iptg, apply_to='rows')
+
+        # Second inducer for plate rows
+        atc = platedesign.inducer.ChemicalInducer(
+            name='aTc',
+            units=u'ng/µL')
+        atc.concentrations = (numpy.arange(18.) + 1)/10.
+        p.apply_inducer(atc, apply_to='rows')
+
+        # Call close plates and check length of output
+        cps = p.close_plates()
+        self.assertEqual(len(cps), 6)
+        # Check basic properties
+        self.assertEqual(cps[0].name, 'P1')
+        self.assertEqual(cps[1].name, 'P2')
+        self.assertEqual(cps[2].name, 'P3')
+        self.assertEqual(cps[3].name, 'P4')
+        self.assertEqual(cps[4].name, 'P5')
+        self.assertEqual(cps[5].name, 'P6')
+        for cp in cps:
+            self.assertEqual(cp.n_rows, 4)
+            self.assertEqual(cp.n_cols, 6)
+            # Check plate info
+            self.assertEqual(len(cp.plate_info), 2)
+            self.assertTrue('Plate Array' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Plate Array'], 'A1')
+            self.assertTrue('Strain' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
+
+        # Check well info
+        well_info_1 = pandas.DataFrame()
+        well_info_1[u'IPTG Concentration (µM)'] = \
+            [3., 4., 5., 6., 7., 8.,
+             3., 4., 5., 6., 7., 8.,
+             3., 4., 5., 6., 7., 8.,
+             3., 4., 5., 6., 7., 8.]
+        well_info_1[u'aTc Concentration (ng/µL)'] = \
+            [0.1, 0.2, 0.3, 0.4, 0.5, 0.6,
+             0.1, 0.2, 0.3, 0.4, 0.5, 0.6,
+             0.1, 0.2, 0.3, 0.4, 0.5, 0.6,
+             0.1, 0.2, 0.3, 0.4, 0.5, 0.6,]
+        well_info_1['Measure'] = [True]*24
+
+        well_info_2 = pandas.DataFrame()
+        well_info_2[u'IPTG Concentration (µM)'] = \
+            [9., 10., 11., 12., 13., 14.,
+             9., 10., 11., 12., 13., 14.,
+             9., 10., 11., 12., 13., 14.,
+             9., 10., 11., 12., 13., 14.,]
+        well_info_2[u'aTc Concentration (ng/µL)'] = \
+            [0.7, 0.8, 0.9, 1.0, 1.1, 1.2,
+             0.7, 0.8, 0.9, 1.0, 1.1, 1.2,
+             0.7, 0.8, 0.9, 1.0, 1.1, 1.2,
+             0.7, 0.8, 0.9, 1.0, 1.1, 1.2,]
+        well_info_2['Measure'] = [True]*24
+
+        well_info_3 = pandas.DataFrame()
+        well_info_3[u'IPTG Concentration (µM)'] = \
+            [15., 16., 17., 18., 19., 20,
+             15., 16., 17., 18., 19., 20,
+             15., 16., 17., 18., 19., 20,
+             15., 16., 17., 18., 19., 20,]
+        well_info_3[u'aTc Concentration (ng/µL)'] = \
+            [1.3, 1.4, 1.5, 1.6, 1.7, 1.8,
+             1.3, 1.4, 1.5, 1.6, 1.7, 1.8,
+             1.3, 1.4, 1.5, 1.6, 1.7, 1.8,
+             1.3, 1.4, 1.5, 1.6, 1.7, 1.8,]
+        well_info_3['Measure'] = [True]*24
+
+        pandas.util.testing.assert_frame_equal(cps[0].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[1].well_info, well_info_2)
+        pandas.util.testing.assert_frame_equal(cps[2].well_info, well_info_3)
+        pandas.util.testing.assert_frame_equal(cps[3].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[4].well_info, well_info_2)
+        pandas.util.testing.assert_frame_equal(cps[5].well_info, well_info_3)
+
+    def test_close_plates_inducer_row_3(self):
+        # Create plate
+        # Create plate
+        p = platedesign.plate.PlateArray(name='A1',
+                                         array_n_rows=2,
+                                         array_n_cols=3,
+                                         plate_names=['P{}'.format(i+1)
+                                                      for i in range(6)])
+        p.cell_strain_name = 'Test strain 1'
+
+        # Create inducer for plate rows
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        iptg.concentrations = numpy.arange(18) + 3
+        iptg.shuffle()
+        p.apply_inducer(iptg, apply_to='rows')
+
+        # Second inducer for plate rows
+        atc = platedesign.inducer.ChemicalInducer(
+            name='aTc',
+            units=u'ng/µL')
+        atc.concentrations = (numpy.arange(18.) + 1)/10.
+        p.apply_inducer(atc, apply_to='rows')
+
+        # Call close plates and check length of output
+        cps = p.close_plates()
+        self.assertEqual(len(cps), 6)
+        # Check basic properties
+        self.assertEqual(cps[0].name, 'P1')
+        self.assertEqual(cps[1].name, 'P2')
+        self.assertEqual(cps[2].name, 'P3')
+        self.assertEqual(cps[3].name, 'P4')
+        self.assertEqual(cps[4].name, 'P5')
+        self.assertEqual(cps[5].name, 'P6')
+        for cp in cps:
+            self.assertEqual(cp.n_rows, 4)
+            self.assertEqual(cp.n_cols, 6)
+            # Check plate info
+            self.assertEqual(len(cp.plate_info), 2)
+            self.assertTrue('Plate Array' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Plate Array'], 'A1')
+            self.assertTrue('Strain' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
+
+        # Check well info
+        well_info_1 = pandas.DataFrame()
+        well_info_1[u'IPTG Concentration (µM)'] = \
+            [14., 18., 20., 4., 13., 7.,
+             14., 18., 20., 4., 13., 7.,
+             14., 18., 20., 4., 13., 7.,
+             14., 18., 20., 4., 13., 7.,]
+        well_info_1[u'aTc Concentration (ng/µL)'] = \
+            [0.1, 0.2, 0.3, 0.4, 0.5, 0.6,
+             0.1, 0.2, 0.3, 0.4, 0.5, 0.6,
+             0.1, 0.2, 0.3, 0.4, 0.5, 0.6,
+             0.1, 0.2, 0.3, 0.4, 0.5, 0.6,]
+        well_info_1['Measure'] = [True]*24
+
+        well_info_2 = pandas.DataFrame()
+        well_info_2[u'IPTG Concentration (µM)'] = \
+            [19., 16., 12., 3., 11., 10.,
+             19., 16., 12., 3., 11., 10.,
+             19., 16., 12., 3., 11., 10.,
+             19., 16., 12., 3., 11., 10.,]
+        well_info_2[u'aTc Concentration (ng/µL)'] = \
+            [0.7, 0.8, 0.9, 1.0, 1.1, 1.2,
+             0.7, 0.8, 0.9, 1.0, 1.1, 1.2,
+             0.7, 0.8, 0.9, 1.0, 1.1, 1.2,
+             0.7, 0.8, 0.9, 1.0, 1.1, 1.2,]
+        well_info_2['Measure'] = [True]*24
+
+        well_info_3 = pandas.DataFrame()
+        well_info_3[u'IPTG Concentration (µM)'] = \
+            [8., 9., 6., 15., 17., 5.,
+             8., 9., 6., 15., 17., 5.,
+             8., 9., 6., 15., 17., 5.,
+             8., 9., 6., 15., 17., 5.,]
+        well_info_3[u'aTc Concentration (ng/µL)'] = \
+            [1.3, 1.4, 1.5, 1.6, 1.7, 1.8,
+             1.3, 1.4, 1.5, 1.6, 1.7, 1.8,
+             1.3, 1.4, 1.5, 1.6, 1.7, 1.8,
+             1.3, 1.4, 1.5, 1.6, 1.7, 1.8,]
+        well_info_3['Measure'] = [True]*24
+
+        pandas.util.testing.assert_frame_equal(cps[0].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[1].well_info, well_info_2)
+        pandas.util.testing.assert_frame_equal(cps[2].well_info, well_info_3)
+        pandas.util.testing.assert_frame_equal(cps[3].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[4].well_info, well_info_2)
+        pandas.util.testing.assert_frame_equal(cps[5].well_info, well_info_3)
+
+    def test_close_plates_inducer_col_1(self):
+        # Create plate
+        # Create plate
+        p = platedesign.plate.PlateArray(name='A1',
+                                         array_n_rows=2,
+                                         array_n_cols=3,
+                                         plate_names=['P{}'.format(i+1)
+                                                      for i in range(6)])
+        p.cell_strain_name = 'Test strain 1'
+
+        # Create inducer for plate rows
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        iptg.concentrations = numpy.arange(8) + 3
+        p.apply_inducer(iptg, apply_to='cols')
+
+        # Call close plates and check length of output
+        cps = p.close_plates()
+        self.assertEqual(len(cps), 6)
+        # Check basic properties
+        self.assertEqual(cps[0].name, 'P1')
+        self.assertEqual(cps[1].name, 'P2')
+        self.assertEqual(cps[2].name, 'P3')
+        self.assertEqual(cps[3].name, 'P4')
+        self.assertEqual(cps[4].name, 'P5')
+        self.assertEqual(cps[5].name, 'P6')
+        for cp in cps:
+            self.assertEqual(cp.n_rows, 4)
+            self.assertEqual(cp.n_cols, 6)
+            # Check plate info
+            self.assertEqual(len(cp.plate_info), 2)
+            self.assertTrue('Plate Array' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Plate Array'], 'A1')
+            self.assertTrue('Strain' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
+
+        # Check well info
+        well_info_1 = pandas.DataFrame()
+        well_info_1[u'IPTG Concentration (µM)'] = \
+            [3., 3., 3., 3., 3., 3.,
+             4., 4., 4., 4., 4., 4.,
+             5., 5., 5., 5., 5., 5.,
+             6., 6., 6., 6., 6., 6.]
+        well_info_1['Measure'] = [True]*24
+        well_info_2 = pandas.DataFrame()
+        well_info_2[u'IPTG Concentration (µM)'] = \
+            [7., 7., 7., 7., 7., 7.,
+             8., 8., 8., 8., 8., 8.,
+             9., 9., 9., 9., 9., 9.,
+             10., 10., 10., 10., 10., 10.]
+        well_info_2['Measure'] = [True]*24
+
+        pandas.util.testing.assert_frame_equal(cps[0].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[1].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[2].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[3].well_info, well_info_2)
+        pandas.util.testing.assert_frame_equal(cps[4].well_info, well_info_2)
+        pandas.util.testing.assert_frame_equal(cps[5].well_info, well_info_2)
+
+    def test_close_plates_inducer_col_2(self):
+        # Create plate
+        # Create plate
+        p = platedesign.plate.PlateArray(name='A1',
+                                         array_n_rows=2,
+                                         array_n_cols=3,
+                                         plate_names=['P{}'.format(i+1)
+                                                      for i in range(6)])
+        p.cell_strain_name = 'Test strain 1'
+
+        # Create inducer for plate rows
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        iptg.concentrations = numpy.arange(8) + 3
+        p.apply_inducer(iptg, apply_to='cols')
+
+        # Second inducer for plate columns
+        atc = platedesign.inducer.ChemicalInducer(
+            name='aTc',
+            units=u'ng/µL')
+        atc.concentrations = (numpy.arange(8.) + 1)/10.
+        p.apply_inducer(atc, apply_to='cols')
+
+        # Call close plates and check length of output
+        cps = p.close_plates()
+        self.assertEqual(len(cps), 6)
+        # Check basic properties
+        self.assertEqual(cps[0].name, 'P1')
+        self.assertEqual(cps[1].name, 'P2')
+        self.assertEqual(cps[2].name, 'P3')
+        self.assertEqual(cps[3].name, 'P4')
+        self.assertEqual(cps[4].name, 'P5')
+        self.assertEqual(cps[5].name, 'P6')
+        for cp in cps:
+            self.assertEqual(cp.n_rows, 4)
+            self.assertEqual(cp.n_cols, 6)
+            # Check plate info
+            self.assertEqual(len(cp.plate_info), 2)
+            self.assertTrue('Plate Array' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Plate Array'], 'A1')
+            self.assertTrue('Strain' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
+
+        # Check well info
+        well_info_1 = pandas.DataFrame()
+        well_info_1[u'IPTG Concentration (µM)'] = \
+            [3., 3., 3., 3., 3., 3.,
+             4., 4., 4., 4., 4., 4.,
+             5., 5., 5., 5., 5., 5.,
+             6., 6., 6., 6., 6., 6.]
+        well_info_1[u'aTc Concentration (ng/µL)'] = \
+            [0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+             0.2, 0.2, 0.2, 0.2, 0.2, 0.2,
+             0.3, 0.3, 0.3, 0.3, 0.3, 0.3,
+             0.4, 0.4, 0.4, 0.4, 0.4, 0.4,]
+        well_info_1['Measure'] = [True]*24
+
+        well_info_2 = pandas.DataFrame()
+        well_info_2[u'IPTG Concentration (µM)'] = \
+            [7., 7., 7., 7., 7., 7.,
+             8., 8., 8., 8., 8., 8.,
+             9., 9., 9., 9., 9., 9.,
+             10., 10., 10., 10., 10., 10.]
+        well_info_2[u'aTc Concentration (ng/µL)'] = \
+            [0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
+             0.6, 0.6, 0.6, 0.6, 0.6, 0.6,
+             0.7, 0.7, 0.7, 0.7, 0.7, 0.7,
+             0.8, 0.8, 0.8, 0.8, 0.8, 0.8,]
+        well_info_2['Measure'] = [True]*24
+
+        pandas.util.testing.assert_frame_equal(cps[0].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[1].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[2].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[3].well_info, well_info_2)
+        pandas.util.testing.assert_frame_equal(cps[4].well_info, well_info_2)
+        pandas.util.testing.assert_frame_equal(cps[5].well_info, well_info_2)
+
+    def test_close_plates_inducer_col_3(self):
+        # Create plate
+        # Create plate
+        p = platedesign.plate.PlateArray(name='A1',
+                                         array_n_rows=2,
+                                         array_n_cols=3,
+                                         plate_names=['P{}'.format(i+1)
+                                                      for i in range(6)])
+        p.cell_strain_name = 'Test strain 1'
+
+        # Create inducer for plate rows
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        iptg.concentrations = numpy.arange(8) + 3
+        iptg.shuffle()
+        p.apply_inducer(iptg, apply_to='cols')
+
+        # Second inducer for plate columns
+        atc = platedesign.inducer.ChemicalInducer(
+            name='aTc',
+            units=u'ng/µL')
+        atc.concentrations = (numpy.arange(8.) + 1)/10.
+        p.apply_inducer(atc, apply_to='cols')
+
+        # Call close plates and check length of output
+        cps = p.close_plates()
+        self.assertEqual(len(cps), 6)
+        # Check basic properties
+        self.assertEqual(cps[0].name, 'P1')
+        self.assertEqual(cps[1].name, 'P2')
+        self.assertEqual(cps[2].name, 'P3')
+        self.assertEqual(cps[3].name, 'P4')
+        self.assertEqual(cps[4].name, 'P5')
+        self.assertEqual(cps[5].name, 'P6')
+        for cp in cps:
+            self.assertEqual(cp.n_rows, 4)
+            self.assertEqual(cp.n_cols, 6)
+            # Check plate info
+            self.assertEqual(len(cp.plate_info), 2)
+            self.assertTrue('Plate Array' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Plate Array'], 'A1')
+            self.assertTrue('Strain' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
+
+        # Check well info
+        well_info_1 = pandas.DataFrame()
+        well_info_1[u'IPTG Concentration (µM)'] = \
+            [3., 3., 3., 3., 3., 3.,
+             5., 5., 5., 5., 5., 5.,
+             6., 6., 6., 6., 6., 6.,
+             9., 9., 9., 9., 9., 9.,]
+        well_info_1[u'aTc Concentration (ng/µL)'] = \
+            [0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+             0.2, 0.2, 0.2, 0.2, 0.2, 0.2,
+             0.3, 0.3, 0.3, 0.3, 0.3, 0.3,
+             0.4, 0.4, 0.4, 0.4, 0.4, 0.4,]
+        well_info_1['Measure'] = [True]*24
+
+        well_info_2 = pandas.DataFrame()
+        well_info_2[u'IPTG Concentration (µM)'] = \
+            [10., 10., 10., 10., 10., 10.,
+              7., 7., 7., 7., 7., 7.,
+              8., 8., 8., 8., 8., 8.,
+              4., 4., 4., 4., 4., 4.,]
+        well_info_2[u'aTc Concentration (ng/µL)'] = \
+            [0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
+             0.6, 0.6, 0.6, 0.6, 0.6, 0.6,
+             0.7, 0.7, 0.7, 0.7, 0.7, 0.7,
+             0.8, 0.8, 0.8, 0.8, 0.8, 0.8,]
+        well_info_2['Measure'] = [True]*24
+
+        pandas.util.testing.assert_frame_equal(cps[0].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[1].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[2].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[3].well_info, well_info_2)
+        pandas.util.testing.assert_frame_equal(cps[4].well_info, well_info_2)
+        pandas.util.testing.assert_frame_equal(cps[5].well_info, well_info_2)
+
+    def test_close_plates_inducer_wells_1(self):
+        # Create plate
+        # Create plate
+        p = platedesign.plate.PlateArray(name='A1',
+                                         array_n_rows=2,
+                                         array_n_cols=3,
+                                         plate_names=['P{}'.format(i+1)
+                                                      for i in range(6)])
+        p.cell_strain_name = 'Test strain 1'
+
+        # Create inducer for plate rows
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        iptg.concentrations = numpy.arange(144) + 3
+        p.apply_inducer(iptg, apply_to='wells')
+
+        # Call close plates and check length of output
+        cps = p.close_plates()
+        self.assertEqual(len(cps), 6)
+        # Check basic properties
+        self.assertEqual(cps[0].name, 'P1')
+        self.assertEqual(cps[1].name, 'P2')
+        self.assertEqual(cps[2].name, 'P3')
+        self.assertEqual(cps[3].name, 'P4')
+        self.assertEqual(cps[4].name, 'P5')
+        self.assertEqual(cps[5].name, 'P6')
+        for cp in cps:
+            self.assertEqual(cp.n_rows, 4)
+            self.assertEqual(cp.n_cols, 6)
+            # Check plate info
+            self.assertEqual(len(cp.plate_info), 2)
+            self.assertTrue('Plate Array' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Plate Array'], 'A1')
+            self.assertTrue('Strain' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
+
+        # Check well info
+        well_info_1 = pandas.DataFrame()
+        well_info_1[u'IPTG Concentration (µM)'] = \
+            [  3.,   4.,   5.,   6.,   7.,   8.,
+              21.,  22.,  23.,  24.,  25.,  26.,
+              39.,  40.,  41.,  42.,  43.,  44.,
+              57.,  58.,  59.,  60.,  61.,  62.]
+        well_info_1['Measure'] = [True]*24
+
+        well_info_2 = pandas.DataFrame()
+        well_info_2[u'IPTG Concentration (µM)'] = \
+            [  9.,  10.,  11.,  12.,  13.,  14.,
+              27.,  28.,  29.,  30.,  31.,  32.,
+              45.,  46.,  47.,  48.,  49.,  50.,
+              63.,  64.,  65.,  66.,  67.,  68.]
+        well_info_2['Measure'] = [True]*24
+
+        well_info_3 = pandas.DataFrame()
+        well_info_3[u'IPTG Concentration (µM)'] = \
+            [ 15.,  16.,  17.,  18.,  19.,  20.,
+              33.,  34.,  35.,  36.,  37.,  38.,
+              51.,  52.,  53.,  54.,  55.,  56.,
+              69.,  70.,  71.,  72.,  73.,  74.]
+        well_info_3['Measure'] = [True]*24
+
+        well_info_4 = pandas.DataFrame()
+        well_info_4[u'IPTG Concentration (µM)'] = \
+            [  75.,   76.,   77.,   78.,   79.,   80.,
+               93.,   94.,   95.,   96.,   97.,   98.,
+              111.,  112.,  113.,  114.,  115.,  116.,
+              129.,  130.,  131.,  132.,  133.,  134.]
+        well_info_4['Measure'] = [True]*24
+
+        well_info_5 = pandas.DataFrame()
+        well_info_5[u'IPTG Concentration (µM)'] = \
+            [  81.,   82.,   83.,   84.,   85.,   86.,
+               99.,  100.,  101.,  102.,  103.,  104.,
+              117.,  118.,  119.,  120.,  121.,  122.,
+              135.,  136.,  137.,  138.,  139.,  140.]
+        well_info_5['Measure'] = [True]*24
+
+        well_info_6 = pandas.DataFrame()
+        well_info_6[u'IPTG Concentration (µM)'] = \
+            [  87.,   88.,   89.,   90.,   91.,   92.,
+              105.,  106.,  107.,  108.,  109.,  110.,
+              123.,  124.,  125.,  126.,  127.,  128.,
+              141.,  142.,  143.,  144.,  145.,  146.]
+        well_info_6['Measure'] = [True]*24
+
+        pandas.util.testing.assert_frame_equal(cps[0].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[1].well_info, well_info_2)
+        pandas.util.testing.assert_frame_equal(cps[2].well_info, well_info_3)
+        pandas.util.testing.assert_frame_equal(cps[3].well_info, well_info_4)
+        pandas.util.testing.assert_frame_equal(cps[4].well_info, well_info_5)
+        pandas.util.testing.assert_frame_equal(cps[5].well_info, well_info_6)
+
+    def test_close_plates_inducer_wells_2(self):
+        # Create plate
+        # Create plate
+        p = platedesign.plate.PlateArray(name='A1',
+                                         array_n_rows=2,
+                                         array_n_cols=3,
+                                         plate_names=['P{}'.format(i+1)
+                                                      for i in range(6)])
+        p.cell_strain_name = 'Test strain 1'
+
+        # Create inducer for plate rows
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        iptg.concentrations = numpy.arange(144) + 3
+        p.apply_inducer(iptg, apply_to='wells')
+
+        atc = platedesign.inducer.ChemicalInducer(
+            name='aTc',
+            units=u'ng/µL')
+        atc.concentrations = (numpy.arange(144) + 1)/10.
+        p.apply_inducer(atc, apply_to='wells')
+
+        # Call close plates and check length of output
+        cps = p.close_plates()
+        self.assertEqual(len(cps), 6)
+        # Check basic properties
+        self.assertEqual(cps[0].name, 'P1')
+        self.assertEqual(cps[1].name, 'P2')
+        self.assertEqual(cps[2].name, 'P3')
+        self.assertEqual(cps[3].name, 'P4')
+        self.assertEqual(cps[4].name, 'P5')
+        self.assertEqual(cps[5].name, 'P6')
+        for cp in cps:
+            self.assertEqual(cp.n_rows, 4)
+            self.assertEqual(cp.n_cols, 6)
+            # Check plate info
+            self.assertEqual(len(cp.plate_info), 2)
+            self.assertTrue('Plate Array' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Plate Array'], 'A1')
+            self.assertTrue('Strain' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
+
+        # Check well info
+        well_info_1 = pandas.DataFrame()
+        well_info_1[u'IPTG Concentration (µM)'] = \
+            [  3.,   4.,   5.,   6.,   7.,   8.,
+              21.,  22.,  23.,  24.,  25.,  26.,
+              39.,  40.,  41.,  42.,  43.,  44.,
+              57.,  58.,  59.,  60.,  61.,  62.]
+        well_info_1[u'aTc Concentration (ng/µL)'] = \
+            [ 0.1,  0.2,  0.3,  0.4,  0.5,  0.6,
+              1.9,  2. ,  2.1,  2.2,  2.3,  2.4,
+              3.7,  3.8,  3.9,  4. ,  4.1,  4.2,
+              5.5,  5.6,  5.7,  5.8,  5.9,  6. ]
+        well_info_1['Measure'] = [True]*24
+
+        well_info_2 = pandas.DataFrame()
+        well_info_2[u'IPTG Concentration (µM)'] = \
+            [  9.,  10.,  11.,  12.,  13.,  14.,
+              27.,  28.,  29.,  30.,  31.,  32.,
+              45.,  46.,  47.,  48.,  49.,  50.,
+              63.,  64.,  65.,  66.,  67.,  68.]
+        well_info_2[u'aTc Concentration (ng/µL)'] = \
+            [ 0.7,  0.8,  0.9,  1. ,  1.1,  1.2,
+              2.5,  2.6,  2.7,  2.8,  2.9,  3. ,
+              4.3,  4.4,  4.5,  4.6,  4.7,  4.8,
+              6.1,  6.2,  6.3,  6.4,  6.5,  6.6]
+        well_info_2['Measure'] = [True]*24
+
+        well_info_3 = pandas.DataFrame()
+        well_info_3[u'IPTG Concentration (µM)'] = \
+            [ 15.,  16.,  17.,  18.,  19.,  20.,
+              33.,  34.,  35.,  36.,  37.,  38.,
+              51.,  52.,  53.,  54.,  55.,  56.,
+              69.,  70.,  71.,  72.,  73.,  74.]
+        well_info_3[u'aTc Concentration (ng/µL)'] = \
+            [ 1.3,  1.4,  1.5,  1.6,  1.7,  1.8,
+              3.1,  3.2,  3.3,  3.4,  3.5,  3.6,
+              4.9,  5. ,  5.1,  5.2,  5.3,  5.4,
+              6.7,  6.8,  6.9,  7. ,  7.1,  7.2]
+        well_info_3['Measure'] = [True]*24
+
+        well_info_4 = pandas.DataFrame()
+        well_info_4[u'IPTG Concentration (µM)'] = \
+            [  75.,   76.,   77.,   78.,   79.,   80.,
+               93.,   94.,   95.,   96.,   97.,   98.,
+              111.,  112.,  113.,  114.,  115.,  116.,
+              129.,  130.,  131.,  132.,  133.,  134.]
+        well_info_4[u'aTc Concentration (ng/µL)'] = \
+            [  7.3,   7.4,   7.5,   7.6,   7.7,   7.8,
+               9.1,   9.2,   9.3,   9.4,   9.5,   9.6,
+              10.9,  11. ,  11.1,  11.2,  11.3,  11.4,
+              12.7,  12.8,  12.9,  13. ,  13.1,  13.2]
+        well_info_4['Measure'] = [True]*24
+
+        well_info_5 = pandas.DataFrame()
+        well_info_5[u'IPTG Concentration (µM)'] = \
+            [  81.,   82.,   83.,   84.,   85.,   86.,
+               99.,  100.,  101.,  102.,  103.,  104.,
+              117.,  118.,  119.,  120.,  121.,  122.,
+              135.,  136.,  137.,  138.,  139.,  140.]
+        well_info_5[u'aTc Concentration (ng/µL)'] = \
+            [  7.9,   8. ,   8.1,   8.2,   8.3,   8.4,
+               9.7,   9.8,   9.9,  10. ,  10.1,  10.2,
+              11.5,  11.6,  11.7,  11.8,  11.9,  12. ,
+              13.3,  13.4,  13.5,  13.6,  13.7,  13.8]
+        well_info_5['Measure'] = [True]*24
+
+        well_info_6 = pandas.DataFrame()
+        well_info_6[u'IPTG Concentration (µM)'] = \
+            [  87.,   88.,   89.,   90.,   91.,   92.,
+              105.,  106.,  107.,  108.,  109.,  110.,
+              123.,  124.,  125.,  126.,  127.,  128.,
+              141.,  142.,  143.,  144.,  145.,  146.]
+        well_info_6[u'aTc Concentration (ng/µL)'] = \
+            [  8.5,   8.6,   8.7,   8.8,   8.9,   9. ,
+              10.3,  10.4,  10.5,  10.6,  10.7,  10.8,
+              12.1,  12.2,  12.3,  12.4,  12.5,  12.6,
+              13.9,  14. ,  14.1,  14.2,  14.3,  14.4]
+        well_info_6['Measure'] = [True]*24
+
+        pandas.util.testing.assert_frame_equal(cps[0].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[1].well_info, well_info_2)
+        pandas.util.testing.assert_frame_equal(cps[2].well_info, well_info_3)
+        pandas.util.testing.assert_frame_equal(cps[3].well_info, well_info_4)
+        pandas.util.testing.assert_frame_equal(cps[4].well_info, well_info_5)
+        pandas.util.testing.assert_frame_equal(cps[5].well_info, well_info_6)
+
+    def test_close_plates_inducer_wells_3(self):
+        # Create plate
+        p = platedesign.plate.PlateArray(name='A1',
+                                         array_n_rows=2,
+                                         array_n_cols=3,
+                                         plate_names=['P{}'.format(i+1)
+                                                      for i in range(6)])
+        p.cell_strain_name = 'Test strain 1'
+
+        # Create inducer for plate rows
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        iptg.concentrations = numpy.arange(144) + 3
+        iptg.shuffle()
+        p.apply_inducer(iptg, apply_to='wells')
+
+        atc = platedesign.inducer.ChemicalInducer(
+            name='aTc',
+            units=u'ng/µL')
+        atc.concentrations = (numpy.arange(144) + 1)/10.
+        p.apply_inducer(atc, apply_to='wells')
+
+        # Call close plates and check length of output
+        cps = p.close_plates()
+        self.assertEqual(len(cps), 6)
+        # Check basic properties
+        self.assertEqual(cps[0].name, 'P1')
+        self.assertEqual(cps[1].name, 'P2')
+        self.assertEqual(cps[2].name, 'P3')
+        self.assertEqual(cps[3].name, 'P4')
+        self.assertEqual(cps[4].name, 'P5')
+        self.assertEqual(cps[5].name, 'P6')
+        for cp in cps:
+            self.assertEqual(cp.n_rows, 4)
+            self.assertEqual(cp.n_cols, 6)
+            # Check plate info
+            self.assertEqual(len(cp.plate_info), 2)
+            self.assertTrue('Plate Array' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Plate Array'], 'A1')
+            self.assertTrue('Strain' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
+
+        # Check well info
+        well_info_1 = pandas.DataFrame()
+        well_info_1[u'IPTG Concentration (µM)'] = \
+            [  20.,  118.,   83.,   51.,   64.,   61.,
+               25.,  112.,    4.,   63.,   87.,    9.,
+              104.,   16.,   21.,   23.,   11.,   26.,
+               79.,   18.,   70.,  141.,   59.,   33.]
+        well_info_1[u'aTc Concentration (ng/µL)'] = \
+            [ 0.1,  0.2,  0.3,  0.4,  0.5,  0.6,
+              1.9,  2. ,  2.1,  2.2,  2.3,  2.4,
+              3.7,  3.8,  3.9,  4. ,  4.1,  4.2,
+              5.5,  5.6,  5.7,  5.8,  5.9,  6. ]
+        well_info_1['Measure'] = [True]*24
+
+        well_info_2 = pandas.DataFrame()
+        well_info_2[u'IPTG Concentration (µM)'] = \
+            [  74.,   13.,   46.,  125.,   77.,   35.,
+               85.,  100.,   81.,  129.,   19.,    8.,
+               40.,  102.,  107.,  119.,  136.,   41.,
+               86.,   56.,   68.,  101.,   97.,  134.]
+        well_info_2[u'aTc Concentration (ng/µL)'] = \
+            [ 0.7,  0.8,  0.9,  1. ,  1.1,  1.2,
+              2.5,  2.6,  2.7,  2.8,  2.9,  3. ,
+              4.3,  4.4,  4.5,  4.6,  4.7,  4.8,
+              6.1,  6.2,  6.3,  6.4,  6.5,  6.6]
+        well_info_2['Measure'] = [True]*24
+
+        well_info_3 = pandas.DataFrame()
+        well_info_3[u'IPTG Concentration (µM)'] = \
+            [  50.,  131.,   12.,   30.,    7.,   45.,
+               10.,  105.,   58.,   78.,   89.,   67.,
+               76.,   47.,   44.,  142.,  133.,  113.,
+               14.,  115.,   99.,   88.,   52.,   90.]
+        well_info_3[u'aTc Concentration (ng/µL)'] = \
+            [ 1.3,  1.4,  1.5,  1.6,  1.7,  1.8,
+              3.1,  3.2,  3.3,  3.4,  3.5,  3.6,
+              4.9,  5. ,  5.1,  5.2,  5.3,  5.4,
+              6.7,  6.8,  6.9,  7. ,  7.1,  7.2]
+        well_info_3['Measure'] = [True]*24
+
+        well_info_4 = pandas.DataFrame()
+        well_info_4[u'IPTG Concentration (µM)'] = \
+            [ 139.,   39.,   98.,  110.,  109.,   42.,
+               80.,   84.,   57.,   31.,   66.,   82.,
+                5.,   34.,   54.,   27.,  128.,   29.,
+              123.,   32.,   96.,  135.,    3.,  103.]
+        well_info_4[u'aTc Concentration (ng/µL)'] = \
+            [  7.3,   7.4,   7.5,   7.6,   7.7,   7.8,
+               9.1,   9.2,   9.3,   9.4,   9.5,   9.6,
+              10.9,  11. ,  11.1,  11.2,  11.3,  11.4,
+              12.7,  12.8,  12.9,  13. ,  13.1,  13.2]
+        well_info_4['Measure'] = [True]*24
+
+        well_info_5 = pandas.DataFrame()
+        well_info_5[u'IPTG Concentration (µM)'] = \
+            [  37.,  130.,   95.,  145.,  140.,   17.,
+               43.,   94.,   73.,   75.,   36.,  138.,
+              132.,  121.,  122.,  126.,   53.,   28.,
+               60.,  114.,    6.,   15.,  144.,   92.]
+        well_info_5[u'aTc Concentration (ng/µL)'] = \
+            [  7.9,   8. ,   8.1,   8.2,   8.3,   8.4,
+               9.7,   9.8,   9.9,  10. ,  10.1,  10.2,
+              11.5,  11.6,  11.7,  11.8,  11.9,  12. ,
+              13.3,  13.4,  13.5,  13.6,  13.7,  13.8]
+        well_info_5['Measure'] = [True]*24
+
+        well_info_6 = pandas.DataFrame()
+        well_info_6[u'IPTG Concentration (µM)'] = \
+            [ 143.,  108.,   24.,  120.,   55.,   48.,
+               91.,  106.,  146.,   71.,   62.,   93.,
+               49.,  117.,   69.,  127.,  137.,  116.,
+               65.,   72.,   38.,  111.,  124.,   22.]
+        well_info_6[u'aTc Concentration (ng/µL)'] = \
+            [  8.5,   8.6,   8.7,   8.8,   8.9,   9. ,
+              10.3,  10.4,  10.5,  10.6,  10.7,  10.8,
+              12.1,  12.2,  12.3,  12.4,  12.5,  12.6,
+              13.9,  14. ,  14.1,  14.2,  14.3,  14.4]
+        well_info_6['Measure'] = [True]*24
+
+        pandas.util.testing.assert_frame_equal(cps[0].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[1].well_info, well_info_2)
+        pandas.util.testing.assert_frame_equal(cps[2].well_info, well_info_3)
+        pandas.util.testing.assert_frame_equal(cps[3].well_info, well_info_4)
+        pandas.util.testing.assert_frame_equal(cps[4].well_info, well_info_5)
+        pandas.util.testing.assert_frame_equal(cps[5].well_info, well_info_6)
+
+    def test_close_plates_inducer_wells_4(self):
+        # Create plate
+        p = platedesign.plate.PlateArray(name='A1',
+                                         array_n_rows=2,
+                                         array_n_cols=3,
+                                         plate_names=['P{}'.format(i+1)
+                                                      for i in range(6)])
+        p.samples_to_measure = 80
+        p.cell_strain_name = 'Test strain 1'
+
+        # Create inducer for plate rows
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        iptg.concentrations = numpy.arange(80) + 3
+        p.apply_inducer(iptg, apply_to='wells')
+
+        # Call close plates and check length of output
+        cps = p.close_plates()
+        self.assertEqual(len(cps), 6)
+        # Check basic properties
+        self.assertEqual(cps[0].name, 'P1')
+        self.assertEqual(cps[1].name, 'P2')
+        self.assertEqual(cps[2].name, 'P3')
+        self.assertEqual(cps[3].name, 'P4')
+        self.assertEqual(cps[4].name, 'P5')
+        self.assertEqual(cps[5].name, 'P6')
+        for cp in cps:
+            self.assertEqual(cp.n_rows, 4)
+            self.assertEqual(cp.n_cols, 6)
+            # Check plate info
+            self.assertEqual(len(cp.plate_info), 2)
+            self.assertTrue('Plate Array' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Plate Array'], 'A1')
+            self.assertTrue('Strain' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
+
+        # Check well info
+        well_info_1 = pandas.DataFrame()
+        well_info_1[u'IPTG Concentration (µM)'] = \
+            [  3.,   4.,   5.,   6.,   7.,   8.,
+              21.,  22.,  23.,  24.,  25.,  26.,
+              39.,  40.,  41.,  42.,  43.,  44.,
+              57.,  58.,  59.,  60.,  61.,  62.]
+        well_info_1['Measure'] = [True]*24
+
+        well_info_2 = pandas.DataFrame()
+        well_info_2[u'IPTG Concentration (µM)'] = \
+            [  9.,  10.,  11.,  12.,  13.,  14.,
+              27.,  28.,  29.,  30.,  31.,  32.,
+              45.,  46.,  47.,  48.,  49.,  50.,
+              63.,  64.,  65.,  66.,  67.,  68.]
+        well_info_2['Measure'] = [True]*24
+
+        well_info_3 = pandas.DataFrame()
+        well_info_3[u'IPTG Concentration (µM)'] = \
+            [ 15.,  16.,  17.,  18.,  19.,  20.,
+              33.,  34.,  35.,  36.,  37.,  38.,
+              51.,  52.,  53.,  54.,  55.,  56.,
+              69.,  70.,  71.,  72.,  73.,  74.]
+        well_info_3['Measure'] = [True]*24
+
+        well_info_4 = pandas.DataFrame()
+        well_info_4[u'IPTG Concentration (µM)'] = \
+            [       75.,        76.,        77.,        78.,        79.,        80.,
+              numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,
+              numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,
+              numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan]
+        well_info_4['Measure'] = [True]*6 + [False]* 18
+
+        well_info_5 = pandas.DataFrame()
+        well_info_5[u'IPTG Concentration (µM)'] = \
+            [      81.,        82.,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,
+             numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,
+             numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,
+             numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan]
+        well_info_5['Measure'] = [True]*2 + [False]* 22
+
+        well_info_6 = pandas.DataFrame()
+        well_info_6[u'IPTG Concentration (µM)'] = \
+            [numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,
+             numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,
+             numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,
+             numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan]
+        well_info_6['Measure'] = [False]*24
+
+        pandas.util.testing.assert_frame_equal(cps[0].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[1].well_info, well_info_2)
+        pandas.util.testing.assert_frame_equal(cps[2].well_info, well_info_3)
+        pandas.util.testing.assert_frame_equal(cps[3].well_info, well_info_4)
+        pandas.util.testing.assert_frame_equal(cps[4].well_info, well_info_5)
+        pandas.util.testing.assert_frame_equal(cps[5].well_info, well_info_6)
+
+    def test_close_plates_inducer_media_1(self):
+        # Create plate
+        p = platedesign.plate.PlateArray(name='A1',
+                                         array_n_rows=2,
+                                         array_n_cols=3,
+                                         plate_names=['P{}'.format(i+1)
+                                                      for i in range(6)])
+        p.cell_strain_name = 'Test strain 1'
+
+        # Create inducer for plate
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        iptg.concentrations = [3]
+        p.apply_inducer(iptg, apply_to='media')
+
+        # Call close plates and check length of output
+        cps = p.close_plates()
+        self.assertEqual(len(cps), 6)
+        # Check basic properties
+        self.assertEqual(cps[0].name, 'P1')
+        self.assertEqual(cps[1].name, 'P2')
+        self.assertEqual(cps[2].name, 'P3')
+        self.assertEqual(cps[3].name, 'P4')
+        self.assertEqual(cps[4].name, 'P5')
+        self.assertEqual(cps[5].name, 'P6')
+        for cp in cps:
+            self.assertEqual(cp.n_rows, 4)
+            self.assertEqual(cp.n_cols, 6)
+            # Check plate info
+            self.assertEqual(len(cp.plate_info), 2)
+            self.assertTrue('Plate Array' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Plate Array'], 'A1')
+            self.assertTrue('Strain' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
+
+        # Check well info
+        well_info_1 = pandas.DataFrame()
+        well_info_1[u'IPTG Concentration (µM)'] = \
+            [  3.,   3.,   3.,   3.,   3.,   3.,
+               3.,   3.,   3.,   3.,   3.,   3.,
+               3.,   3.,   3.,   3.,   3.,   3.,
+               3.,   3.,   3.,   3.,   3.,   3.]
+        well_info_1['Measure'] = [True]*24
+
+        pandas.util.testing.assert_frame_equal(cps[0].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[1].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[2].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[3].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[4].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[5].well_info, well_info_1)
+
+    def test_close_plates_inducer_media_2(self):
+        # Create plate
+        p = platedesign.plate.PlateArray(name='A1',
+                                         array_n_rows=2,
+                                         array_n_cols=3,
+                                         plate_names=['P{}'.format(i+1)
+                                                      for i in range(6)])
+        p.cell_strain_name = 'Test strain 1'
+
+        # Create inducer for plate
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        iptg.concentrations = [3]
+        p.apply_inducer(iptg, apply_to='media')
+
+        atc = platedesign.inducer.ChemicalInducer(
+            name='aTc',
+            units=u'ng/µL')
+        atc.concentrations = [5]
+        p.apply_inducer(atc, apply_to='media')
+
+        # Call close plates and check length of output
+        cps = p.close_plates()
+        self.assertEqual(len(cps), 6)
+        # Check basic properties
+        self.assertEqual(cps[0].name, 'P1')
+        self.assertEqual(cps[1].name, 'P2')
+        self.assertEqual(cps[2].name, 'P3')
+        self.assertEqual(cps[3].name, 'P4')
+        self.assertEqual(cps[4].name, 'P5')
+        self.assertEqual(cps[5].name, 'P6')
+        for cp in cps:
+            self.assertEqual(cp.n_rows, 4)
+            self.assertEqual(cp.n_cols, 6)
+            # Check plate info
+            self.assertEqual(len(cp.plate_info), 2)
+            self.assertTrue('Plate Array' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Plate Array'], 'A1')
+            self.assertTrue('Strain' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
+
+        # Check well info
+        well_info_1 = pandas.DataFrame()
+        well_info_1[u'IPTG Concentration (µM)'] = \
+        [  3.,   3.,   3.,   3.,   3.,   3.,
+           3.,   3.,   3.,   3.,   3.,   3.,
+           3.,   3.,   3.,   3.,   3.,   3.,
+           3.,   3.,   3.,   3.,   3.,   3.]
+        well_info_1[u'aTc Concentration (ng/µL)'] = \
+        [  5.,   5.,   5.,   5.,   5.,   5.,
+           5.,   5.,   5.,   5.,   5.,   5.,
+           5.,   5.,   5.,   5.,   5.,   5.,
+           5.,   5.,   5.,   5.,   5.,   5.]
+        well_info_1['Measure'] = [True]*24
+
+        pandas.util.testing.assert_frame_equal(cps[0].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[1].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[2].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[3].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[4].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[5].well_info, well_info_1)
+
+    def test_close_plates_inducer_media_3(self):
+        # Create plate
+        p = platedesign.plate.PlateArray(name='A1',
+                                         array_n_rows=2,
+                                         array_n_cols=3,
+                                         plate_names=['P{}'.format(i+1)
+                                                      for i in range(6)])
+        p.samples_to_measure = 80
+        p.cell_strain_name = 'Test strain 1'
+
+        # Create inducer for plate
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        iptg.concentrations = [3]
+        p.apply_inducer(iptg, apply_to='media')
+
+        # Call close plates and check length of output
+        cps = p.close_plates()
+        self.assertEqual(len(cps), 6)
+        # Check basic properties
+        self.assertEqual(cps[0].name, 'P1')
+        self.assertEqual(cps[1].name, 'P2')
+        self.assertEqual(cps[2].name, 'P3')
+        self.assertEqual(cps[3].name, 'P4')
+        self.assertEqual(cps[4].name, 'P5')
+        self.assertEqual(cps[5].name, 'P6')
+        for cp in cps:
+            self.assertEqual(cp.n_rows, 4)
+            self.assertEqual(cp.n_cols, 6)
+            # Check plate info
+            self.assertEqual(len(cp.plate_info), 2)
+            self.assertTrue('Plate Array' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Plate Array'], 'A1')
+            self.assertTrue('Strain' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
+
+        # Check well info
+        well_info_1 = pandas.DataFrame()
+        well_info_1[u'IPTG Concentration (µM)'] = \
+            [  3.,   3.,   3.,   3.,   3.,   3.,
+               3.,   3.,   3.,   3.,   3.,   3.,
+               3.,   3.,   3.,   3.,   3.,   3.,
+               3.,   3.,   3.,   3.,   3.,   3.]
+        well_info_1['Measure'] = [True]*24
+
+        well_info_4 = pandas.DataFrame()
+        well_info_4[u'IPTG Concentration (µM)'] = \
+            [        3.,         3.,         3.,         3.,         3.,         3.,
+              numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,
+              numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,
+              numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan]
+        well_info_4['Measure'] = [True]*6 + [False]* 18
+
+        well_info_5 = pandas.DataFrame()
+        well_info_5[u'IPTG Concentration (µM)'] = \
+            [       3.,         3.,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,
+             numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,
+             numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,
+             numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan]
+        well_info_5['Measure'] = [True]*2 + [False]* 22
+
+        well_info_6 = pandas.DataFrame()
+        well_info_6[u'IPTG Concentration (µM)'] = \
+            [numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,
+             numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,
+             numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,
+             numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan,  numpy.nan]
+        well_info_6['Measure'] = [False]*24
+
+        pandas.util.testing.assert_frame_equal(cps[0].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[1].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[2].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[3].well_info, well_info_4)
+        pandas.util.testing.assert_frame_equal(cps[4].well_info, well_info_5)
+        pandas.util.testing.assert_frame_equal(cps[5].well_info, well_info_6)
+
+    def test_close_plates_combined(self):
+        p = platedesign.plate.PlateArray(name='A1',
+                                         array_n_rows=2,
+                                         array_n_cols=3,
+                                         plate_names=['P{}'.format(i+1)
+                                                      for i in range(6)])
+        p.cell_strain_name = 'Test strain 1'
+        # Add some metadata
+        p.metadata['Meta 1'] = 'Value 1'
+        p.metadata['Meta 2'] = 'Value 2'
+        # Add cell inoculation info
+        p.cell_setup_method = 'fixed_volume'
+        p.cell_predilution = 100
+        p.cell_predilution_vol = 1000
+        p.cell_shot_vol = 5
+
+        # Create inducer for plate rows
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        iptg.concentrations = numpy.arange(18) + 3
+        p.apply_inducer(iptg, apply_to='rows')
+
+        # Second inducer for plate columns
+        atc = platedesign.inducer.ChemicalInducer(
+            name='aTc',
+            units=u'ng/µL')
+        atc.concentrations = (numpy.arange(8.) + 1)/10.
+        p.apply_inducer(atc, apply_to='cols')
+
+        # Call close plates and check length of output
+        cps = p.close_plates()
+        self.assertEqual(len(cps), 6)
+
+        # Check basic properties
+        self.assertEqual(cps[0].name, 'P1')
+        self.assertEqual(cps[1].name, 'P2')
+        self.assertEqual(cps[2].name, 'P3')
+        self.assertEqual(cps[3].name, 'P4')
+        self.assertEqual(cps[4].name, 'P5')
+        self.assertEqual(cps[5].name, 'P6')
+        for cp in cps:
+            self.assertEqual(cp.n_rows, 4)
+            self.assertEqual(cp.n_cols, 6)
+            # Check plate info
+            self.assertEqual(len(cp.plate_info), 6)
+            self.assertTrue('Plate Array' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Plate Array'], 'A1')
+            self.assertTrue('Strain' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
+            self.assertTrue('Meta 1' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Meta 1'], 'Value 1')
+            self.assertTrue('Meta 2' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Meta 2'], 'Value 2')
+            self.assertTrue('Preculture Dilution' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Preculture Dilution'], 100)
+            self.assertTrue('Cell Inoculated Vol.' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Cell Inoculated Vol.'], 5)
+
+        # Check well info
+        well_info_1 = pandas.DataFrame()
+        well_info_1[u'IPTG Concentration (µM)'] = \
+            [3., 4., 5., 6., 7., 8.,
+             3., 4., 5., 6., 7., 8.,
+             3., 4., 5., 6., 7., 8.,
+             3., 4., 5., 6., 7., 8.]
+        well_info_1[u'aTc Concentration (ng/µL)'] = \
+            [0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+             0.2, 0.2, 0.2, 0.2, 0.2, 0.2,
+             0.3, 0.3, 0.3, 0.3, 0.3, 0.3,
+             0.4, 0.4, 0.4, 0.4, 0.4, 0.4,]
+        well_info_1['Measure'] = [True]*24
+
+        well_info_2 = pandas.DataFrame()
+        well_info_2[u'IPTG Concentration (µM)'] = \
+            [9., 10., 11., 12., 13., 14.,
+             9., 10., 11., 12., 13., 14.,
+             9., 10., 11., 12., 13., 14.,
+             9., 10., 11., 12., 13., 14.,]
+        well_info_2[u'aTc Concentration (ng/µL)'] = \
+            [0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+             0.2, 0.2, 0.2, 0.2, 0.2, 0.2,
+             0.3, 0.3, 0.3, 0.3, 0.3, 0.3,
+             0.4, 0.4, 0.4, 0.4, 0.4, 0.4,]
+        well_info_2['Measure'] = [True]*24
+
+        well_info_3 = pandas.DataFrame()
+        well_info_3[u'IPTG Concentration (µM)'] = \
+            [15., 16., 17., 18., 19., 20,
+             15., 16., 17., 18., 19., 20,
+             15., 16., 17., 18., 19., 20,
+             15., 16., 17., 18., 19., 20,]
+        well_info_3[u'aTc Concentration (ng/µL)'] = \
+            [0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+             0.2, 0.2, 0.2, 0.2, 0.2, 0.2,
+             0.3, 0.3, 0.3, 0.3, 0.3, 0.3,
+             0.4, 0.4, 0.4, 0.4, 0.4, 0.4,]
+        well_info_3['Measure'] = [True]*24
+
+        well_info_4 = pandas.DataFrame()
+        well_info_4[u'IPTG Concentration (µM)'] = \
+            [3., 4., 5., 6., 7., 8.,
+             3., 4., 5., 6., 7., 8.,
+             3., 4., 5., 6., 7., 8.,
+             3., 4., 5., 6., 7., 8.]
+        well_info_4[u'aTc Concentration (ng/µL)'] = \
+            [0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
+             0.6, 0.6, 0.6, 0.6, 0.6, 0.6,
+             0.7, 0.7, 0.7, 0.7, 0.7, 0.7,
+             0.8, 0.8, 0.8, 0.8, 0.8, 0.8,]
+        well_info_4['Measure'] = [True]*24
+
+        well_info_5 = pandas.DataFrame()
+        well_info_5[u'IPTG Concentration (µM)'] = \
+            [9., 10., 11., 12., 13., 14.,
+             9., 10., 11., 12., 13., 14.,
+             9., 10., 11., 12., 13., 14.,
+             9., 10., 11., 12., 13., 14.,]
+        well_info_5[u'aTc Concentration (ng/µL)'] = \
+            [0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
+             0.6, 0.6, 0.6, 0.6, 0.6, 0.6,
+             0.7, 0.7, 0.7, 0.7, 0.7, 0.7,
+             0.8, 0.8, 0.8, 0.8, 0.8, 0.8,]
+        well_info_5['Measure'] = [True]*24
+
+        well_info_6 = pandas.DataFrame()
+        well_info_6[u'IPTG Concentration (µM)'] = \
+            [15., 16., 17., 18., 19., 20,
+             15., 16., 17., 18., 19., 20,
+             15., 16., 17., 18., 19., 20,
+             15., 16., 17., 18., 19., 20,]
+        well_info_6[u'aTc Concentration (ng/µL)'] = \
+            [0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
+             0.6, 0.6, 0.6, 0.6, 0.6, 0.6,
+             0.7, 0.7, 0.7, 0.7, 0.7, 0.7,
+             0.8, 0.8, 0.8, 0.8, 0.8, 0.8,]
+        well_info_6['Measure'] = [True]*24
+
+        pandas.util.testing.assert_frame_equal(cps[0].well_info, well_info_1)
+        pandas.util.testing.assert_frame_equal(cps[1].well_info, well_info_2)
+        pandas.util.testing.assert_frame_equal(cps[2].well_info, well_info_3)
+        pandas.util.testing.assert_frame_equal(cps[3].well_info, well_info_4)
+        pandas.util.testing.assert_frame_equal(cps[4].well_info, well_info_5)
+        pandas.util.testing.assert_frame_equal(cps[5].well_info, well_info_6)
+
 class TestClosedPlate(unittest.TestCase):
     """
     Tests for the ClosedPlate class

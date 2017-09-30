@@ -1112,8 +1112,8 @@ class PlateArray(Plate):
                             inducer.doses_table[column].values
                 elif apply_to=='media':
                     for column in inducer.doses_table.columns:
-                        well_info_array[column] = \
-                            inducer.doses_table[column].value
+                        well_info_array.loc[samples_to_measure_bool, column] = \
+                            inducer.doses_table[column].values[0]
 
         # Add which wells should be measured
         well_info_array['Measure'] = samples_to_measure_bool
