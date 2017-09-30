@@ -7780,7 +7780,8 @@ class TestClosedPlate(unittest.TestCase):
              'Column': [1,2,3,4,5,6]*4})
         exp_samples_table = exp_samples_table[['Plate', 'Row', 'Column']]
         pandas.util.testing.assert_frame_equal(exp_samples_table,
-                                               p.samples_table)
+                                               p.samples_table,
+                                               check_dtype=False)
 
     def test_attributes_non_default_size(self):
         # Create
@@ -7805,7 +7806,8 @@ class TestClosedPlate(unittest.TestCase):
              'Column': [1,2,3,4,5,6,7,8,9,10,11,12]*8})
         exp_samples_table = exp_samples_table[['Plate', 'Row', 'Column']]
         pandas.util.testing.assert_frame_equal(exp_samples_table,
-                                               p.samples_table)
+                                               p.samples_table,
+                                               check_dtype=False)
 
     def test_attributes_non_default_plate_info(self):
         # Create
@@ -7835,7 +7837,8 @@ class TestClosedPlate(unittest.TestCase):
                                                'Row',
                                                'Column']]
         pandas.util.testing.assert_frame_equal(exp_samples_table,
-                                               p.samples_table)
+                                               p.samples_table,
+                                               check_dtype=False)
 
     def test_attributes_non_default_well_info(self):
         # Create
@@ -7865,7 +7868,8 @@ class TestClosedPlate(unittest.TestCase):
                                                'IPTG',
                                                'Measure']]
         pandas.util.testing.assert_frame_equal(exp_samples_table,
-                                               p.samples_table)
+                                               p.samples_table,
+                                               check_dtype=False)
 
     def test_attributes_non_default_info(self):
         # Create
@@ -7904,7 +7908,8 @@ class TestClosedPlate(unittest.TestCase):
                                                'IPTG',
                                                'Measure']]
         pandas.util.testing.assert_frame_equal(exp_samples_table,
-                                               p.samples_table)
+                                               p.samples_table,
+                                               check_dtype=False)
 
     def test_modify_plate_info(self):
         # Create
@@ -7937,13 +7942,15 @@ class TestClosedPlate(unittest.TestCase):
                                                'IPTG',
                                                'Measure']]
         pandas.util.testing.assert_frame_equal(exp_samples_table,
-                                               p.samples_table)
+                                               p.samples_table,
+                                               check_dtype=False)
 
         # Add field to plate_info
         p.plate_info['Predilution'] = 10
         # Samples table should be the same as before
         pandas.util.testing.assert_frame_equal(exp_samples_table,
-                                               p.samples_table)
+                                               p.samples_table,
+                                               check_dtype=False)
         # Update and check that samples table has changed
         p.update_samples_table()
         exp_samples_table = pandas.DataFrame(
@@ -7967,7 +7974,8 @@ class TestClosedPlate(unittest.TestCase):
                                                'IPTG',
                                                'Measure']]
         pandas.util.testing.assert_frame_equal(exp_samples_table,
-                                               p.samples_table)
+                                               p.samples_table,
+                                               check_dtype=False)
 
 
     def test_modify_well_info(self):
@@ -7981,7 +7989,9 @@ class TestClosedPlate(unittest.TestCase):
         p = platedesign.plate.ClosedPlate(name='P1',
                                           plate_info=plate_info,
                                           well_info=well_info)
-        pandas.util.testing.assert_frame_equal(p.well_info, well_info)
+        pandas.util.testing.assert_frame_equal(p.well_info,
+                                               well_info,
+                                               check_dtype=False)
         # Check samples table
         exp_samples_table = pandas.DataFrame(
             {'Plate': ['P1']*24,
@@ -8002,13 +8012,15 @@ class TestClosedPlate(unittest.TestCase):
                                                'IPTG',
                                                'Measure']]
         pandas.util.testing.assert_frame_equal(exp_samples_table,
-                                               p.samples_table)
+                                               p.samples_table,
+                                               check_dtype=False)
 
         # Change one of the columns in well_info
         p.well_info['Measure'] = [False]*8 + [True]*16
         # Samples table should be the same as before
         pandas.util.testing.assert_frame_equal(exp_samples_table,
-                                               p.samples_table)
+                                               p.samples_table,
+                                               check_dtype=False)
         # Update and check that samples table has changed
         p.update_samples_table()
         exp_samples_table = pandas.DataFrame(
@@ -8030,4 +8042,5 @@ class TestClosedPlate(unittest.TestCase):
                                                'IPTG',
                                                'Measure']]
         pandas.util.testing.assert_frame_equal(exp_samples_table,
-                                               p.samples_table)
+                                               p.samples_table,
+                                               check_dtype=False)
