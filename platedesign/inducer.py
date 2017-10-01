@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 """
 Module that contains inducer classes.
 
@@ -248,7 +249,7 @@ class ChemicalInducer(InducerBase):
         Header to be used in the dose table to specify concentration.
 
         """
-        return "{} Concentration ({})".format(self.name, self.units)
+        return u"{} Concentration ({})".format(self.name, self.units)
 
     @property
     def concentrations(self):
@@ -439,8 +440,8 @@ class ChemicalInducer(InducerBase):
         The instructions are saved to a single Excel sheet, named after
         the inducer. To prepare the dilutions, the stock solution should be
         diluted by the factor specified in "Stock dilution". Next, the
-        volume of stock dilution indicated in "Inducer volume (uL)" should
-        be mixed with a volume of water specified in "Water volume (uL)".
+        volume of stock dilution indicated in "Inducer volume (µL)" should
+        be mixed with a volume of water specified in "Water volume (µL)".
 
         Additional class properties that need to be set are "stock_conc"
         and "total_vol". This function modifies the specified
@@ -466,6 +467,10 @@ class ChemicalInducer(InducerBase):
             raise AttributeError("shot_vol should be set")
         if self.total_vol is None:
             raise AttributeError("total_vol should be set")
+
+        # Check that at least one of the parameters has been specified
+        if (file_name is None) and (workbook is None):
+            raise ValueError("either file_name or workbook should be specified")
 
         # Convert concentrations to a set, such that each requested
         # concentration appears once.
@@ -525,12 +530,12 @@ class ChemicalInducer(InducerBase):
         # Build table with instructions
         instructions = pandas.DataFrame()
         instructions[self._concentrations_header] = actual_concs
-        instructions['Stock dilution'] = stock_dils
-        instructions['Inducer volume (uL)'] = inducer_vols
-        instructions['Water volume (uL)'] = water_vols
-        instructions['Total volume (uL)'] = total_vols
-        instructions['Aliquot IDs'] = [", ".join(self._doses_table.index[idx])
-                                       for idx in doses_idx]
+        instructions[u'Stock dilution'] = stock_dils
+        instructions[u'Inducer volume (µL)'] = inducer_vols
+        instructions[u'Water volume (µL)'] = water_vols
+        instructions[u'Total volume (µL)'] = total_vols
+        instructions[u'Aliquot IDs'] = [", ".join(self._doses_table.index[idx])
+                                        for idx in doses_idx]
 
         if workbook is not None:
             # First, check that a sheet with the inducer name doesn't exist
@@ -549,13 +554,17 @@ class ChemicalInducer(InducerBase):
 
         # Save instructions table
         instructions.to_excel(writer, sheet_name=sheet_name, index=False)
-        # Add message about aliquots
-        message = "Distribute in aliquots of {}uL." \
-            .format(self.replicate_vol)
+        # Add message about aliquot volume
+        if self.replicate_vol is not None:
+            aliquot_message = u"Distribute in aliquots of {} µL." \
+                .format(self.replicate_vol)
+        else:
+            aliquot_message = u"Distribute in aliquots of {} µL." \
+                .format(self.total_vol)
         worksheet = writer.sheets[sheet_name]
         worksheet.cell(row=len(instructions) + 3,
                        column=1,
-                       value=message)
+                       value=aliquot_message)
 
         # Save file if necessary
         if workbook is None:
@@ -624,7 +633,7 @@ class ChemicalGeneExpression(ChemicalInducer):
         Offset from which to generate the ID that identifies each inducer
         concentration.
     hill_params : dict
-        Contains four key:value pairs, with keys ``dy``, ``y0``, ``n``, and
+        Contains four key:value pairs, with keys ``y0``, ``dy``, ``n``, and
         ``K``. These are the parameters used for calculations converting
         inducer concentrations into gene expression and viceversa.
     stock_conc : float
@@ -664,6 +673,10 @@ class ChemicalGeneExpression(ChemicalInducer):
         self.inducer_name = inducer_name
         self.inducer_units = inducer_units
 
+        # Verify hill parameters
+        if set(hill_params.keys()) != set(['y0', 'dy', 'K', 'n']):
+            raise ValueError('hill_params should be a dictionary with keys '
+                '"y0", "dy", "n", and "K"')
         # Set hill parameters
         self.hill_params = hill_params
 
@@ -682,10 +695,10 @@ class ChemicalGeneExpression(ChemicalInducer):
             Gene expression levels.
 
         """
-        dy = self.hill_params['dy']
-        y0 = self.hill_params['y0']
-        K = self.hill_params['K']
-        n = self.hill_params['n']
+        dy = float(self.hill_params['dy'])
+        y0 = float(self.hill_params['y0'])
+        K = float(self.hill_params['K'])
+        n = float(self.hill_params['n'])
         return y0 + dy*(x**n)/(x**n + K**n)
 
     def _hill_inverse(self, y):
@@ -703,10 +716,10 @@ class ChemicalGeneExpression(ChemicalInducer):
             Inducer concentration.
 
         """
-        dy = self.hill_params['dy']
-        y0 = self.hill_params['y0']
-        K = self.hill_params['K']
-        n = self.hill_params['n']
+        dy = float(self.hill_params['dy'])
+        y0 = float(self.hill_params['y0'])
+        K = float(self.hill_params['K'])
+        n = float(self.hill_params['n'])
         # Check that y is between ``y0`` and ``dy + y0``
         if numpy.any(y < y0):
             raise ValueError('expression should be higher than y0 = {}'.\
@@ -715,10 +728,14 @@ class ChemicalGeneExpression(ChemicalInducer):
             raise ValueError('expression should be lower than dy + y0 = {}'.\
                 format(dy + y0))
         # Compute inducer concentration
-        z = (y - y0)/dy
-        x = K*(z/(1.-z))**(1./n)
-        # Correct extreme values
-        if hasattr(x, '__iter__'):
+        if hasattr(y, '__iter__'):
+            # Initialize array x
+            x = numpy.zeros_like(y)
+            # Apply inverse hill equation for y values between y0 and y0 + dy
+            y_non_limit_ind = numpy.logical_and(y>y0, y<(y0+dy))
+            z = (y[y_non_limit_ind] - y0)/dy
+            x[y_non_limit_ind] = K*(z/(1.-z))**(1./n)
+            # Set limit values to zero or inf
             x[y==y0] = 0.
             x[y==(y0 + dy)] = numpy.inf
         else:
@@ -726,6 +743,9 @@ class ChemicalGeneExpression(ChemicalInducer):
                 x = 0.
             elif y==(y0 + dy):
                 x = numpy.inf
+            else:
+                z = (y - y0)/dy
+                x = K*(z/(1.-z))**(1./n)
 
         return x
 
@@ -735,7 +755,7 @@ class ChemicalGeneExpression(ChemicalInducer):
         Header to be used in the dose table to specify concentration.
 
         """
-        return "{} Concentration ({})".format(self.inducer_name,
+        return u"{} Concentration ({})".format(self.inducer_name,
                                               self.inducer_units)
 
     @property
@@ -744,7 +764,7 @@ class ChemicalGeneExpression(ChemicalInducer):
         Header to be used in the dose table to specify gene expression.
 
         """
-        return "{} Expression ({})".format(self.name, self.units)
+        return u"{} Expression ({})".format(self.name, self.units)
 
     @property
     def concentrations(self):
@@ -846,7 +866,7 @@ class ChemicalGeneExpression(ChemicalInducer):
         """
         # Check that n_repeat is an exact divisor of n
         if n%n_repeat != 0:
-            raise ValueError("n should be dy multiple of n_repeat")
+            raise ValueError("n should be a multiple of n_repeat")
 
         # If not specified, compute min and max expression levels from minimum
         # and maximum inducer concentrations. Otherwise, use ``y0`` for the
@@ -864,6 +884,14 @@ class ChemicalGeneExpression(ChemicalInducer):
                 # requires infinite inducer. Therefore, raise error.
                 raise ValueError('maximum expression or inducer level should be'
                     ' specified')
+
+        # Check limits
+        if min < self.hill_params['y0']:
+            raise ValueError('min should be greater than y0 = {}'.\
+                format(self.hill_params['y0']))
+        if max >= self.hill_params['y0'] + self.hill_params['dy']:
+            raise ValueError('max should be lower than y0 + dy = {}'.\
+                format(self.hill_params['y0'] + self.hill_params['dy']))
 
         # Calculate gradient
         if scale == 'linear':

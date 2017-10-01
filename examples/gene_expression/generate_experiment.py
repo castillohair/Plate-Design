@@ -1,9 +1,16 @@
+# -*- coding: UTF-8 -*-
 import platedesign
 
 exp = platedesign.experiment.Experiment()
 exp.n_replicates = 5
-exp.randomize = True
-exp.measurement_template = 'template_FlowCal.xlsx'
+exp.randomize_inducer = True
+exp.randomize_plate = True
+exp.plate_locations = ['Stack 1-1',
+                       'Stack 1-2',
+                       'Stack 1-3',
+                       'Stack 1-4',
+                       ]
+exp.measurement_template = '../supporting_files/template_FlowCal.xlsx'
 exp.plate_measurements = ['Final OD600', 'Incubation time (min)']
 
 # Inducers
@@ -11,7 +18,7 @@ rr = platedesign.inducer.ChemicalGeneExpression(
   name='RR',
   units='MEFL',
   inducer_name='IPTG',
-  inducer_units='uM',
+  inducer_units=u'µM',
   hill_params={'y0': 1e1,
                'dy': 3000.,
                'K': 40.,
@@ -56,8 +63,8 @@ exp.add_plate(plate)
 
 # Add common settings to plates
 for plate in exp.plates:
-    plate.media_vol = 16000.
-    plate.sample_vol = 500.
+    plate.total_media_vol = 16000.
+    plate.sample_media_vol = 500.
     plate.cell_setup_method = 'fixed_od600'
     plate.cell_predilution = 100
     plate.cell_predilution_vol = 1000

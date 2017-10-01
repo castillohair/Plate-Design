@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 """
 Module that contains the experiment class.
 
@@ -5,6 +6,7 @@ Module that contains the experiment class.
 
 import copy
 import os
+import random
 
 import numpy
 import openpyxl
@@ -22,22 +24,23 @@ class Experiment(object):
 
     Setting up a plate experiment is performed in several stages:
         - Experiment setup: Inducers and plates are prepared and stored.
-          Media is prepared if necessary. No cells are cultured during this
-          stage.
+          No cells are cultured during this stage.
         - Replicate setup: Plates are set up with the indicated amount of
           of inducer, inoculated with cells, and placed under growth
-          conditions for a specified amount of time.
+          conditions (optionally in distinct named locations) for a
+          specified amount of time.
         - Replicate measurement: Plates are placed in growth-arresting
           conditions, and measurements of each sample are conducted. These
           can be absorbance or fluorescence from plate readers,
           fluorescence from flow cytometers, etc.
 
-    The major purpose of this class is to generate instruction files for
+    The major function of this class is to generate instruction files for
     each one of these stages, given specifications on the inducers and
     plates. For example:
         - Experiment setup: Instructions for preparing inducer dilutions
           and media.
-        - Replicate setup: Instructions for inoculating inducers and cells.
+        - Replicate setup: Instructions for inoculating inducers and cells,
+          and placing plates in the appropriate locations.
         - Replicate measurement: Table with list of samples to measure.
 
     Attributes
@@ -46,8 +49,13 @@ class Experiment(object):
         Number of replicates.
     randomize_inducer : bool
         Whether to randomize inducer concentrations for each replicate.
+    randomize_plate : bool
+        Wheteher to randomize plates at the end of the replicate setup
+        phase. This results in plates being assigned randomly to specified
+        locations (if plate locations have been specified) and measurements
+        being performed from plates at random.
     plates : list
-        Plates in the experiment.
+        Plates or plate arrays in the experiment.
     inducers : list
         Inducers in the experiment.
     measurement_template : str
@@ -56,11 +64,21 @@ class Experiment(object):
         "Samples" sheet is present, all columns will be added to the final
         "Samples" sheet, and filled with the values present in the first
         row.
-    plate_measurements : list
+    plate_measurements : list of str
         Each element of this list is the name of a measurement to record
         at the end of the experiment for each plate. An empty table in
         which to record these values will be created in the replicate
         measurement file, sheet "Plate Measurements".
+    replicate_measurements : list of str
+        Each element of this list is the name of a measurement to record
+        at the end of the experiment for the whole replicate. An empty table
+        in which to record these values will be created in the replicate
+        measurement file, sheet "Replicate Measurements".
+    plate_locations : list of str
+        Names of the different locations available for plates. If left
+        empty, location information is not used at any point. If specified,
+        this list should have at least as many elements as plates used in
+        the experiment.
 
     Methods
     -------
@@ -75,14 +93,19 @@ class Experiment(object):
     def __init__(self):
         # Initialize properties
         self.n_replicates = 3
-        self.randomize = False
+        self.randomize_inducer = False
+        self.randomize_plate = False
         # Initialize containers of plates and inducers.
         self.plates = []
         self.inducers = []
         # Template for table of samples for measurement.
         self.measurement_template = None
+        # List of measurements per replicate to take
+        self.replicate_measurements = []
         # List of measurements per plate to take
         self.plate_measurements = []
+        # List of locations available for plates
+        self.plate_locations = []
 
     def add_plate(self, plate):
         """
@@ -124,17 +147,20 @@ class Experiment(object):
             Folder in which to create all experiment files.
 
         """
-        # Create folders for each replicate
-        replicate_folders = [os.path.join(path,
-                                          'replicate_{:03d}'.format(i + 1))
-                             for i in range(self.n_replicates)]
-        # First, check if folders already exist. If so, abort.
-        for folder in replicate_folders:
-            if os.path.exists(folder):
-                raise IOError("folder {} already exists".format(folder))
-        # Create folders
-        for folder in replicate_folders:
-            os.makedirs(folder)
+        # Create folders for each replicate, if necessary
+        if self.n_replicates > 1:
+            replicate_folders = [os.path.join(path,
+                                              'replicate_{:03d}'.format(i + 1))
+                                 for i in range(self.n_replicates)]
+            # Check if folders already exist. If so, abort.
+            for folder in replicate_folders:
+                if os.path.exists(folder):
+                    raise IOError("folder {} already exists".format(folder))
+            # Create folders
+            for folder in replicate_folders:
+                os.makedirs(folder)
+        else:
+            replicate_folders = [path]
 
         ###
         # Experiment Setup Stage
@@ -199,7 +225,8 @@ class Experiment(object):
             plate.save_exp_setup_files(path=path)
 
         # Save spreadsheet
-        wb_exp_setup.save(filename=wb_exp_setup_filename)
+        if len(wb_exp_setup.worksheets) > 0:
+            wb_exp_setup.save(filename=wb_exp_setup_filename)
 
         # Iterate over replicates
         for replicate_idx in range(self.n_replicates):
@@ -213,58 +240,119 @@ class Experiment(object):
 
             # Shuffle inducer and save replicate setup files
             for inducer in self.inducers:
-                if self.randomize:
+                if self.randomize_inducer:
                     inducer.shuffle()
                 inducer.save_rep_setup_instructions(workbook=wb_rep_setup)
-                inducer.save_rep_setup_files(path=path)
+                inducer.save_rep_setup_files(
+                    path=replicate_folders[replicate_idx])
 
-            # Run all plate calculations
+            # Get closed plates from plates and plate arrays.
+            closed_plates = []
+            for plate in self.plates:
+                closed_plates.extend(plate.close_plates())
+
+            # Randomize plate order if requested
+            if self.randomize_plate:
+                random.shuffle(closed_plates)
+
+            # Set location to each closed plate
+            if self.plate_locations:
+                # Check that enough locations are available
+                if len(self.plate_locations) < len(closed_plates):
+                    raise ValueError('Not enough locations specified for '
+                        'plates.')
+                for closed_plate_idx, closed_plate in enumerate(closed_plates):
+                    closed_plate.plate_info['Location'] = \
+                        self.plate_locations[closed_plate_idx]
+
+            # Generate and save replicate setup information
             for plate in self.plates:
                 # Save files
                 plate.save_rep_setup_instructions(workbook=wb_rep_setup)
-                plate.save_rep_setup_files(path=path)
+                plate.save_rep_setup_files(
+                    path=replicate_folders[replicate_idx])
+
+            # Add sheet with location info
+            if self.plate_locations:
+                # Generate table
+                locations_table = pandas.DataFrame()
+                locations_table['Plate'] = [p.name for p in closed_plates]
+                locations_table['Location'] = [p.plate_info['Location']
+                                               for p in closed_plates]
+                # Generate pandas writer and reassign workbook
+                writer = pandas.ExcelWriter('temp', engine='openpyxl')
+                writer.book = wb_rep_setup
+                locations_table.to_excel(writer,
+                                         sheet_name='Plate Locations',
+                                         index=False)
 
             # Save spreadsheet
-            wb_rep_setup_filename = os.path.join(
-                replicate_folders[replicate_idx],
-                'replicate_{:03d}_setup.xlsx'.format(replicate_idx + 1))
-            wb_rep_setup.save(filename=wb_rep_setup_filename)
+            if self.n_replicates > 1:
+                wb_rep_setup_filename = os.path.join(
+                    replicate_folders[replicate_idx],
+                    'replicate_{:03d}_setup.xlsx'.format(replicate_idx + 1))
+            else:
+                wb_rep_setup_filename = os.path.join(
+                    replicate_folders[replicate_idx],
+                    'replicate_setup.xlsx')
+
+            if len(wb_rep_setup.worksheets) > 0:
+                wb_rep_setup.save(filename=wb_rep_setup_filename)
 
             ###
             # Replicate Measurement Stage
             ###
 
+            # Samples table
+            samples_table = pandas.DataFrame()
+            samples_table_columns = []
+
             # Plate measurements table
             plate_measurements_table = pandas.DataFrame()
-            plate_measurements_table['Plate'] = [p.name for p in self.plates]
+            plate_measurements_table['Plate'] = [p.name for p in closed_plates]
             for m in self.plate_measurements:
                 plate_measurements_table[m] = numpy.nan
             # Plate column should be the index
             plate_measurements_table.set_index('Plate', inplace=True)
 
-            # Samples table
-            samples_table = pandas.DataFrame()
-            samples_table_columns = []
+            # Replicate measurements table
+            replicate_measurements_table = pandas.DataFrame()
+            replicate_measurements_table['Key'] = self.replicate_measurements
+            replicate_measurements_table['Value'] = numpy.nan
+            replicate_measurements_table.set_index('Key', inplace=True)
 
-            for plate in self.plates:
-                # Set the plate offset from the number of samples so far
-                plate.id_offset = len(samples_table)
-                # Update samples table
-                plate.update_samples_table()
+            for closed_plate in closed_plates:
+                # Update and extract samples table from plate, and eliminate
+                # samples that should not be measured
+                closed_plate.update_samples_table()
+                plate_table = closed_plate.samples_table.copy()
+                if 'Measure' in plate_table.columns:
+                    plate_table = plate_table[plate_table['Measure']]
+                    plate_table.drop('Measure', axis=1, inplace=True)
                 # The following is necessary to preserve the order of the
                 # columns when appending
-                for column in plate.samples_table.columns:
+                for column in plate_table.columns:
                     if column not in samples_table_columns:
                         samples_table_columns.append(column)
                 # Append plate's samples table to samples table
-                samples_table = samples_table.append(plate.samples_table)
-                # Sort columns
+                samples_table = samples_table.append(plate_table)
+                # Reorganize columns
                 samples_table = samples_table[samples_table_columns]
 
+            # Create ID column and set as the index
+            samples_table['ID'] = ['S{:04d}'.format(i+1)
+                                   for i in range(len(samples_table))]
+            samples_table.set_index('ID', inplace=True)
+
             # File name for replicate measurement file
-            wb_rep_measurement_filename = os.path.join(
-                replicate_folders[replicate_idx],
-                'replicate_{:03d}_measurement.xlsx'.format(replicate_idx + 1))
+            if self.n_replicates > 1:
+                wb_rep_measurement_filename = os.path.join(
+                    replicate_folders[replicate_idx],
+                    'replicate_{:03d}_measurement.xlsx'.format(replicate_idx+1))
+            else:
+                wb_rep_measurement_filename = os.path.join(
+                    replicate_folders[replicate_idx],
+                    'replicate_measurement.xlsx')
             # Generate pandas writer
             writer = pandas.ExcelWriter(wb_rep_measurement_filename,
                                         engine='openpyxl')
@@ -324,4 +412,9 @@ class Experiment(object):
                 plate_measurements_table.to_excel(
                     writer,
                     sheet_name='Plate Measurements')
+            if len(self.replicate_measurements):
+                replicate_measurements_table.to_excel(
+                    writer,
+                    sheet_name='Replicate Measurements',
+                    header=False)
             writer.save()
