@@ -69,6 +69,11 @@ class Experiment(object):
         at the end of the experiment for each plate. An empty table in
         which to record these values will be created in the replicate
         measurement file, sheet "Plate Measurements".
+    replicate_measurements : list of str
+        Each element of this list is the name of a measurement to record
+        at the end of the experiment for the whole replicate. An empty table
+        in which to record these values will be created in the replicate
+        measurement file, sheet "Replicate Measurements".
     plate_locations : list of str
         Names of the different locations available for plates. If left
         empty, location information is not used at any point. If specified,
@@ -95,6 +100,8 @@ class Experiment(object):
         self.inducers = []
         # Template for table of samples for measurement.
         self.measurement_template = None
+        # List of measurements per replicate to take
+        self.replicate_measurements = []
         # List of measurements per plate to take
         self.plate_measurements = []
         # List of locations available for plates
@@ -296,6 +303,10 @@ class Experiment(object):
             # Replicate Measurement Stage
             ###
 
+            # Samples table
+            samples_table = pandas.DataFrame()
+            samples_table_columns = []
+
             # Plate measurements table
             plate_measurements_table = pandas.DataFrame()
             plate_measurements_table['Plate'] = [p.name for p in closed_plates]
@@ -304,9 +315,11 @@ class Experiment(object):
             # Plate column should be the index
             plate_measurements_table.set_index('Plate', inplace=True)
 
-            # Samples table
-            samples_table = pandas.DataFrame()
-            samples_table_columns = []
+            # Replicate measurements table
+            replicate_measurements_table = pandas.DataFrame()
+            replicate_measurements_table['Key'] = self.replicate_measurements
+            replicate_measurements_table['Value'] = numpy.nan
+            replicate_measurements_table.set_index('Key', inplace=True)
 
             for closed_plate in closed_plates:
                 # Update and extract samples table from plate, and eliminate
@@ -399,4 +412,9 @@ class Experiment(object):
                 plate_measurements_table.to_excel(
                     writer,
                     sheet_name='Plate Measurements')
+            if len(self.replicate_measurements):
+                replicate_measurements_table.to_excel(
+                    writer,
+                    sheet_name='Replicate Measurements',
+                    header=False)
             writer.save()
