@@ -140,17 +140,20 @@ class Experiment(object):
             Folder in which to create all experiment files.
 
         """
-        # Create folders for each replicate
-        replicate_folders = [os.path.join(path,
-                                          'replicate_{:03d}'.format(i + 1))
-                             for i in range(self.n_replicates)]
-        # First, check if folders already exist. If so, abort.
-        for folder in replicate_folders:
-            if os.path.exists(folder):
-                raise IOError("folder {} already exists".format(folder))
-        # Create folders
-        for folder in replicate_folders:
-            os.makedirs(folder)
+        # Create folders for each replicate, if necessary
+        if self.n_replicates > 1:
+            replicate_folders = [os.path.join(path,
+                                              'replicate_{:03d}'.format(i + 1))
+                                 for i in range(self.n_replicates)]
+            # Check if folders already exist. If so, abort.
+            for folder in replicate_folders:
+                if os.path.exists(folder):
+                    raise IOError("folder {} already exists".format(folder))
+            # Create folders
+            for folder in replicate_folders:
+                os.makedirs(folder)
+        else:
+            replicate_folders = [path]
 
         ###
         # Experiment Setup Stage
@@ -277,9 +280,15 @@ class Experiment(object):
                                          index=False)
 
             # Save spreadsheet
-            wb_rep_setup_filename = os.path.join(
-                replicate_folders[replicate_idx],
-                'replicate_{:03d}_setup.xlsx'.format(replicate_idx + 1))
+            if self.n_replicates > 1:
+                wb_rep_setup_filename = os.path.join(
+                    replicate_folders[replicate_idx],
+                    'replicate_{:03d}_setup.xlsx'.format(replicate_idx + 1))
+            else:
+                wb_rep_setup_filename = os.path.join(
+                    replicate_folders[replicate_idx],
+                    'replicate_setup.xlsx')
+
             if len(wb_rep_setup.worksheets) > 0:
                 wb_rep_setup.save(filename=wb_rep_setup_filename)
 
@@ -323,9 +332,14 @@ class Experiment(object):
             samples_table.set_index('ID', inplace=True)
 
             # File name for replicate measurement file
-            wb_rep_measurement_filename = os.path.join(
-                replicate_folders[replicate_idx],
-                'replicate_{:03d}_measurement.xlsx'.format(replicate_idx + 1))
+            if self.n_replicates > 1:
+                wb_rep_measurement_filename = os.path.join(
+                    replicate_folders[replicate_idx],
+                    'replicate_{:03d}_measurement.xlsx'.format(replicate_idx+1))
+            else:
+                wb_rep_measurement_filename = os.path.join(
+                    replicate_folders[replicate_idx],
+                    'replicate_measurement.xlsx')
             # Generate pandas writer
             writer = pandas.ExcelWriter(wb_rep_measurement_filename,
                                         engine='openpyxl')
