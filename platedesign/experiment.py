@@ -47,9 +47,9 @@ class Experiment(object):
     ----------
     n_replicates : int
         Number of replicates.
-    randomize_inducer : bool
+    randomize_inducers : bool
         Whether to randomize inducer concentrations for each replicate.
-    randomize_plate : bool
+    randomize_plates : bool
         Wheteher to randomize plates at the end of the replicate setup
         phase. This results in plates being assigned randomly to specified
         locations (if plate locations have been specified) and measurements
@@ -93,8 +93,8 @@ class Experiment(object):
     def __init__(self):
         # Initialize properties
         self.n_replicates = 3
-        self.randomize_inducer = False
-        self.randomize_plate = False
+        self.randomize_inducers = False
+        self.randomize_plates = False
         # Initialize containers of plates and inducers.
         self.plates = []
         self.inducers = []
@@ -240,7 +240,7 @@ class Experiment(object):
 
             # Shuffle inducer and save replicate setup files
             for inducer in self.inducers:
-                if self.randomize_inducer:
+                if self.randomize_inducers:
                     inducer.shuffle()
                 inducer.save_rep_setup_instructions(workbook=wb_rep_setup)
                 inducer.save_rep_setup_files(
@@ -252,7 +252,7 @@ class Experiment(object):
                 closed_plates.extend(plate.close_plates())
 
             # Randomize plate order if requested
-            if self.randomize_plate:
+            if self.randomize_plates:
                 random.shuffle(closed_plates)
 
             # Set location to each closed plate
