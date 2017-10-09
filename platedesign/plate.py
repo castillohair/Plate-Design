@@ -1223,10 +1223,10 @@ class PlateArray(Plate):
                 well_info.reset_index(drop=True, inplace=True)
                 # Create closed plate
                 closed_plate = ClosedPlate(name=plate_name,
-                                   n_rows=self.plate_n_rows,
-                                   n_cols=self.plate_n_cols,
-                                   plate_info=plate_info,
-                                   well_info=well_info)
+                                           n_rows=self.plate_n_rows,
+                                           n_cols=self.plate_n_cols,
+                                           plate_info=plate_info.copy(),
+                                           well_info=well_info)
                 closed_plates.append(closed_plate)
 
         return closed_plates
