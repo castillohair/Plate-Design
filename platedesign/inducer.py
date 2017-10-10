@@ -506,6 +506,12 @@ class ChemicalInducer(InducerBase):
             while True:
                 inducer_vol = (target_conc*self.media_vol/self.shot_vol) * \
                     total_vol / (self.stock_conc/stock_dil)
+                # Check if inducer volume is larger than total volume.
+                # If so, force another iteration
+                if inducer_vol > total_vol:
+                    stock_dil = stock_dil/self.stock_dilution_step
+                    continue
+                # Check end conditions
                 if (inducer_vol < self.max_stock_vol):
                     break
                 if stock_dil/self.stock_dilution_step < 1:

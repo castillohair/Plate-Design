@@ -683,6 +683,49 @@ class TestChemicalInducer(unittest.TestCase):
         # Test for equality
         pandas.util.testing.assert_frame_equal(df_in_file, df)
 
+    def test_save_exp_setup_instructions_4(self):
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        # Set attributes for calculations
+        iptg.stock_conc = 1e6
+        iptg.media_vol = 500.
+        iptg.shot_vol = 5.
+        iptg.total_vol = 6.
+        # Set concentrations from gradient
+        iptg.concentrations = [0, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256, 500]
+        # Try to generate setup instructions
+        file_name = os.path.join(self.temp_dir, 'IPTG_test1.xlsx')
+        iptg.save_exp_setup_instructions(file_name=file_name)
+        # Load instructions file
+        df_in_file = pandas.read_excel(file_name)
+        # Expected result
+        c = numpy.array([0, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256, 500])
+        d = numpy.array([1.0, 10000.0, 10000.0, 1000.0, 1000.0, 1000.0,
+                         100.0, 100.0, 100.0, 10.0, 10.0, 10.0])
+        ind = numpy.array([0, 3, 6, 1.2, 2.4, 4.8, 0.96, 1.92, 3.84, 0.77, 1.54, 3])
+        water = numpy.array([6, 3, 0, 4.8, 3.6, 1.2, 5, 4.1, 2.2, 5.2, 4.5, 3])
+        actual_conc = 1e6/d*ind/(ind + water)*5/500.
+        # Expected dataframe
+        df = pandas.DataFrame()
+        df[u'IPTG Concentration (µM)'] = actual_conc
+        df[u'Stock dilution'] = d
+        df[u'Inducer volume (µL)'] = ind
+        df[u'Water volume (µL)'] = water
+        df[u'Total volume (µL)'] = 6.
+        df[u'Aliquot IDs'] = ['I{:03d}'.format(i + 1) for i in range(12)]
+        # Add two empty rows
+        df = df.reindex(df.index.union([len(c), len(c) + 1]))
+        # Add message in first column, last row
+        df[u'IPTG Concentration (µM)'] = \
+            df[u'IPTG Concentration (µM)'].astype('object')
+        df.set_value(
+            len(c) + 1,
+            u'IPTG Concentration (µM)',
+            u'Distribute in aliquots of {} µL.'.format(6.))
+        # Test for equality
+        pandas.util.testing.assert_frame_equal(df_in_file, df)
+
     def test_save_exp_setup_instructions_workbook(self):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
