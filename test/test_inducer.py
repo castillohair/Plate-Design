@@ -292,6 +292,66 @@ class TestChemicalInducer(unittest.TestCase):
         self.assertEqual(iptg.replicate_vol, None)
         self.assertEqual(iptg.total_vol, 30)
 
+    def test_set_vol_from_shots_single_rep_with_minimum_1(self):
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        iptg.concentrations = numpy.linspace(0,1,11)
+        # Shot volume and safety factor should be set
+        iptg.shot_vol = 5.
+        iptg.vol_safety_factor = 1.2
+        iptg.min_replicate_vol = 20
+        # Call function to set functions
+        iptg.set_vol_from_shots(n_shots=5)
+        # Check attributes
+        self.assertEqual(iptg.replicate_vol, None)
+        self.assertEqual(iptg.total_vol, 30)
+
+    def test_set_vol_from_shots_single_rep_with_minimum_2(self):
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        iptg.concentrations = numpy.linspace(0,1,11)
+        # Shot volume and safety factor should be set
+        iptg.shot_vol = 5.
+        iptg.vol_safety_factor = 1.2
+        iptg.min_replicate_vol = 50
+        # Call function to set functions
+        iptg.set_vol_from_shots(n_shots=5)
+        # Check attributes
+        self.assertEqual(iptg.replicate_vol, None)
+        self.assertEqual(iptg.total_vol, 50)
+
+    def test_set_vol_from_shots_single_rep_with_minimum_3(self):
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        iptg.concentrations = numpy.linspace(0,1,11)
+        # Shot volume and safety factor should be set
+        iptg.shot_vol = 5.
+        iptg.vol_safety_factor = 1.2
+        iptg.min_total_vol = 20
+        # Call function to set functions
+        iptg.set_vol_from_shots(n_shots=5)
+        # Check attributes
+        self.assertEqual(iptg.replicate_vol, None)
+        self.assertEqual(iptg.total_vol, 30)
+
+    def test_set_vol_from_shots_single_rep_with_minimum_4(self):
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        iptg.concentrations = numpy.linspace(0,1,11)
+        # Shot volume and safety factor should be set
+        iptg.shot_vol = 5.
+        iptg.vol_safety_factor = 1.2
+        iptg.min_total_vol = 50
+        # Call function to set functions
+        iptg.set_vol_from_shots(n_shots=5)
+        # Check attributes
+        self.assertEqual(iptg.replicate_vol, None)
+        self.assertEqual(iptg.total_vol, 50)
+
     def test_set_vol_from_shots_many_reps(self):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
@@ -305,6 +365,70 @@ class TestChemicalInducer(unittest.TestCase):
         # Check attributes
         self.assertEqual(iptg.replicate_vol, 30)
         self.assertEqual(iptg.total_vol, 200)
+
+    def test_set_vol_from_shots_many_reps_with_minimum_1(self):
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        iptg.concentrations = numpy.linspace(0,1,11)
+        # Shot volume and safety factor should be set
+        iptg.shot_vol = 5.
+        iptg.vol_safety_factor = 1.2
+        iptg.min_replicate_vol = 20
+        iptg.min_total_vol = 50
+        # Call function to set functions
+        iptg.set_vol_from_shots(n_shots=5, n_replicates=5)
+        # Check attributes
+        self.assertEqual(iptg.replicate_vol, 30)
+        self.assertEqual(iptg.total_vol, 200)
+
+    def test_set_vol_from_shots_many_reps_with_minimum_2(self):
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        iptg.concentrations = numpy.linspace(0,1,11)
+        # Shot volume and safety factor should be set
+        iptg.shot_vol = 5.
+        iptg.vol_safety_factor = 1.2
+        iptg.min_replicate_vol = 20
+        iptg.min_total_vol = 300
+        # Call function to set functions
+        iptg.set_vol_from_shots(n_shots=5, n_replicates=5)
+        # Check attributes
+        self.assertEqual(iptg.replicate_vol, 30)
+        self.assertEqual(iptg.total_vol, 300)
+
+    def test_set_vol_from_shots_many_reps_with_minimum_3(self):
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        iptg.concentrations = numpy.linspace(0,1,11)
+        # Shot volume and safety factor should be set
+        iptg.shot_vol = 5.
+        iptg.vol_safety_factor = 1.2
+        iptg.min_replicate_vol = 40
+        iptg.min_total_vol = 50
+        # Call function to set functions
+        iptg.set_vol_from_shots(n_shots=5, n_replicates=5)
+        # Check attributes
+        self.assertEqual(iptg.replicate_vol, 40)
+        self.assertEqual(iptg.total_vol, 300)
+
+    def test_set_vol_from_shots_many_reps_with_minimum_4(self):
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        iptg.concentrations = numpy.linspace(0,1,11)
+        # Shot volume and safety factor should be set
+        iptg.shot_vol = 5.
+        iptg.vol_safety_factor = 1.2
+        iptg.min_replicate_vol = 40
+        iptg.min_total_vol = 500
+        # Call function to set functions
+        iptg.set_vol_from_shots(n_shots=5, n_replicates=5)
+        # Check attributes
+        self.assertEqual(iptg.replicate_vol, 40)
+        self.assertEqual(iptg.total_vol, 500)
 
     def test_shuffle(self):
         iptg = platedesign.inducer.ChemicalInducer(

@@ -198,6 +198,12 @@ class ChemicalInducer(InducerBase):
         Number of decimals to use for the volume of stock inducer.
     water_decimals : int
         Number of decimals to use for the volume of water.
+    min_replicate_vol : float
+        Minimum volume per replicate to be set when calling
+        ``set_vol_from_shots()``.
+    min_total_vol : float
+        Minimum total volume to be set when calling
+        ``set_vol_from_shots()``.
     shuffling_enabled : bool
         Whether shuffling of the doses table is enabled. If False, the
         `shuffle` function will not change the order of the rows in the
@@ -234,6 +240,8 @@ class ChemicalInducer(InducerBase):
         self.stock_dilution_step = 10.
         self.stock_decimals = 2
         self.water_decimals = 1
+        self.min_replicate_vol = 0
+        self.min_total_vol = 0
 
         # Initialize an empty dose table
         self._doses_table = pandas.DataFrame()
@@ -370,6 +378,8 @@ class ChemicalInducer(InducerBase):
         inducer_rep_vol = n_shots*self.shot_vol
         inducer_rep_vol = inducer_rep_vol*self.vol_safety_factor
         inducer_rep_vol = platedesign.math._ceil_log(inducer_rep_vol)
+        # Compare to minimum and set, if necessary
+        inducer_rep_vol = max(inducer_rep_vol, self.min_replicate_vol)
 
         if n_replicates > 1:
             # Calculate total amount of inducer
@@ -383,6 +393,8 @@ class ChemicalInducer(InducerBase):
             # Store replicate volume as total volume
             self.total_vol = inducer_rep_vol
             self.replicate_vol = None
+        # Compare to minimum total volume and set if necessary
+        self.total_vol = max(self.total_vol, self.min_total_vol)
 
     def sync_shuffling(self, inducer):
         """
