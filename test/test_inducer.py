@@ -544,6 +544,8 @@ class TestChemicalInducer(unittest.TestCase):
         # Shuffle both inducers by calling the first one
         random.seed(1)
         iptg.shuffle()
+        # Attempt to shuffle atc to make sure it doesn't ruin it
+        atc.shuffle()
         # The following indices give the correct shuffled concentrations array
         # after setting the random seed to one.
         shuffling_ind = [10, 5, 0, 4, 9, 7, 3, 2, 6, 8, 1]

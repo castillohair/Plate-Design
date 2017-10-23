@@ -427,9 +427,7 @@ class ChemicalInducer(InducerBase):
         Apply random shuffling to the dose table.
 
         """
-        if not self.shuffling_enabled:
-            self.shuffled_idx = None
-        else:
+        if self.shuffling_enabled:
             # Create list of indices, shuffle, and store.
             shuffled_idx = list(range(len(self.doses_table)))
             random.shuffle(shuffled_idx)
