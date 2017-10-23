@@ -166,7 +166,10 @@ class Experiment(object):
         # Experiment Setup Stage
         ###
         # Check if spreadsheet already exists
-        wb_exp_setup_filename = os.path.join(path, 'experiment_setup.xlsx')
+        if self.n_replicates > 1:
+            wb_exp_setup_filename = os.path.join(path, 'experiment_setup.xlsx')
+        else:
+            wb_exp_setup_filename = os.path.join(path, 'setup.xlsx')
         if os.path.exists(wb_exp_setup_filename):
             raise IOError("file {} already exists".format(
                 wb_exp_setup_filename))
@@ -225,7 +228,7 @@ class Experiment(object):
             plate.save_exp_setup_files(path=path)
 
         # Save spreadsheet
-        if len(wb_exp_setup.worksheets) > 0:
+        if self.n_replicates > 1 and len(wb_exp_setup.worksheets) > 0:
             wb_exp_setup.save(filename=wb_exp_setup_filename)
 
         # Iterate over replicates
@@ -233,10 +236,13 @@ class Experiment(object):
             ###
             # Replicate Setup Stage
             ###
-            # Create single spreadsheet for all replicate setup instructions
-            wb_rep_setup = openpyxl.Workbook()
-            # Remove sheet created by default
-            wb_rep_setup.remove_sheet(wb_rep_setup.active)
+            # Create new spreadsheet for replicate setup if more than one
+            # replicate, else keep using the experiment setup spreadsheet.
+            if self.n_replicates > 1:
+                wb_rep_setup = openpyxl.Workbook()
+                wb_rep_setup.remove_sheet(wb_rep_setup.active)
+            else:
+                wb_rep_setup = wb_exp_setup
 
             # Shuffle inducer and save replicate setup files
             for inducer in self.inducers:
@@ -294,7 +300,7 @@ class Experiment(object):
             else:
                 wb_rep_setup_filename = os.path.join(
                     replicate_folders[replicate_idx],
-                    'replicate_setup.xlsx')
+                    'setup.xlsx')
 
             if len(wb_rep_setup.worksheets) > 0:
                 wb_rep_setup.save(filename=wb_rep_setup_filename)
@@ -352,7 +358,7 @@ class Experiment(object):
             else:
                 wb_rep_measurement_filename = os.path.join(
                     replicate_folders[replicate_idx],
-                    'replicate_measurement.xlsx')
+                    'measurement.xlsx')
             # Generate pandas writer
             writer = pandas.ExcelWriter(wb_rep_measurement_filename,
                                         engine='openpyxl')
