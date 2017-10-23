@@ -378,6 +378,7 @@ class Plate(object):
         # Initialize inducer instructions table
         ind_layout = []
         ind_layout_rows = self.n_rows + len(inducers_rows) + \
+            len(inducers_rows) + len(inducers_cols) + len(inducers_wells) + \
             len(inducers_media) + 1
         ind_layout_cols = self.n_cols + len(inducers_cols)
         for i in range(ind_layout_rows):
@@ -411,11 +412,24 @@ class Plate(object):
                     col = j + len(inducers_cols)
                     ind_layout[row][col] += "\n{}".format(
                         inducer.doses_table.index[i*self.n_cols + j])
-        # Add information about inducers added to the media
-        for l, inducer in enumerate(inducers_media):
-            row = self.n_rows + len(inducers_rows) + 1 + l
-            ind_layout[row][0] = "Add {:.2f}µL of {} to media".format(
-                inducer.shot_vol, inducer.name)
+        # Add volume of each inducer to add
+        current_row = self.n_rows + len(inducers_rows) + 1
+        for inducer in inducers_rows:
+            ind_layout[current_row][0] = "Add {:.2f}µL of {} to each well.".\
+            format(inducer.shot_vol, inducer.name)
+            current_row += 1
+        for inducer in inducers_cols:
+            ind_layout[current_row][0] = "Add {:.2f}µL of {} to each well.".\
+            format(inducer.shot_vol, inducer.name)
+            current_row += 1
+        for inducer in inducers_wells:
+            ind_layout[current_row][0] = "Add {:.2f}µL of {} to each well.".\
+            format(inducer.shot_vol, inducer.name)
+            current_row += 1
+        for inducer in inducers_media:
+            ind_layout[current_row][0] = "Add {:.2f}µL of {} to media.".\
+            format(inducer.shot_vol, inducer.name)
+            current_row += 1
 
         # Plate area
         plate_min_row = len(inducers_rows)
@@ -1036,6 +1050,7 @@ class PlateArray(Plate):
         # Initialize inducer instructions table
         ind_layout = []
         ind_layout_rows = self.n_rows + len(inducers_rows) + \
+            len(inducers_rows) + len(inducers_cols) + len(inducers_wells) + \
             len(inducers_media) + 1
         ind_layout_cols = self.n_cols + len(inducers_cols)
         for i in range(ind_layout_rows):
@@ -1076,11 +1091,24 @@ class PlateArray(Plate):
                     col = j + len(inducers_cols)
                     ind_layout[row][col] += "\n{}".format(
                         inducer.doses_table.index[i*self.n_cols + j])
-        # Add information about inducers added to the media
-        for l, inducer in enumerate(inducers_media):
-            row = self.n_rows + len(inducers_rows) + 1 + l
-            ind_layout[row][0] = "Add {:.2f}µL of {} to media".format(
-                inducer.shot_vol, inducer.name)
+        # Add volume of each inducer to add
+        current_row = self.n_rows + len(inducers_rows) + 1
+        for inducer in inducers_rows:
+            ind_layout[current_row][0] = "Add {:.2f}µL of {} to each well.".\
+            format(inducer.shot_vol, inducer.name)
+            current_row += 1
+        for inducer in inducers_cols:
+            ind_layout[current_row][0] = "Add {:.2f}µL of {} to each well.".\
+            format(inducer.shot_vol, inducer.name)
+            current_row += 1
+        for inducer in inducers_wells:
+            ind_layout[current_row][0] = "Add {:.2f}µL of {} to each well.".\
+            format(inducer.shot_vol, inducer.name)
+            current_row += 1
+        for inducer in inducers_media:
+            ind_layout[current_row][0] = "Add {:.2f}µL of {} to media.".\
+            format(inducer.shot_vol, inducer.name)
+            current_row += 1
 
         # Plate area
         plate_min_row = len(inducers_rows)

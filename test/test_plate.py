@@ -778,6 +778,7 @@ class TestPlate(unittest.TestCase):
             name='IPTG',
             units=u'µM')
         iptg.set_gradient(min=1e-6, max=1e-3, n=6, scale='log')
+        iptg.shot_vol = 5.
         p.apply_inducer(iptg, apply_to='rows')
         # Run save_rep_setup_instructions
         p.save_rep_setup_instructions(file_name=os.path.join(self.temp_dir,
@@ -819,6 +820,8 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(ws.cell(row=5, column=4).value, "(4, 4)")
         self.assertEqual(ws.cell(row=5, column=5).value, "(4, 5)")
         self.assertEqual(ws.cell(row=5, column=6).value, "(4, 6)")
+        self.assertIsNone(ws.cell(row=6, column=1).value)
+        self.assertEqual(ws.cell(row=7, column=1).value, u"Add 5.00µL of IPTG to each well.")
 
     def test_save_rep_setup_instructions_inducer_rows_2(self):
         # Create plate
@@ -828,12 +831,14 @@ class TestPlate(unittest.TestCase):
             name='IPTG',
             units=u'µM')
         iptg.set_gradient(min=1e-6, max=1e-3, n=6, scale='log')
+        iptg.shot_vol = 5.
         p.apply_inducer(iptg, apply_to='rows')
         # Create second inducer for plate rows
         atc = platedesign.inducer.ChemicalInducer(
             name='aTc',
             units=u'ng/µL')
         atc.set_gradient(min=0.5, max=50, n=6, scale='log')
+        atc.shot_vol = 10.
         p.apply_inducer(atc, apply_to='rows')
         # Run save_rep_setup_instructions
         p.save_rep_setup_instructions(file_name=os.path.join(self.temp_dir,
@@ -881,6 +886,9 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(ws.cell(row=6, column=4).value, "(4, 4)")
         self.assertEqual(ws.cell(row=6, column=5).value, "(4, 5)")
         self.assertEqual(ws.cell(row=6, column=6).value, "(4, 6)")
+        self.assertIsNone(ws.cell(row=7, column=1).value)
+        self.assertEqual(ws.cell(row=8, column=1).value, u"Add 5.00µL of IPTG to each well.")
+        self.assertEqual(ws.cell(row=9, column=1).value, u"Add 10.00µL of aTc to each well.")
 
     def test_save_rep_setup_instructions_inducer_rows_3(self):
         # Create plate
@@ -890,6 +898,7 @@ class TestPlate(unittest.TestCase):
             name='IPTG',
             units=u'µM')
         iptg.set_gradient(min=1e-6, max=1e-3, n=6, scale='log')
+        iptg.shot_vol = 5.
         iptg.shuffle()
         p.apply_inducer(iptg, apply_to='rows')
         # Create second inducer for plate rows
@@ -897,6 +906,7 @@ class TestPlate(unittest.TestCase):
             name='aTc',
             units=u'ng/µL')
         atc.set_gradient(min=0.5, max=50, n=6, scale='log')
+        atc.shot_vol = 10.
         p.apply_inducer(atc, apply_to='rows')
         # Run save_rep_setup_instructions
         p.save_rep_setup_instructions(file_name=os.path.join(self.temp_dir,
@@ -945,6 +955,9 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(ws.cell(row=6, column=4).value, "(4, 4)")
         self.assertEqual(ws.cell(row=6, column=5).value, "(4, 5)")
         self.assertEqual(ws.cell(row=6, column=6).value, "(4, 6)")
+        self.assertIsNone(ws.cell(row=7, column=1).value)
+        self.assertEqual(ws.cell(row=8, column=1).value, u"Add 5.00µL of IPTG to each well.")
+        self.assertEqual(ws.cell(row=9, column=1).value, u"Add 10.00µL of aTc to each well.")
 
     def test_save_rep_setup_instructions_inducer_cols_1(self):
         # Create plate
@@ -954,6 +967,7 @@ class TestPlate(unittest.TestCase):
             name='IPTG',
             units=u'µM')
         iptg.set_gradient(min=1e-6, max=1e-3, n=4, scale='log')
+        iptg.shot_vol = 5.
         p.apply_inducer(iptg, apply_to='cols')
         # Run save_rep_setup_instructions
         p.save_rep_setup_instructions(file_name=os.path.join(self.temp_dir,
@@ -993,6 +1007,8 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(ws.cell(row=4, column=5).value, "(4, 4)")
         self.assertEqual(ws.cell(row=4, column=6).value, "(4, 5)")
         self.assertEqual(ws.cell(row=4, column=7).value, "(4, 6)")
+        self.assertIsNone(ws.cell(row=5, column=1).value)
+        self.assertEqual(ws.cell(row=6, column=1).value, u"Add 5.00µL of IPTG to each well.")
 
     def test_save_rep_setup_instructions_inducer_cols_2(self):
         # Create plate
@@ -1002,12 +1018,14 @@ class TestPlate(unittest.TestCase):
             name='IPTG',
             units=u'µM')
         iptg.set_gradient(min=1e-6, max=1e-3, n=4, scale='log')
+        iptg.shot_vol = 5.
         p.apply_inducer(iptg, apply_to='cols')
         # Create second inducer for plate columns
         atc = platedesign.inducer.ChemicalInducer(
             name='aTc',
             units=u'ng/µL')
         atc.set_gradient(min=0.5, max=50, n=4, scale='log')
+        atc.shot_vol = 10.
         p.apply_inducer(atc, apply_to='cols')
         # Run save_rep_setup_instructions
         p.save_rep_setup_instructions(file_name=os.path.join(self.temp_dir,
@@ -1051,6 +1069,9 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(ws.cell(row=4, column=6).value, "(4, 4)")
         self.assertEqual(ws.cell(row=4, column=7).value, "(4, 5)")
         self.assertEqual(ws.cell(row=4, column=8).value, "(4, 6)")
+        self.assertIsNone(ws.cell(row=5, column=1).value)
+        self.assertEqual(ws.cell(row=6, column=1).value, u"Add 5.00µL of IPTG to each well.")
+        self.assertEqual(ws.cell(row=7, column=1).value, u"Add 10.00µL of aTc to each well.")
 
     def test_save_rep_setup_instructions_inducer_cols_3(self):
         # Create plate
@@ -1060,6 +1081,7 @@ class TestPlate(unittest.TestCase):
             name='IPTG',
             units=u'µM')
         iptg.set_gradient(min=1e-6, max=1e-3, n=4, scale='log')
+        iptg.shot_vol = 5.
         iptg.shuffle()
         p.apply_inducer(iptg, apply_to='cols')
         # Create second inducer for plate columns
@@ -1067,6 +1089,7 @@ class TestPlate(unittest.TestCase):
             name='aTc',
             units=u'ng/µL')
         atc.set_gradient(min=0.5, max=50, n=4, scale='log')
+        atc.shot_vol = 10.
         p.apply_inducer(atc, apply_to='cols')
         # Run save_rep_setup_instructions
         p.save_rep_setup_instructions(file_name=os.path.join(self.temp_dir,
@@ -1111,6 +1134,9 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(ws.cell(row=4, column=6).value, "(4, 4)")
         self.assertEqual(ws.cell(row=4, column=7).value, "(4, 5)")
         self.assertEqual(ws.cell(row=4, column=8).value, "(4, 6)")
+        self.assertIsNone(ws.cell(row=5, column=1).value)
+        self.assertEqual(ws.cell(row=6, column=1).value, u"Add 5.00µL of IPTG to each well.")
+        self.assertEqual(ws.cell(row=7, column=1).value, u"Add 10.00µL of aTc to each well.")
 
     def test_save_rep_setup_instructions_inducer_wells_1(self):
         # Create plate
@@ -1120,6 +1146,7 @@ class TestPlate(unittest.TestCase):
             name='IPTG',
             units=u'µM')
         iptg.set_gradient(min=1e-6, max=1e-3, n=24, scale='log')
+        iptg.shot_vol = 5.
         p.apply_inducer(iptg, apply_to='wells')
         # Run save_rep_setup_instructions
         p.save_rep_setup_instructions(file_name=os.path.join(self.temp_dir,
@@ -1155,6 +1182,8 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(ws.cell(row=4, column=4).value, "(4, 4)\nI022")
         self.assertEqual(ws.cell(row=4, column=5).value, "(4, 5)\nI023")
         self.assertEqual(ws.cell(row=4, column=6).value, "(4, 6)\nI024")
+        self.assertIsNone(ws.cell(row=5, column=1).value)
+        self.assertEqual(ws.cell(row=6, column=1).value, u"Add 5.00µL of IPTG to each well.")
 
     def test_save_rep_setup_instructions_inducer_wells_2(self):
         # Create plate
@@ -1164,12 +1193,14 @@ class TestPlate(unittest.TestCase):
             name='IPTG',
             units=u'µM')
         iptg.set_gradient(min=1e-6, max=1e-3, n=24, scale='log')
+        iptg.shot_vol = 5.
         p.apply_inducer(iptg, apply_to='wells')
         # Create second inducer for plate
         atc = platedesign.inducer.ChemicalInducer(
             name='aTc',
             units=u'ng/µL')
         atc.set_gradient(min=0.5, max=50, n=24, scale='log')
+        atc.shot_vol = 10.
         p.apply_inducer(atc, apply_to='wells')
         # Run save_rep_setup_instructions
         p.save_rep_setup_instructions(file_name=os.path.join(self.temp_dir,
@@ -1205,6 +1236,9 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(ws.cell(row=4, column=4).value, "(4, 4)\nI022\na022")
         self.assertEqual(ws.cell(row=4, column=5).value, "(4, 5)\nI023\na023")
         self.assertEqual(ws.cell(row=4, column=6).value, "(4, 6)\nI024\na024")
+        self.assertIsNone(ws.cell(row=5, column=1).value)
+        self.assertEqual(ws.cell(row=6, column=1).value, u"Add 5.00µL of IPTG to each well.")
+        self.assertEqual(ws.cell(row=7, column=1).value, u"Add 10.00µL of aTc to each well.")
 
     def test_save_rep_setup_instructions_inducer_wells_3(self):
         # Create plate
@@ -1216,6 +1250,7 @@ class TestPlate(unittest.TestCase):
             units=u'µM')
         # Set concentrations from gradient
         iptg.set_gradient(min=1e-6, max=1e-3, n=12, scale='log')
+        iptg.shot_vol = 5.
         # Apply inducer to plate
         p.apply_inducer(iptg, apply_to='wells')
         # Run save_rep_setup_instructions
@@ -1252,6 +1287,8 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(ws.cell(row=4, column=4).value, "(4, 4)")
         self.assertEqual(ws.cell(row=4, column=5).value, "(4, 5)")
         self.assertEqual(ws.cell(row=4, column=6).value, "(4, 6)")
+        self.assertIsNone(ws.cell(row=5, column=1).value)
+        self.assertEqual(ws.cell(row=6, column=1).value, u"Add 5.00µL of IPTG to each well.")
 
     def test_save_rep_setup_instructions_inducer_wells_4(self):
         # Create plate
@@ -1261,6 +1298,7 @@ class TestPlate(unittest.TestCase):
             name='IPTG',
             units=u'µM')
         iptg.set_gradient(min=1e-6, max=1e-3, n=24, scale='log')
+        iptg.shot_vol = 5.
         iptg.shuffle()
         p.apply_inducer(iptg, apply_to='wells')
         # Create second inducer for plate
@@ -1268,6 +1306,7 @@ class TestPlate(unittest.TestCase):
             name='aTc',
             units=u'ng/µL')
         atc.set_gradient(min=0.5, max=50, n=24, scale='log')
+        atc.shot_vol = 10.
         p.apply_inducer(atc, apply_to='wells')
         # Run save_rep_setup_instructions
         p.save_rep_setup_instructions(file_name=os.path.join(self.temp_dir,
@@ -1303,6 +1342,9 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(ws.cell(row=4, column=4).value, "(4, 4)\nI017\na022")
         self.assertEqual(ws.cell(row=4, column=5).value, "(4, 5)\nI020\na023")
         self.assertEqual(ws.cell(row=4, column=6).value, "(4, 6)\nI004\na024")
+        self.assertIsNone(ws.cell(row=5, column=1).value)
+        self.assertEqual(ws.cell(row=6, column=1).value, u"Add 5.00µL of IPTG to each well.")
+        self.assertEqual(ws.cell(row=7, column=1).value, u"Add 10.00µL of aTc to each well.")
 
     def test_save_rep_setup_instructions_inducer_media_1(self):
         # Create plate
@@ -1351,7 +1393,7 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(ws.cell(row=4, column=5).value, "(4, 5)")
         self.assertEqual(ws.cell(row=4, column=6).value, "(4, 6)")
         self.assertEqual(ws.cell(row=6, column=1).value,
-                         u"Add 5.00µL of IPTG to media")
+                         u"Add 5.00µL of IPTG to media.")
 
     def test_save_rep_setup_instructions_inducer_media_2(self):
         # Create plate
@@ -1409,9 +1451,9 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(ws.cell(row=4, column=5).value, "(4, 5)")
         self.assertEqual(ws.cell(row=4, column=6).value, "(4, 6)")
         self.assertEqual(ws.cell(row=6, column=1).value,
-                         u"Add 5.00µL of IPTG to media")
+                         u"Add 5.00µL of IPTG to media.")
         self.assertEqual(ws.cell(row=7, column=1).value,
-                         u"Add 10.00µL of aTc to media")
+                         u"Add 10.00µL of aTc to media.")
 
     def test_save_rep_setup_instructions_inducer_mixed(self):
         # Create plate
@@ -1421,6 +1463,7 @@ class TestPlate(unittest.TestCase):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
             units=u'µM')
+        iptg.shot_vol = 5.
         # Set concentrations from gradient
         iptg.set_gradient(min=1e-6, max=1e-3, n=6, scale='log')
         # Apply inducer to plate
@@ -1430,6 +1473,7 @@ class TestPlate(unittest.TestCase):
         atc = platedesign.inducer.ChemicalInducer(
             name='aTc',
             units=u'ng/µL')
+        atc.shot_vol = 10.
         # Set concentrations from gradient
         atc.set_gradient(min=0.5, max=50, n=4, scale='log')
         # Apply inducer to plate
@@ -1439,6 +1483,7 @@ class TestPlate(unittest.TestCase):
         xyl = platedesign.inducer.ChemicalInducer(
             name='Xylose',
             units=u'%')
+        xyl.shot_vol = 3.
         # Set concentrations from gradient
         xyl.set_gradient(min=1e-6, max=1e-3, n=24, scale='log')
         # Apply inducer to plate
@@ -1448,7 +1493,7 @@ class TestPlate(unittest.TestCase):
         sugar = platedesign.inducer.ChemicalInducer(
             name='Sugar',
             units=u'ng/µL')
-        sugar.shot_vol = 10.
+        sugar.shot_vol = 8.
         # Set single concentration
         sugar.concentrations = [2]
         # Apply inducer to plate
@@ -1499,7 +1544,13 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(ws.cell(row=5, column=6).value, "(4, 5)\nX023")
         self.assertEqual(ws.cell(row=5, column=7).value, "(4, 6)\nX024")
         self.assertEqual(ws.cell(row=7, column=1).value,
-                         u"Add 10.00µL of Sugar to media")
+                         u"Add 5.00µL of IPTG to each well.")
+        self.assertEqual(ws.cell(row=8, column=1).value,
+                         u"Add 10.00µL of aTc to each well.")
+        self.assertEqual(ws.cell(row=9, column=1).value,
+                         u"Add 3.00µL of Xylose to each well.")
+        self.assertEqual(ws.cell(row=10, column=1).value,
+                         u"Add 8.00µL of Sugar to media.")
 
     def test_save_rep_setup_instructions_cells_and_inducer(self):
         # Create plate
@@ -1516,6 +1567,7 @@ class TestPlate(unittest.TestCase):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
             units=u'µM')
+        iptg.shot_vol = 5.
         # Set concentrations from gradient
         iptg.set_gradient(min=1e-6, max=1e-3, n=6, scale='log')
         # Apply inducer to plate
@@ -1525,6 +1577,7 @@ class TestPlate(unittest.TestCase):
         atc = platedesign.inducer.ChemicalInducer(
             name='aTc',
             units=u'ng/µL')
+        atc.shot_vol = 10.
         # Set concentrations from gradient
         atc.set_gradient(min=0.5, max=50, n=4, scale='log')
         # Apply inducer to plate
@@ -1534,6 +1587,7 @@ class TestPlate(unittest.TestCase):
         xyl = platedesign.inducer.ChemicalInducer(
             name='Xylose',
             units=u'%')
+        xyl.shot_vol = 3.
         # Set concentrations from gradient
         xyl.set_gradient(min=1e-6, max=1e-3, n=24, scale='log')
         # Apply inducer to plate
@@ -1543,7 +1597,7 @@ class TestPlate(unittest.TestCase):
         sugar = platedesign.inducer.ChemicalInducer(
             name='Sugar',
             units=u'ng/µL')
-        sugar.shot_vol = 10.
+        sugar.shot_vol = 8.
         # Set single concentration
         sugar.concentrations = [2]
         # Apply inducer to plate
@@ -1594,7 +1648,13 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(ws.cell(row=5, column=6).value, "(4, 5)\nX023")
         self.assertEqual(ws.cell(row=5, column=7).value, "(4, 6)\nX024")
         self.assertEqual(ws.cell(row=7, column=1).value,
-                         u"Add 10.00µL of Sugar to media")
+                         u"Add 5.00µL of IPTG to each well.")
+        self.assertEqual(ws.cell(row=8, column=1).value,
+                         u"Add 10.00µL of aTc to each well.")
+        self.assertEqual(ws.cell(row=9, column=1).value,
+                         u"Add 3.00µL of Xylose to each well.")
+        self.assertEqual(ws.cell(row=10, column=1).value,
+                         u"Add 8.00µL of Sugar to media.")
 
         # Check that sheet exists in spreadsheet
         self.assertTrue("Cells for Plate P1" in wb.sheetnames)
@@ -1642,6 +1702,7 @@ class TestPlate(unittest.TestCase):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
             units=u'µM')
+        iptg.shot_vol = 5.
         # Set concentrations from gradient
         iptg.set_gradient(min=1e-6, max=1e-3, n=6, scale='log')
         # Apply inducer to plate
@@ -1651,6 +1712,7 @@ class TestPlate(unittest.TestCase):
         atc = platedesign.inducer.ChemicalInducer(
             name='aTc',
             units=u'ng/µL')
+        atc.shot_vol = 10.
         # Set concentrations from gradient
         atc.set_gradient(min=0.5, max=50, n=4, scale='log')
         # Apply inducer to plate
@@ -1660,6 +1722,7 @@ class TestPlate(unittest.TestCase):
         xyl = platedesign.inducer.ChemicalInducer(
             name='Xylose',
             units=u'%')
+        xyl.shot_vol = 3.
         # Set concentrations from gradient
         xyl.set_gradient(min=1e-6, max=1e-3, n=24, scale='log')
         # Apply inducer to plate
@@ -1669,7 +1732,7 @@ class TestPlate(unittest.TestCase):
         sugar = platedesign.inducer.ChemicalInducer(
             name='Sugar',
             units=u'ng/µL')
-        sugar.shot_vol = 10.
+        sugar.shot_vol = 8.
         # Set single concentration
         sugar.concentrations = [2]
         # Apply inducer to plate
@@ -1720,7 +1783,13 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(ws.cell(row=5, column=6).value, "(4, 5)\nX023")
         self.assertEqual(ws.cell(row=5, column=7).value, "(4, 6)\nX024")
         self.assertEqual(ws.cell(row=7, column=1).value,
-                         u"Add 10.00µL of Sugar to media")
+                         u"Add 5.00µL of IPTG to each well.")
+        self.assertEqual(ws.cell(row=8, column=1).value,
+                         u"Add 10.00µL of aTc to each well.")
+        self.assertEqual(ws.cell(row=9, column=1).value,
+                         u"Add 3.00µL of Xylose to each well.")
+        self.assertEqual(ws.cell(row=10, column=1).value,
+                         u"Add 8.00µL of Sugar to media.")
 
         # Check that sheet exists in spreadsheet
         self.assertTrue("Cells for Plate P1" in wb.sheetnames)
@@ -3543,6 +3612,7 @@ class TestPlateArray(unittest.TestCase):
             name='IPTG',
             units=u'µM')
         iptg.set_gradient(min=1e-6, max=1e-3, n=18, scale='log')
+        iptg.shot_vol = 5.
         p.apply_inducer(iptg, apply_to='rows')
         # Run save_rep_setup_instructions
         p.save_rep_setup_instructions(file_name=os.path.join(self.temp_dir,
@@ -3716,6 +3786,8 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=9, column=16).value, "P6 (4, 4)")
         self.assertEqual(ws.cell(row=9, column=17).value, "P6 (4, 5)")
         self.assertEqual(ws.cell(row=9, column=18).value, "P6 (4, 6)")
+        self.assertEqual(ws.cell(row=11, column=1).value,
+                         u"Add 5.00µL of IPTG to each well.")
 
     def test_save_rep_setup_instructions_inducer_rows_2(self):
         # Create plate
@@ -3728,12 +3800,14 @@ class TestPlateArray(unittest.TestCase):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
             units=u'µM')
+        iptg.shot_vol = 5.
         iptg.set_gradient(min=1e-6, max=1e-3, n=18, scale='log')
         p.apply_inducer(iptg, apply_to='rows')
         # Create second inducer for plate rows
         atc = platedesign.inducer.ChemicalInducer(
             name='aTc',
             units=u'ng/µL')
+        atc.shot_vol = 10.
         atc.set_gradient(min=0.5, max=50, n=18, scale='log')
         p.apply_inducer(atc, apply_to='rows')
 
@@ -3927,6 +4001,10 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=10, column=16).value, "P6 (4, 4)")
         self.assertEqual(ws.cell(row=10, column=17).value, "P6 (4, 5)")
         self.assertEqual(ws.cell(row=10, column=18).value, "P6 (4, 6)")
+        self.assertEqual(ws.cell(row=12, column=1).value,
+                         u"Add 5.00µL of IPTG to each well.")
+        self.assertEqual(ws.cell(row=13, column=1).value,
+                         u"Add 10.00µL of aTc to each well.")
 
     def test_save_rep_setup_instructions_inducer_rows_3(self):
         # Create plate
@@ -3939,6 +4017,7 @@ class TestPlateArray(unittest.TestCase):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
             units=u'µM')
+        iptg.shot_vol = 5.
         iptg.set_gradient(min=1e-6, max=1e-3, n=18, scale='log')
         iptg.shuffle()
         p.apply_inducer(iptg, apply_to='rows')
@@ -3946,6 +4025,7 @@ class TestPlateArray(unittest.TestCase):
         atc = platedesign.inducer.ChemicalInducer(
             name='aTc',
             units=u'ng/µL')
+        atc.shot_vol = 10.
         atc.set_gradient(min=0.5, max=50, n=18, scale='log')
         p.apply_inducer(atc, apply_to='rows')
 
@@ -4139,6 +4219,10 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=10, column=16).value, "P6 (4, 4)")
         self.assertEqual(ws.cell(row=10, column=17).value, "P6 (4, 5)")
         self.assertEqual(ws.cell(row=10, column=18).value, "P6 (4, 6)")
+        self.assertEqual(ws.cell(row=12, column=1).value,
+                         u"Add 5.00µL of IPTG to each well.")
+        self.assertEqual(ws.cell(row=13, column=1).value,
+                         u"Add 10.00µL of aTc to each well.")
 
     def test_save_rep_setup_instructions_inducer_cols_1(self):
         # Create plate
@@ -4151,6 +4235,7 @@ class TestPlateArray(unittest.TestCase):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
             units=u'µM')
+        iptg.shot_vol = 5.
         iptg.set_gradient(min=1e-6, max=1e-3, n=8, scale='log')
         p.apply_inducer(iptg, apply_to='cols')
         # Run save_rep_setup_instructions
@@ -4315,6 +4400,8 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=8, column=17).value, "P6 (4, 4)")
         self.assertEqual(ws.cell(row=8, column=18).value, "P6 (4, 5)")
         self.assertEqual(ws.cell(row=8, column=19).value, "P6 (4, 6)")
+        self.assertEqual(ws.cell(row=10, column=1).value,
+                         u"Add 5.00µL of IPTG to each well.")
 
     def test_save_rep_setup_instructions_inducer_cols_2(self):
         # Create plate
@@ -4327,12 +4414,14 @@ class TestPlateArray(unittest.TestCase):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
             units=u'µM')
+        iptg.shot_vol = 5.
         iptg.set_gradient(min=1e-6, max=1e-3, n=8, scale='log')
         p.apply_inducer(iptg, apply_to='cols')
         # Create second inducer for plate columns
         atc = platedesign.inducer.ChemicalInducer(
             name='aTc',
             units=u'ng/µL')
+        atc.shot_vol = 10.
         atc.set_gradient(min=0.5, max=50, n=8, scale='log')
         p.apply_inducer(atc, apply_to='cols')
         # Run save_rep_setup_instructions
@@ -4505,6 +4594,10 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=8, column=18).value, "P6 (4, 4)")
         self.assertEqual(ws.cell(row=8, column=19).value, "P6 (4, 5)")
         self.assertEqual(ws.cell(row=8, column=20).value, "P6 (4, 6)")
+        self.assertEqual(ws.cell(row=10, column=1).value,
+                         u"Add 5.00µL of IPTG to each well.")
+        self.assertEqual(ws.cell(row=11, column=1).value,
+                         u"Add 10.00µL of aTc to each well.")
 
     def test_save_rep_setup_instructions_inducer_cols_3(self):
         # Create plate
@@ -4517,6 +4610,7 @@ class TestPlateArray(unittest.TestCase):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
             units=u'µM')
+        iptg.shot_vol = 5.
         iptg.set_gradient(min=1e-6, max=1e-3, n=8, scale='log')
         iptg.shuffle()
         p.apply_inducer(iptg, apply_to='cols')
@@ -4524,6 +4618,7 @@ class TestPlateArray(unittest.TestCase):
         atc = platedesign.inducer.ChemicalInducer(
             name='aTc',
             units=u'ng/µL')
+        atc.shot_vol = 10.
         atc.set_gradient(min=0.5, max=50, n=8, scale='log')
         p.apply_inducer(atc, apply_to='cols')
         # Run save_rep_setup_instructions
@@ -4696,6 +4791,10 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=8, column=18).value, "P6 (4, 4)")
         self.assertEqual(ws.cell(row=8, column=19).value, "P6 (4, 5)")
         self.assertEqual(ws.cell(row=8, column=20).value, "P6 (4, 6)")
+        self.assertEqual(ws.cell(row=10, column=1).value,
+                         u"Add 5.00µL of IPTG to each well.")
+        self.assertEqual(ws.cell(row=11, column=1).value,
+                         u"Add 10.00µL of aTc to each well.")
 
     def test_save_rep_setup_instructions_inducer_wells_1(self):
         # Create plate
@@ -4708,6 +4807,7 @@ class TestPlateArray(unittest.TestCase):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
             units=u'µM')
+        iptg.shot_vol = 5.
         iptg.set_gradient(min=1e-6, max=1e-3, n=144, scale='log')
         p.apply_inducer(iptg, apply_to='wells')
         # Run save_rep_setup_instructions
@@ -4864,6 +4964,8 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=8, column=16).value, "P6 (4, 4)\nI142")
         self.assertEqual(ws.cell(row=8, column=17).value, "P6 (4, 5)\nI143")
         self.assertEqual(ws.cell(row=8, column=18).value, "P6 (4, 6)\nI144")
+        self.assertEqual(ws.cell(row=10, column=1).value,
+                         u"Add 5.00µL of IPTG to each well.")
 
     def test_save_rep_setup_instructions_inducer_wells_2(self):
         # Create plate
@@ -4876,12 +4978,14 @@ class TestPlateArray(unittest.TestCase):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
             units=u'µM')
+        iptg.shot_vol = 5.
         iptg.set_gradient(min=1e-6, max=1e-3, n=144, scale='log')
         p.apply_inducer(iptg, apply_to='wells')
         # Create second inducer for plate
         atc = platedesign.inducer.ChemicalInducer(
             name='aTc',
             units=u'ng/µL')
+        atc.shot_vol = 10.
         atc.set_gradient(min=0.5, max=50, n=144, scale='log')
         p.apply_inducer(atc, apply_to='wells')
         # Run save_rep_setup_instructions
@@ -5038,6 +5142,10 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=8, column=16).value, "P6 (4, 4)\nI142\na142")
         self.assertEqual(ws.cell(row=8, column=17).value, "P6 (4, 5)\nI143\na143")
         self.assertEqual(ws.cell(row=8, column=18).value, "P6 (4, 6)\nI144\na144")
+        self.assertEqual(ws.cell(row=10, column=1).value,
+                         u"Add 5.00µL of IPTG to each well.")
+        self.assertEqual(ws.cell(row=11, column=1).value,
+                         u"Add 10.00µL of aTc to each well.")
 
     def test_save_rep_setup_instructions_inducer_wells_3(self):
         # Create plate
@@ -5052,6 +5160,7 @@ class TestPlateArray(unittest.TestCase):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
             units=u'µM')
+        iptg.shot_vol = 5.
         iptg.set_gradient(min=1e-6, max=1e-3, n=80, scale='log')
         p.apply_inducer(iptg, apply_to='wells')
         # Run save_rep_setup_instructions
@@ -5208,6 +5317,8 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=8, column=16).value, "P6 (4, 4)")
         self.assertEqual(ws.cell(row=8, column=17).value, "P6 (4, 5)")
         self.assertEqual(ws.cell(row=8, column=18).value, "P6 (4, 6)")
+        self.assertEqual(ws.cell(row=10, column=1).value,
+                         u"Add 5.00µL of IPTG to each well.")
 
     def test_save_rep_setup_instructions_inducer_wells_4(self):
         # Create plate
@@ -5220,6 +5331,7 @@ class TestPlateArray(unittest.TestCase):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
             units=u'µM')
+        iptg.shot_vol = 5.
         iptg.set_gradient(min=1e-6, max=1e-3, n=144, scale='log')
         iptg.shuffle()
         p.apply_inducer(iptg, apply_to='wells')
@@ -5227,6 +5339,7 @@ class TestPlateArray(unittest.TestCase):
         atc = platedesign.inducer.ChemicalInducer(
             name='aTc',
             units=u'ng/µL')
+        atc.shot_vol = 10.
         atc.set_gradient(min=0.5, max=50, n=144, scale='log')
         p.apply_inducer(atc, apply_to='wells')
         # Run save_rep_setup_instructions
@@ -5383,6 +5496,10 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=8, column=16).value, "P6 (4, 4)\nI109\na142")
         self.assertEqual(ws.cell(row=8, column=17).value, "P6 (4, 5)\nI122\na143")
         self.assertEqual(ws.cell(row=8, column=18).value, "P6 (4, 6)\nI020\na144")
+        self.assertEqual(ws.cell(row=10, column=1).value,
+                         u"Add 5.00µL of IPTG to each well.")
+        self.assertEqual(ws.cell(row=11, column=1).value,
+                         u"Add 10.00µL of aTc to each well.")
 
     def test_save_rep_setup_instructions_inducer_media_1(self):
         # Create plate
@@ -5555,7 +5672,7 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=8, column=17).value, "P6 (4, 5)")
         self.assertEqual(ws.cell(row=8, column=18).value, "P6 (4, 6)")
         self.assertEqual(ws.cell(row=10, column=1).value,
-                         u"Add 5.00µL of IPTG to media")
+                         u"Add 5.00µL of IPTG to media.")
 
     def test_save_rep_setup_instructions_inducer_media_2(self):
         # Create plate
@@ -5735,9 +5852,9 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=8, column=17).value, "P6 (4, 5)")
         self.assertEqual(ws.cell(row=8, column=18).value, "P6 (4, 6)")
         self.assertEqual(ws.cell(row=10, column=1).value,
-                         u"Add 5.00µL of IPTG to media")
+                         u"Add 5.00µL of IPTG to media.")
         self.assertEqual(ws.cell(row=11, column=1).value,
-                         u"Add 10.00µL of aTc to media")
+                         u"Add 10.00µL of aTc to media.")
 
     def test_save_rep_setup_instructions_inducer_mixed(self):
         # Create plate
@@ -5759,7 +5876,7 @@ class TestPlateArray(unittest.TestCase):
         atc = platedesign.inducer.ChemicalInducer(
             name='aTc',
             units=u'ng/µL')
-        atc.shot_vol = 5.
+        atc.shot_vol = 10.
         atc.set_gradient(min=0.5, max=50, n=8, scale='log')
         p.apply_inducer(atc, apply_to='cols')
 
@@ -5767,6 +5884,7 @@ class TestPlateArray(unittest.TestCase):
         xyl = platedesign.inducer.ChemicalInducer(
             name='Xylose',
             units=u'%')
+        xyl.shot_vol = 3.
         xyl.set_gradient(min=1e-6, max=1e-3, n=144, scale='log')
         p.apply_inducer(xyl, apply_to='wells')
 
@@ -5774,7 +5892,7 @@ class TestPlateArray(unittest.TestCase):
         sugar = platedesign.inducer.ChemicalInducer(
             name='Sugar',
             units=u'ng/µL')
-        sugar.shot_vol = 10.
+        sugar.shot_vol = 8.
         sugar.concentrations = [2]
         p.apply_inducer(sugar, apply_to='media')
 
@@ -5960,7 +6078,13 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=9, column=18).value, "P6 (4, 5)\nX143")
         self.assertEqual(ws.cell(row=9, column=19).value, "P6 (4, 6)\nX144")
         self.assertEqual(ws.cell(row=11, column=1).value,
-                         u"Add 10.00µL of Sugar to media")
+                         u"Add 5.00µL of IPTG to each well.")
+        self.assertEqual(ws.cell(row=12, column=1).value,
+                         u"Add 10.00µL of aTc to each well.")
+        self.assertEqual(ws.cell(row=13, column=1).value,
+                         u"Add 3.00µL of Xylose to each well.")
+        self.assertEqual(ws.cell(row=14, column=1).value,
+                         u"Add 8.00µL of Sugar to media.")
 
     def test_save_rep_setup_instructions_cells_and_inducer(self):
         # Create plate
@@ -5989,7 +6113,7 @@ class TestPlateArray(unittest.TestCase):
         atc = platedesign.inducer.ChemicalInducer(
             name='aTc',
             units=u'ng/µL')
-        atc.shot_vol = 5.
+        atc.shot_vol = 10.
         atc.set_gradient(min=0.5, max=50, n=8, scale='log')
         p.apply_inducer(atc, apply_to='cols')
 
@@ -5997,6 +6121,7 @@ class TestPlateArray(unittest.TestCase):
         xyl = platedesign.inducer.ChemicalInducer(
             name='Xylose',
             units=u'%')
+        xyl.shot_vol = 3.
         xyl.set_gradient(min=1e-6, max=1e-3, n=144, scale='log')
         p.apply_inducer(xyl, apply_to='wells')
 
@@ -6004,7 +6129,7 @@ class TestPlateArray(unittest.TestCase):
         sugar = platedesign.inducer.ChemicalInducer(
             name='Sugar',
             units=u'ng/µL')
-        sugar.shot_vol = 10.
+        sugar.shot_vol = 8.
         sugar.concentrations = [2]
         p.apply_inducer(sugar, apply_to='media')
 
@@ -6190,7 +6315,13 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=9, column=18).value, "P6 (4, 5)\nX143")
         self.assertEqual(ws.cell(row=9, column=19).value, "P6 (4, 6)\nX144")
         self.assertEqual(ws.cell(row=11, column=1).value,
-                         u"Add 10.00µL of Sugar to media")
+                         u"Add 5.00µL of IPTG to each well.")
+        self.assertEqual(ws.cell(row=12, column=1).value,
+                         u"Add 10.00µL of aTc to each well.")
+        self.assertEqual(ws.cell(row=13, column=1).value,
+                         u"Add 3.00µL of Xylose to each well.")
+        self.assertEqual(ws.cell(row=14, column=1).value,
+                         u"Add 8.00µL of Sugar to media.")
 
         # Check that sheet exists in spreadsheet
         self.assertTrue("Cells for Plate Array A1" in wb.sheetnames)
@@ -6250,7 +6381,7 @@ class TestPlateArray(unittest.TestCase):
         atc = platedesign.inducer.ChemicalInducer(
             name='aTc',
             units=u'ng/µL')
-        atc.shot_vol = 5.
+        atc.shot_vol = 10.
         atc.set_gradient(min=0.5, max=50, n=8, scale='log')
         p.apply_inducer(atc, apply_to='cols')
 
@@ -6258,6 +6389,7 @@ class TestPlateArray(unittest.TestCase):
         xyl = platedesign.inducer.ChemicalInducer(
             name='Xylose',
             units=u'%')
+        xyl.shot_vol = 3.
         xyl.set_gradient(min=1e-6, max=1e-3, n=144, scale='log')
         p.apply_inducer(xyl, apply_to='wells')
 
@@ -6265,7 +6397,7 @@ class TestPlateArray(unittest.TestCase):
         sugar = platedesign.inducer.ChemicalInducer(
             name='Sugar',
             units=u'ng/µL')
-        sugar.shot_vol = 10.
+        sugar.shot_vol = 8.
         sugar.concentrations = [2]
         p.apply_inducer(sugar, apply_to='media')
 
@@ -6450,7 +6582,13 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=9, column=18).value, "P6 (4, 5)\nX143")
         self.assertEqual(ws.cell(row=9, column=19).value, "P6 (4, 6)\nX144")
         self.assertEqual(ws.cell(row=11, column=1).value,
-                         u"Add 10.00µL of Sugar to media")
+                         u"Add 5.00µL of IPTG to each well.")
+        self.assertEqual(ws.cell(row=12, column=1).value,
+                         u"Add 10.00µL of aTc to each well.")
+        self.assertEqual(ws.cell(row=13, column=1).value,
+                         u"Add 3.00µL of Xylose to each well.")
+        self.assertEqual(ws.cell(row=14, column=1).value,
+                         u"Add 8.00µL of Sugar to media.")
 
         # Check that sheet exists in spreadsheet
         self.assertTrue("Cells for Plate Array A1" in wb.sheetnames)
