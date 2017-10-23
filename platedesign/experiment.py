@@ -244,6 +244,26 @@ class Experiment(object):
             else:
                 wb_rep_setup = wb_exp_setup
 
+            # Make summary sheet
+            summary_table = pandas.DataFrame(columns=['Plate Array',
+                                                      'Plate',
+                                                      'Strain'])
+            for p in self.plates:
+                if hasattr(p, 'plate_names'):
+                    # Plate array
+                    for plate in p.plate_names:
+                        summary_table.loc[len(summary_table)] = \
+                            [p.name, plate, p.cell_strain_name]
+                else:
+                    # Single plate
+                    summary_table.loc[len(summary_table)] = \
+                        [None, p.name, p.cell_strain_name]
+            writer = pandas.ExcelWriter('temp', engine='openpyxl')
+            writer.book = wb_rep_setup
+            summary_table.to_excel(writer,
+                                   sheet_name='Summary',
+                                   index=False)
+
             # Shuffle inducer and save replicate setup files
             for inducer in self.inducers:
                 if self.randomize_inducers:
