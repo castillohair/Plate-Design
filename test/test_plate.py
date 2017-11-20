@@ -481,13 +481,13 @@ class TestPlate(unittest.TestCase):
         ws = wb.get_sheet_by_name("Cells for Plate P1")
         self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
         self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
-        self.assertEqual(ws.cell(row=2, column=1).value, "Preculture OD600")
+        self.assertEqual(ws.cell(row=2, column=1).value, "Preculture/aliquot OD600")
         self.assertEqual(ws.cell(row=2, column=2).value, None)
         self.assertEqual(ws.cell(row=2, column=3).value, None)
         self.assertEqual(ws.cell(row=3, column=1).value, "Target OD600")
         self.assertEqual(ws.cell(row=3, column=2).value, 1e-5)
         self.assertEqual(ws.cell(row=3, column=3).value, None)
-        self.assertEqual(ws.cell(row=4, column=1).value, "Preculture volume")
+        self.assertEqual(ws.cell(row=4, column=1).value, "Preculture/aliquot volume")
         self.assertEqual(ws.cell(row=4, column=2).value, "=0.15/B2")
         self.assertEqual(ws.cell(row=4, column=3).value, u"µL")
         self.assertEqual(ws.cell(row=5, column=1).value, "Add into 15.00mL "
@@ -523,7 +523,7 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(ws.cell(row=4, column=1).value, "Media volume")
         self.assertEqual(ws.cell(row=4, column=2).value, 990)
         self.assertEqual(ws.cell(row=4, column=3).value, u"µL")
-        self.assertEqual(ws.cell(row=5, column=1).value, "Preculture volume")
+        self.assertEqual(ws.cell(row=5, column=1).value, "Preculture/aliquot volume")
         self.assertEqual(ws.cell(row=5, column=2).value, 10)
         self.assertEqual(ws.cell(row=5, column=3).value, u"µL")
         self.assertEqual(ws.cell(row=6, column=1).value, "Predilution OD600")
@@ -536,6 +536,54 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(ws.cell(row=8, column=3).value, None)
         self.assertEqual(ws.cell(row=9, column=1).value, "Predilution volume")
         self.assertEqual(ws.cell(row=9, column=2).value, "=0.15/B6")
+        self.assertEqual(ws.cell(row=9, column=3).value, u"µL")
+        self.assertEqual(ws.cell(row=10, column=1).value, "Add into 15.00mL "
+            "media, and distribute into plate wells.")
+
+    def test_save_rep_setup_instructions_cell_setup_fixed_od600_3(self):
+        # Create plate
+        p = platedesign.plate.Plate(name='P1')
+        p.total_media_vol = 15000.
+        # Add some information for cell setup
+        p.cell_strain_name = 'Test strain 1'
+        p.cell_setup_method = 'fixed_od600'
+        p.cell_od600_measure_from_dilution = False
+        p.cell_predilution = 100
+        p.cell_predilution_vol = 1000
+        p.cell_initial_od600 = 1e-5
+        # Run save_rep_setup_instructions
+        p.save_rep_setup_instructions(file_name=os.path.join(self.temp_dir,
+                                                             'plate_rep.xlsx'))
+        # Load spreadsheet
+        wb = openpyxl.load_workbook(filename=os.path.join(self.temp_dir,
+                                                          'plate_rep.xlsx'))
+        # Spreadsheet should contain one sheet
+        self.assertEqual(wb.sheetnames, ["Cells for Plate P1"])
+        # Check cell inoculation instructions
+        ws = wb.get_sheet_by_name("Cells for Plate P1")
+        self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
+        self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
+        self.assertTrue('A2:C2' in ws.merged_cell_ranges)
+        self.assertEqual(ws.cell(row=2, column=1).value, "Predilution")
+        self.assertEqual(ws.cell(row=3, column=1).value, "Preculture/aliquot OD600")
+        self.assertEqual(ws.cell(row=3, column=2).value, None)
+        self.assertEqual(ws.cell(row=3, column=3).value, None)
+        self.assertEqual(ws.cell(row=4, column=1).value, "Predilution factor")
+        self.assertEqual(ws.cell(row=4, column=2).value, 100)
+        self.assertEqual(ws.cell(row=4, column=3).value, "x")
+        self.assertEqual(ws.cell(row=5, column=1).value, "Media volume")
+        self.assertEqual(ws.cell(row=5, column=2).value, 990)
+        self.assertEqual(ws.cell(row=5, column=3).value, u"µL")
+        self.assertEqual(ws.cell(row=6, column=1).value, "Preculture/aliquot volume")
+        self.assertEqual(ws.cell(row=6, column=2).value, 10)
+        self.assertEqual(ws.cell(row=6, column=3).value, u"µL")
+        self.assertTrue('A7:C7' in ws.merged_cell_ranges)
+        self.assertEqual(ws.cell(row=7, column=1).value, "Inoculation")
+        self.assertEqual(ws.cell(row=8, column=1).value, "Target OD600")
+        self.assertEqual(ws.cell(row=8, column=2).value, 1e-5)
+        self.assertEqual(ws.cell(row=8, column=3).value, None)
+        self.assertEqual(ws.cell(row=9, column=1).value, "Predilution volume")
+        self.assertEqual(ws.cell(row=9, column=2).value, "=15.0/B3")
         self.assertEqual(ws.cell(row=9, column=3).value, u"µL")
         self.assertEqual(ws.cell(row=10, column=1).value, "Add into 15.00mL "
             "media, and distribute into plate wells.")
@@ -592,7 +640,7 @@ class TestPlate(unittest.TestCase):
         ws = wb.get_sheet_by_name("Cells for Plate P1")
         self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
         self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
-        self.assertEqual(ws.cell(row=2, column=1).value, "Preculture volume")
+        self.assertEqual(ws.cell(row=2, column=1).value, "Preculture/aliquot volume")
         self.assertEqual(ws.cell(row=2, column=2).value, 5)
         self.assertEqual(ws.cell(row=2, column=3).value, u"µL")
         self.assertEqual(ws.cell(row=3, column=1).value, "Add into 15.00mL "
@@ -628,7 +676,7 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(ws.cell(row=4, column=1).value, "Media volume")
         self.assertEqual(ws.cell(row=4, column=2).value, 990)
         self.assertEqual(ws.cell(row=4, column=3).value, u"µL")
-        self.assertEqual(ws.cell(row=5, column=1).value, "Preculture volume")
+        self.assertEqual(ws.cell(row=5, column=1).value, "Preculture/aliquot volume")
         self.assertEqual(ws.cell(row=5, column=2).value, 10)
         self.assertEqual(ws.cell(row=5, column=3).value, u"µL")
         self.assertTrue('A6:C6' in ws.merged_cell_ranges)
@@ -691,7 +739,7 @@ class TestPlate(unittest.TestCase):
         ws = wb.get_sheet_by_name("Cells for Plate P1")
         self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
         self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
-        self.assertEqual(ws.cell(row=2, column=1).value, "Preculture volume")
+        self.assertEqual(ws.cell(row=2, column=1).value, "Preculture/aliquot volume")
         self.assertEqual(ws.cell(row=2, column=2).value, 1.5)
         self.assertEqual(ws.cell(row=2, column=3).value, u"µL")
         self.assertEqual(ws.cell(row=3, column=1).value, "Add into 15.00mL "
@@ -727,7 +775,7 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(ws.cell(row=4, column=1).value, "Media volume")
         self.assertEqual(ws.cell(row=4, column=2).value, 990)
         self.assertEqual(ws.cell(row=4, column=3).value, u"µL")
-        self.assertEqual(ws.cell(row=5, column=1).value, "Preculture volume")
+        self.assertEqual(ws.cell(row=5, column=1).value, "Preculture/aliquot volume")
         self.assertEqual(ws.cell(row=5, column=2).value, 10)
         self.assertEqual(ws.cell(row=5, column=3).value, u"µL")
         self.assertTrue('A6:C6' in ws.merged_cell_ranges)
@@ -1670,7 +1718,7 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(ws.cell(row=4, column=1).value, "Media volume")
         self.assertEqual(ws.cell(row=4, column=2).value, 990)
         self.assertEqual(ws.cell(row=4, column=3).value, u"µL")
-        self.assertEqual(ws.cell(row=5, column=1).value, "Preculture volume")
+        self.assertEqual(ws.cell(row=5, column=1).value, "Preculture/aliquot volume")
         self.assertEqual(ws.cell(row=5, column=2).value, 10)
         self.assertEqual(ws.cell(row=5, column=3).value, u"µL")
         self.assertEqual(ws.cell(row=6, column=1).value, "Predilution OD600")
@@ -1805,7 +1853,7 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(ws.cell(row=4, column=1).value, "Media volume")
         self.assertEqual(ws.cell(row=4, column=2).value, 990)
         self.assertEqual(ws.cell(row=4, column=3).value, u"µL")
-        self.assertEqual(ws.cell(row=5, column=1).value, "Preculture volume")
+        self.assertEqual(ws.cell(row=5, column=1).value, "Preculture/aliquot volume")
         self.assertEqual(ws.cell(row=5, column=2).value, 10)
         self.assertEqual(ws.cell(row=5, column=3).value, u"µL")
         self.assertEqual(ws.cell(row=6, column=1).value, "Predilution OD600")
@@ -1933,8 +1981,8 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(len(cp.plate_info), 3)
         self.assertTrue('Strain' in cp.plate_info)
         self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
-        self.assertTrue('Preculture Dilution' in cp.plate_info)
-        self.assertEqual(cp.plate_info['Preculture Dilution'], 1)
+        self.assertTrue('Preculture/Aliquot Dilution' in cp.plate_info)
+        self.assertEqual(cp.plate_info['Preculture/Aliquot Dilution'], 1)
         self.assertTrue('Initial OD600' in cp.plate_info)
         self.assertEqual(cp.plate_info['Initial OD600'], 1e-5)
         # Check well info
@@ -1964,8 +2012,8 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(len(cp.plate_info), 3)
         self.assertTrue('Strain' in cp.plate_info)
         self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
-        self.assertTrue('Preculture Dilution' in cp.plate_info)
-        self.assertEqual(cp.plate_info['Preculture Dilution'], 100)
+        self.assertTrue('Preculture/Aliquot Dilution' in cp.plate_info)
+        self.assertEqual(cp.plate_info['Preculture/Aliquot Dilution'], 100)
         self.assertTrue('Initial OD600' in cp.plate_info)
         self.assertEqual(cp.plate_info['Initial OD600'], 1e-5)
         # Check well info
@@ -1993,8 +2041,8 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(len(cp.plate_info), 3)
         self.assertTrue('Strain' in cp.plate_info)
         self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
-        self.assertTrue('Preculture Dilution' in cp.plate_info)
-        self.assertEqual(cp.plate_info['Preculture Dilution'], 1)
+        self.assertTrue('Preculture/Aliquot Dilution' in cp.plate_info)
+        self.assertEqual(cp.plate_info['Preculture/Aliquot Dilution'], 1)
         self.assertTrue('Cell Inoculated Vol.' in cp.plate_info)
         self.assertEqual(cp.plate_info['Cell Inoculated Vol.'], 5)
         # Check well info
@@ -2024,8 +2072,8 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(len(cp.plate_info), 3)
         self.assertTrue('Strain' in cp.plate_info)
         self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
-        self.assertTrue('Preculture Dilution' in cp.plate_info)
-        self.assertEqual(cp.plate_info['Preculture Dilution'], 100)
+        self.assertTrue('Preculture/Aliquot Dilution' in cp.plate_info)
+        self.assertEqual(cp.plate_info['Preculture/Aliquot Dilution'], 100)
         self.assertTrue('Cell Inoculated Vol.' in cp.plate_info)
         self.assertEqual(cp.plate_info['Cell Inoculated Vol.'], 5)
         # Check well info
@@ -2053,8 +2101,8 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(len(cp.plate_info), 3)
         self.assertTrue('Strain' in cp.plate_info)
         self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
-        self.assertTrue('Preculture Dilution' in cp.plate_info)
-        self.assertEqual(cp.plate_info['Preculture Dilution'], 1)
+        self.assertTrue('Preculture/Aliquot Dilution' in cp.plate_info)
+        self.assertEqual(cp.plate_info['Preculture/Aliquot Dilution'], 1)
         self.assertTrue('Total Cell Dilution' in cp.plate_info)
         self.assertEqual(cp.plate_info['Total Cell Dilution'], 1e4)
         # Check well info
@@ -2084,8 +2132,8 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(len(cp.plate_info), 3)
         self.assertTrue('Strain' in cp.plate_info)
         self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
-        self.assertTrue('Preculture Dilution' in cp.plate_info)
-        self.assertEqual(cp.plate_info['Preculture Dilution'], 100)
+        self.assertTrue('Preculture/Aliquot Dilution' in cp.plate_info)
+        self.assertEqual(cp.plate_info['Preculture/Aliquot Dilution'], 100)
         self.assertTrue('Total Cell Dilution' in cp.plate_info)
         self.assertEqual(cp.plate_info['Total Cell Dilution'], 1e5)
         # Check well info
@@ -2659,8 +2707,8 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(cp.plate_info['Meta 1'], 'Value 1')
         self.assertTrue('Meta 2' in cp.plate_info)
         self.assertEqual(cp.plate_info['Meta 2'], 'Value 2')
-        self.assertTrue('Preculture Dilution' in cp.plate_info)
-        self.assertEqual(cp.plate_info['Preculture Dilution'], 100)
+        self.assertTrue('Preculture/Aliquot Dilution' in cp.plate_info)
+        self.assertEqual(cp.plate_info['Preculture/Aliquot Dilution'], 100)
         self.assertTrue('Cell Inoculated Vol.' in cp.plate_info)
         self.assertEqual(cp.plate_info['Cell Inoculated Vol.'], 5)
 
@@ -3267,13 +3315,13 @@ class TestPlateArray(unittest.TestCase):
         ws = wb.get_sheet_by_name("Cells for Plate Array A1")
         self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
         self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
-        self.assertEqual(ws.cell(row=2, column=1).value, "Preculture OD600")
+        self.assertEqual(ws.cell(row=2, column=1).value, "Preculture/aliquot OD600")
         self.assertEqual(ws.cell(row=2, column=2).value, None)
         self.assertEqual(ws.cell(row=2, column=3).value, None)
         self.assertEqual(ws.cell(row=3, column=1).value, "Target OD600")
         self.assertEqual(ws.cell(row=3, column=2).value, 1e-5)
         self.assertEqual(ws.cell(row=3, column=3).value, None)
-        self.assertEqual(ws.cell(row=4, column=1).value, "Preculture volume")
+        self.assertEqual(ws.cell(row=4, column=1).value, "Preculture/aliquot volume")
         self.assertEqual(ws.cell(row=4, column=2).value, "=0.8/B2")
         self.assertEqual(ws.cell(row=4, column=3).value, u"µL")
         self.assertEqual(ws.cell(row=5, column=1).value, "Add into 80.00mL "
@@ -3313,7 +3361,7 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=4, column=1).value, "Media volume")
         self.assertEqual(ws.cell(row=4, column=2).value, 990)
         self.assertEqual(ws.cell(row=4, column=3).value, u"µL")
-        self.assertEqual(ws.cell(row=5, column=1).value, "Preculture volume")
+        self.assertEqual(ws.cell(row=5, column=1).value, "Preculture/aliquot volume")
         self.assertEqual(ws.cell(row=5, column=2).value, 10)
         self.assertEqual(ws.cell(row=5, column=3).value, u"µL")
         self.assertEqual(ws.cell(row=6, column=1).value, "Predilution OD600")
@@ -3326,6 +3374,58 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=8, column=3).value, None)
         self.assertEqual(ws.cell(row=9, column=1).value, "Predilution volume")
         self.assertEqual(ws.cell(row=9, column=2).value, "=0.8/B6")
+        self.assertEqual(ws.cell(row=9, column=3).value, u"µL")
+        self.assertEqual(ws.cell(row=10, column=1).value, "Add into 80.00mL "
+            "media, and distribute into plate wells.")
+
+    def test_save_rep_setup_instructions_cell_setup_fixed_od600_3(self):
+        # Create plate
+        p = platedesign.plate.PlateArray(name='A1',
+                                         array_n_rows=2,
+                                         array_n_cols=3,
+                                         plate_names=['P{}'.format(i+1)
+                                                      for i in range(6)])
+        p.total_media_vol = 80000.
+        # Add some information for cell setup
+        p.cell_strain_name = 'Test strain 1'
+        p.cell_setup_method = 'fixed_od600'
+        p.cell_od600_measure_from_dilution = False
+        p.cell_predilution = 100
+        p.cell_predilution_vol = 1000
+        p.cell_initial_od600 = 1e-5
+        # Run save_rep_setup_instructions
+        p.save_rep_setup_instructions(file_name=os.path.join(self.temp_dir,
+                                                             'plate_rep.xlsx'))
+        # Load spreadsheet
+        wb = openpyxl.load_workbook(filename=os.path.join(self.temp_dir,
+                                                          'plate_rep.xlsx'))
+        # Spreadsheet should contain one sheet
+        self.assertEqual(wb.sheetnames, ["Cells for Plate Array A1"])
+        # Check cell inoculation instructions
+        ws = wb.get_sheet_by_name("Cells for Plate Array A1")
+        self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
+        self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
+        self.assertTrue('A2:C2' in ws.merged_cell_ranges)
+        self.assertEqual(ws.cell(row=2, column=1).value, "Predilution")
+        self.assertEqual(ws.cell(row=3, column=1).value, "Preculture/aliquot OD600")
+        self.assertEqual(ws.cell(row=3, column=2).value, None)
+        self.assertEqual(ws.cell(row=3, column=3).value, None)
+        self.assertEqual(ws.cell(row=4, column=1).value, "Predilution factor")
+        self.assertEqual(ws.cell(row=4, column=2).value, 100)
+        self.assertEqual(ws.cell(row=4, column=3).value, "x")
+        self.assertEqual(ws.cell(row=5, column=1).value, "Media volume")
+        self.assertEqual(ws.cell(row=5, column=2).value, 990)
+        self.assertEqual(ws.cell(row=5, column=3).value, u"µL")
+        self.assertEqual(ws.cell(row=6, column=1).value, "Preculture/aliquot volume")
+        self.assertEqual(ws.cell(row=6, column=2).value, 10)
+        self.assertEqual(ws.cell(row=6, column=3).value, u"µL")
+        self.assertTrue('A7:C7' in ws.merged_cell_ranges)
+        self.assertEqual(ws.cell(row=7, column=1).value, "Inoculation")
+        self.assertEqual(ws.cell(row=8, column=1).value, "Target OD600")
+        self.assertEqual(ws.cell(row=8, column=2).value, 1e-5)
+        self.assertEqual(ws.cell(row=8, column=3).value, None)
+        self.assertEqual(ws.cell(row=9, column=1).value, "Predilution volume")
+        self.assertEqual(ws.cell(row=9, column=2).value, "=80.0/B3")
         self.assertEqual(ws.cell(row=9, column=3).value, u"µL")
         self.assertEqual(ws.cell(row=10, column=1).value, "Add into 80.00mL "
             "media, and distribute into plate wells.")
@@ -3394,7 +3494,7 @@ class TestPlateArray(unittest.TestCase):
         ws = wb.get_sheet_by_name("Cells for Plate Array A1")
         self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
         self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
-        self.assertEqual(ws.cell(row=2, column=1).value, "Preculture volume")
+        self.assertEqual(ws.cell(row=2, column=1).value, "Preculture/aliquot volume")
         self.assertEqual(ws.cell(row=2, column=2).value, 5)
         self.assertEqual(ws.cell(row=2, column=3).value, u"µL")
         self.assertEqual(ws.cell(row=3, column=1).value, "Add into 80.00mL "
@@ -3434,7 +3534,7 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=4, column=1).value, "Media volume")
         self.assertEqual(ws.cell(row=4, column=2).value, 990)
         self.assertEqual(ws.cell(row=4, column=3).value, u"µL")
-        self.assertEqual(ws.cell(row=5, column=1).value, "Preculture volume")
+        self.assertEqual(ws.cell(row=5, column=1).value, "Preculture/aliquot volume")
         self.assertEqual(ws.cell(row=5, column=2).value, 10)
         self.assertEqual(ws.cell(row=5, column=3).value, u"µL")
         self.assertTrue('A6:C6' in ws.merged_cell_ranges)
@@ -3509,7 +3609,7 @@ class TestPlateArray(unittest.TestCase):
         ws = wb.get_sheet_by_name("Cells for Plate Array A1")
         self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
         self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
-        self.assertEqual(ws.cell(row=2, column=1).value, "Preculture volume")
+        self.assertEqual(ws.cell(row=2, column=1).value, "Preculture/aliquot volume")
         self.assertEqual(ws.cell(row=2, column=2).value, 8)
         self.assertEqual(ws.cell(row=2, column=3).value, u"µL")
         self.assertEqual(ws.cell(row=3, column=1).value, "Add into 80.00mL "
@@ -3549,7 +3649,7 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=4, column=1).value, "Media volume")
         self.assertEqual(ws.cell(row=4, column=2).value, 990)
         self.assertEqual(ws.cell(row=4, column=3).value, u"µL")
-        self.assertEqual(ws.cell(row=5, column=1).value, "Preculture volume")
+        self.assertEqual(ws.cell(row=5, column=1).value, "Preculture/aliquot volume")
         self.assertEqual(ws.cell(row=5, column=2).value, 10)
         self.assertEqual(ws.cell(row=5, column=3).value, u"µL")
         self.assertTrue('A6:C6' in ws.merged_cell_ranges)
@@ -6337,7 +6437,7 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=4, column=1).value, "Media volume")
         self.assertEqual(ws.cell(row=4, column=2).value, 990)
         self.assertEqual(ws.cell(row=4, column=3).value, u"µL")
-        self.assertEqual(ws.cell(row=5, column=1).value, "Preculture volume")
+        self.assertEqual(ws.cell(row=5, column=1).value, "Preculture/aliquot volume")
         self.assertEqual(ws.cell(row=5, column=2).value, 10)
         self.assertEqual(ws.cell(row=5, column=3).value, u"µL")
         self.assertEqual(ws.cell(row=6, column=1).value, "Predilution OD600")
@@ -6604,7 +6704,7 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=4, column=1).value, "Media volume")
         self.assertEqual(ws.cell(row=4, column=2).value, 990)
         self.assertEqual(ws.cell(row=4, column=3).value, u"µL")
-        self.assertEqual(ws.cell(row=5, column=1).value, "Preculture volume")
+        self.assertEqual(ws.cell(row=5, column=1).value, "Preculture/aliquot volume")
         self.assertEqual(ws.cell(row=5, column=2).value, 10)
         self.assertEqual(ws.cell(row=5, column=3).value, u"µL")
         self.assertEqual(ws.cell(row=6, column=1).value, "Predilution OD600")
@@ -6781,8 +6881,8 @@ class TestPlateArray(unittest.TestCase):
             self.assertEqual(cp.plate_info['Plate Array'], 'A1')
             self.assertTrue('Strain' in cp.plate_info)
             self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
-            self.assertTrue('Preculture Dilution' in cp.plate_info)
-            self.assertEqual(cp.plate_info['Preculture Dilution'], 1)
+            self.assertTrue('Preculture/Aliquot Dilution' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Preculture/Aliquot Dilution'], 1)
             self.assertTrue('Initial OD600' in cp.plate_info)
             self.assertEqual(cp.plate_info['Initial OD600'], 1e-5)
             # Check well info
@@ -6823,8 +6923,8 @@ class TestPlateArray(unittest.TestCase):
             self.assertEqual(cp.plate_info['Plate Array'], 'A1')
             self.assertTrue('Strain' in cp.plate_info)
             self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
-            self.assertTrue('Preculture Dilution' in cp.plate_info)
-            self.assertEqual(cp.plate_info['Preculture Dilution'], 100)
+            self.assertTrue('Preculture/Aliquot Dilution' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Preculture/Aliquot Dilution'], 100)
             self.assertTrue('Initial OD600' in cp.plate_info)
             self.assertEqual(cp.plate_info['Initial OD600'], 1e-5)
             # Check well info
@@ -6863,8 +6963,8 @@ class TestPlateArray(unittest.TestCase):
             self.assertEqual(cp.plate_info['Plate Array'], 'A1')
             self.assertTrue('Strain' in cp.plate_info)
             self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
-            self.assertTrue('Preculture Dilution' in cp.plate_info)
-            self.assertEqual(cp.plate_info['Preculture Dilution'], 1)
+            self.assertTrue('Preculture/Aliquot Dilution' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Preculture/Aliquot Dilution'], 1)
             self.assertTrue('Cell Inoculated Vol.' in cp.plate_info)
             self.assertEqual(cp.plate_info['Cell Inoculated Vol.'], 5)
             # Check well info
@@ -6905,8 +7005,8 @@ class TestPlateArray(unittest.TestCase):
             self.assertEqual(cp.plate_info['Plate Array'], 'A1')
             self.assertTrue('Strain' in cp.plate_info)
             self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
-            self.assertTrue('Preculture Dilution' in cp.plate_info)
-            self.assertEqual(cp.plate_info['Preculture Dilution'], 100)
+            self.assertTrue('Preculture/Aliquot Dilution' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Preculture/Aliquot Dilution'], 100)
             self.assertTrue('Cell Inoculated Vol.' in cp.plate_info)
             self.assertEqual(cp.plate_info['Cell Inoculated Vol.'], 5)
             # Check well info
@@ -6945,8 +7045,8 @@ class TestPlateArray(unittest.TestCase):
             self.assertEqual(cp.plate_info['Plate Array'], 'A1')
             self.assertTrue('Strain' in cp.plate_info)
             self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
-            self.assertTrue('Preculture Dilution' in cp.plate_info)
-            self.assertEqual(cp.plate_info['Preculture Dilution'], 1)
+            self.assertTrue('Preculture/Aliquot Dilution' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Preculture/Aliquot Dilution'], 1)
             self.assertTrue('Total Cell Dilution' in cp.plate_info)
             self.assertEqual(cp.plate_info['Total Cell Dilution'], 1e4)
             # Check well info
@@ -6987,8 +7087,8 @@ class TestPlateArray(unittest.TestCase):
             self.assertEqual(cp.plate_info['Plate Array'], 'A1')
             self.assertTrue('Strain' in cp.plate_info)
             self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
-            self.assertTrue('Preculture Dilution' in cp.plate_info)
-            self.assertEqual(cp.plate_info['Preculture Dilution'], 100)
+            self.assertTrue('Preculture/Aliquot Dilution' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Preculture/Aliquot Dilution'], 100)
             self.assertTrue('Total Cell Dilution' in cp.plate_info)
             self.assertEqual(cp.plate_info['Total Cell Dilution'], 1e5)
             # Check well info
@@ -8155,8 +8255,8 @@ class TestPlateArray(unittest.TestCase):
             self.assertEqual(cp.plate_info['Meta 1'], 'Value 1')
             self.assertTrue('Meta 2' in cp.plate_info)
             self.assertEqual(cp.plate_info['Meta 2'], 'Value 2')
-            self.assertTrue('Preculture Dilution' in cp.plate_info)
-            self.assertEqual(cp.plate_info['Preculture Dilution'], 100)
+            self.assertTrue('Preculture/Aliquot Dilution' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Preculture/Aliquot Dilution'], 100)
             self.assertTrue('Cell Inoculated Vol.' in cp.plate_info)
             self.assertEqual(cp.plate_info['Cell Inoculated Vol.'], 5)
 

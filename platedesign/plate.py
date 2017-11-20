@@ -66,18 +66,24 @@ class Plate(object):
         be one of the following: "fixed_od600", "fixed_volume", or
         "fixed_dilution".
     cell_predilution : float
-        Dilution factor for the cell preculture before inoculating.
+        Dilution factor for the cell preculture/aliquot before inoculating.
     cell_predilution_vol : float
-        Volume of diluted preculture to make in µL.
+        Volume of diluted preculture/aliquot to make in µL.
+    cell_od600_measure_from_dilution : bool
+        If True, the OD600 of the diluted preculture/aliquot is measured
+        and used to calculate volumes. If False, the OD600 of the undiluted
+        preculture/aliquot is used instead. Only used if cell_setup_method`
+        is "fixed_od600" and `cell_predilution` is greater than one.
+        Default: True.
     cell_initial_od600 : float
         Target initial OD600 for inoculating cells. Only used if
         `cell_setup_method` is "fixed_od600".
     cell_shot_vol : float
-        Volume of diluted preculture to inoculate in media. Only used if
-        `cell_setup_method` is "fixed_volume".
+        Volume of diluted preculture/aliquot to inoculate in media. Only
+        used if `cell_setup_method` is "fixed_volume".
     cell_total_dilution : float
-        Total dilution from preculture to be inoculated in the media. Only
-        used if `cell_setup_method` is "fixed_dilution".
+        Total dilution from preculture/aliquot to be inoculated in the
+        media. Only used if `cell_setup_method` is "fixed_dilution".
     metadata : OrderedDict
         Additional information about the plate, in a ``key: value`` format.
         The ClosedPlate instance returned by ``close_plates()`` will
@@ -134,6 +140,7 @@ class Plate(object):
         self.cell_setup_method = None
         self.cell_predilution = 1
         self.cell_predilution_vol = None
+        self.cell_od600_measure_from_dilution = True
         self.cell_initial_od600 = None
         self.cell_shot_vol = None
         self.cell_total_dilution = None
@@ -491,67 +498,129 @@ class Plate(object):
                 if self.cell_predilution_vol is None:
                     raise ValueError("cell predilution volume should be "
                         "specified")
-                # Instructions for making predilution
-                worksheet.cell(row=2, column=1).value = "Predilution"
-                worksheet.cell(row=2, column=1).alignment = header_alignment
-                worksheet.cell(row=2, column=1).font = header_font
-                worksheet.merge_cells(start_row=2,
-                                      end_row=2,
-                                      start_column=1,
-                                      end_column=3)
+                if self.cell_od600_measure_from_dilution:
+                    # Instructions for making predilution
+                    worksheet.cell(row=2, column=1).value = "Predilution"
+                    worksheet.cell(row=2, column=1).alignment = header_alignment
+                    worksheet.cell(row=2, column=1).font = header_font
+                    worksheet.merge_cells(start_row=2,
+                                          end_row=2,
+                                          start_column=1,
+                                          end_column=3)
 
-                worksheet.cell(row=3, column=1).value = "Predilution factor"
-                worksheet.cell(row=3, column=2).value = self.cell_predilution
-                worksheet.cell(row=3, column=3).value = "x"
+                    worksheet.cell(row=3, column=1).value = "Predilution factor"
+                    worksheet.cell(row=3, column=2).value = self.cell_predilution
+                    worksheet.cell(row=3, column=3).value = "x"
 
-                cell_vol = self.cell_predilution_vol / \
-                    float(self.cell_predilution)
-                media_vol = self.cell_predilution_vol - cell_vol
-                worksheet.cell(row=4, column=1).value = "Media volume"
-                worksheet.cell(row=4, column=2).value = media_vol
-                worksheet.cell(row=4, column=3).value = "µL"
+                    cell_vol = self.cell_predilution_vol / \
+                        float(self.cell_predilution)
+                    media_vol = self.cell_predilution_vol - cell_vol
+                    worksheet.cell(row=4, column=1).value = "Media volume"
+                    worksheet.cell(row=4, column=2).value = media_vol
+                    worksheet.cell(row=4, column=3).value = "µL"
 
-                worksheet.cell(row=5, column=1).value = "Preculture volume"
-                worksheet.cell(row=5, column=2).value = cell_vol
-                worksheet.cell(row=5, column=3).value = "µL"
+                    worksheet.cell(row=5, column=1).value = \
+                        "Preculture/aliquot volume"
+                    worksheet.cell(row=5, column=2).value = cell_vol
+                    worksheet.cell(row=5, column=3).value = "µL"
 
-                worksheet.cell(row=6, column=1).value = "Predilution OD600"
-                worksheet.cell(row=6, column=2).fill = plate_fill[0]
+                    worksheet.cell(row=6, column=1).value = "Predilution OD600"
+                    worksheet.cell(row=6, column=2).fill = plate_fill[0]
 
-                # Instructions for inoculating into plate media
-                worksheet.cell(row=7, column=1).value = "Inoculation"
-                worksheet.cell(row=7, column=1).alignment = header_alignment
-                worksheet.cell(row=7, column=1).font = header_font
-                worksheet.merge_cells(start_row=7,
-                                      end_row=7,
-                                      start_column=1,
-                                      end_column=3)
+                    # Instructions for inoculating into plate media
+                    worksheet.cell(row=7, column=1).value = "Inoculation"
+                    worksheet.cell(row=7, column=1).alignment = header_alignment
+                    worksheet.cell(row=7, column=1).font = header_font
+                    worksheet.merge_cells(start_row=7,
+                                          end_row=7,
+                                          start_column=1,
+                                          end_column=3)
 
-                worksheet.cell(row=8, column=1).value = "Target OD600"
-                worksheet.cell(row=8, column=2).value = self.cell_initial_od600
+                    worksheet.cell(row=8, column=1).value = "Target OD600"
+                    worksheet.cell(row=8, column=2).value = \
+                        self.cell_initial_od600
 
-                worksheet.cell(row=9, column=1).value = "Predilution volume"
-                worksheet.cell(row=9, column=2).value = "={}/B6".format(
-                    self.total_media_vol*self.cell_initial_od600)
-                worksheet.cell(row=9, column=3).value = "µL"
+                    worksheet.cell(row=9, column=1).value = "Predilution volume"
+                    worksheet.cell(row=9, column=2).value = "={}/B6".format(
+                        self.total_media_vol*self.cell_initial_od600)
+                    worksheet.cell(row=9, column=3).value = "µL"
 
-                worksheet.cell(row=10, column=1).value = \
-                    "Add into {:.2f}mL media, ".format(self.total_media_vol/1000.) + \
-                    "and distribute into plate wells."
+                    worksheet.cell(row=10, column=1).value = \
+                        "Add into {:.2f}mL media, ".format(
+                            self.total_media_vol/1000.) + \
+                        "and distribute into plate wells."
+                else:
+                    # Instructions for making predilution
+                    worksheet.cell(row=2, column=1).value = "Predilution"
+                    worksheet.cell(row=2, column=1).alignment = header_alignment
+                    worksheet.cell(row=2, column=1).font = header_font
+                    worksheet.merge_cells(start_row=2,
+                                          end_row=2,
+                                          start_column=1,
+                                          end_column=3)
+
+                    worksheet.cell(row=3, column=1).value = \
+                        "Preculture/aliquot OD600"
+                    worksheet.cell(row=3, column=2).fill = plate_fill[0]
+
+                    worksheet.cell(row=4, column=1).value = \
+                        "Predilution factor"
+                    worksheet.cell(row=4, column=2).value = \
+                        self.cell_predilution
+                    worksheet.cell(row=4, column=3).value = "x"
+
+                    cell_vol = self.cell_predilution_vol / \
+                        float(self.cell_predilution)
+                    media_vol = self.cell_predilution_vol - cell_vol
+                    worksheet.cell(row=5, column=1).value = "Media volume"
+                    worksheet.cell(row=5, column=2).value = media_vol
+                    worksheet.cell(row=5, column=3).value = "µL"
+
+                    worksheet.cell(row=6, column=1).value = \
+                        "Preculture/aliquot volume"
+                    worksheet.cell(row=6, column=2).value = cell_vol
+                    worksheet.cell(row=6, column=3).value = "µL"
+
+                    # Instructions for inoculating into plate media
+                    worksheet.cell(row=7, column=1).value = "Inoculation"
+                    worksheet.cell(row=7, column=1).alignment = header_alignment
+                    worksheet.cell(row=7, column=1).font = header_font
+                    worksheet.merge_cells(start_row=7,
+                                          end_row=7,
+                                          start_column=1,
+                                          end_column=3)
+
+                    worksheet.cell(row=8, column=1).value = "Target OD600"
+                    worksheet.cell(row=8, column=2).value = \
+                        self.cell_initial_od600
+
+                    worksheet.cell(row=9, column=1).value = "Predilution volume"
+                    worksheet.cell(row=9, column=2).value = "={}/B3".format(
+                        self.total_media_vol * self.cell_initial_od600 * \
+                            self.cell_predilution)
+                    worksheet.cell(row=9, column=3).value = "µL"
+
+                    worksheet.cell(row=10, column=1).value = \
+                        "Add into {:.2f}mL media, ".format(
+                            self.total_media_vol/1000.) + \
+                        "and distribute into plate wells."
             else:
-                worksheet.cell(row=2, column=1).value = "Preculture OD600"
+                worksheet.cell(row=2, column=1).value = \
+                    "Preculture/aliquot OD600"
                 worksheet.cell(row=2, column=2).fill = plate_fill[0]
 
                 worksheet.cell(row=3, column=1).value = "Target OD600"
                 worksheet.cell(row=3, column=2).value = self.cell_initial_od600
 
-                worksheet.cell(row=4, column=1).value = "Preculture volume"
+                worksheet.cell(row=4, column=1).value = \
+                    "Preculture/aliquot volume"
                 worksheet.cell(row=4, column=2).value = "={}/B2".format(
                     self.total_media_vol*self.cell_initial_od600)
                 worksheet.cell(row=4, column=3).value = "µL"
 
                 worksheet.cell(row=5, column=1).value = \
-                    "Add into {:.2f}mL media, ".format(self.total_media_vol/1000.) + \
+                    "Add into {:.2f}mL media, ".format(
+                        self.total_media_vol/1000.) + \
                     "and distribute into plate wells."
 
         elif self.cell_setup_method=='fixed_volume':
@@ -590,7 +659,8 @@ class Plate(object):
                 worksheet.cell(row=4, column=2).value = media_vol
                 worksheet.cell(row=4, column=3).value = "µL"
 
-                worksheet.cell(row=5, column=1).value = "Preculture volume"
+                worksheet.cell(row=5, column=1).value = \
+                    "Preculture/aliquot volume"
                 worksheet.cell(row=5, column=2).value = cell_vol
                 worksheet.cell(row=5, column=3).value = "µL"
 
@@ -608,16 +678,19 @@ class Plate(object):
                 worksheet.cell(row=7, column=3).value = "µL"
 
                 worksheet.cell(row=8, column=1).value = \
-                    "Add into {:.2f}mL media, ".format(self.total_media_vol/1000.) + \
+                    "Add into {:.2f}mL media, ".format(
+                        self.total_media_vol/1000.) + \
                     "and distribute into plate wells."
             else:
                 # Instructions for inoculating into plate media
-                worksheet.cell(row=2, column=1).value = "Preculture volume"
+                worksheet.cell(row=2, column=1).value = \
+                    "Preculture/aliquot volume"
                 worksheet.cell(row=2, column=2).value = self.cell_shot_vol
                 worksheet.cell(row=2, column=3).value = "µL"
 
                 worksheet.cell(row=3, column=1).value = \
-                    "Add into {:.2f}mL media, ".format(self.total_media_vol/1000.) + \
+                    "Add into {:.2f}mL media, ".format(
+                        self.total_media_vol/1000.) + \
                     "and distribute into plate wells."
 
         elif self.cell_setup_method=='fixed_dilution':
@@ -656,7 +729,8 @@ class Plate(object):
                 worksheet.cell(row=4, column=2).value = media_vol
                 worksheet.cell(row=4, column=3).value = "µL"
 
-                worksheet.cell(row=5, column=1).value = "Preculture volume"
+                worksheet.cell(row=5, column=1).value = \
+                    "Preculture/aliquot volume"
                 worksheet.cell(row=5, column=2).value = cell_vol
                 worksheet.cell(row=5, column=3).value = "µL"
 
@@ -676,18 +750,21 @@ class Plate(object):
                 worksheet.cell(row=7, column=3).value = "µL"
 
                 worksheet.cell(row=8, column=1).value = \
-                    "Add into {:.2f}mL media, ".format(self.total_media_vol/1000.) + \
+                    "Add into {:.2f}mL media, ".format(
+                        self.total_media_vol/1000.) + \
                     "and distribute into plate wells."
             else:
                 cell_shot_vol = self.total_media_vol / \
                     float(self.cell_total_dilution)
                 # Instructions for inoculating into plate media
-                worksheet.cell(row=2, column=1).value = "Preculture volume"
+                worksheet.cell(row=2, column=1).value = \
+                    "Preculture/aliquot volume"
                 worksheet.cell(row=2, column=2).value = cell_shot_vol
                 worksheet.cell(row=2, column=3).value = "µL"
 
                 worksheet.cell(row=3, column=1).value = \
-                    "Add into {:.2f}mL media, ".format(self.total_media_vol/1000.) + \
+                    "Add into {:.2f}mL media, ".format(
+                        self.total_media_vol/1000.) + \
                     "and distribute into plate wells."
 
         else:
@@ -734,13 +811,13 @@ class Plate(object):
         # Add cell info
         plate_info['Strain'] = self.cell_strain_name
         if self.cell_setup_method=='fixed_od600':
-            plate_info['Preculture Dilution'] = self.cell_predilution
+            plate_info['Preculture/Aliquot Dilution'] = self.cell_predilution
             plate_info['Initial OD600'] = self.cell_initial_od600
         elif self.cell_setup_method=='fixed_volume':
-            plate_info['Preculture Dilution'] = self.cell_predilution
+            plate_info['Preculture/Aliquot Dilution'] = self.cell_predilution
             plate_info['Cell Inoculated Vol.'] = self.cell_shot_vol
         elif self.cell_setup_method=='fixed_dilution':
-            plate_info['Preculture Dilution'] = self.cell_predilution
+            plate_info['Preculture/Aliquot Dilution'] = self.cell_predilution
             plate_info['Total Cell Dilution'] = self.cell_total_dilution
 
         # Add additional plate metadata
@@ -853,18 +930,24 @@ class PlateArray(Plate):
         be one of the following: "fixed_od600", "fixed_volume", or
         "fixed_dilution".
     cell_predilution : float
-        Dilution factor for the cell preculture before inoculating.
+        Dilution factor for the cell preculture/aliquot before inoculating.
     cell_predilution_vol : float
-        Volume of diluted preculture to make in µL.
+        Volume of diluted preculture/aliquot to make in µL.
+    cell_od600_measure_from_dilution : bool
+        If True, the OD600 of the diluted preculture/aliquot is measured
+        and used to calculate volumes. If False, the OD600 of the undiluted
+        preculture/aliquot is used instead. Only used if cell_setup_method`
+        is "fixed_od600" and `cell_predilution` is greater than one.
+        Default: True.
     cell_initial_od600 : float
         Target initial OD600 for inoculating cells. Only used if
         `cell_setup_method` is "fixed_od600".
     cell_shot_vol : float
-        Volume of diluted preculture to inoculate in media. Only used if
-        `cell_setup_method` is "fixed_volume".
+        Volume of diluted preculture/aliquot to inoculate in media. Only
+        used if `cell_setup_method` is "fixed_volume".
     cell_total_dilution : float
-        Total dilution from preculture to be inoculated in the media. Only
-        used if `cell_setup_method` is "fixed_dilution".
+        Total dilution from preculture/aliquot to be inoculated in the
+        media. Only used if `cell_setup_method` is "fixed_dilution".
     metadata : OrderedDict
         Additional information about the array, in a ``key: value`` format.
         ClosedPlate instances returned by ``close_plates()`` will include
@@ -925,6 +1008,7 @@ class PlateArray(Plate):
         self.cell_setup_method = None
         self.cell_predilution = 1
         self.cell_predilution_vol = None
+        self.cell_od600_measure_from_dilution = True
         self.cell_initial_od600 = None
         self.cell_shot_vol = None
         self.cell_total_dilution = None
@@ -1164,13 +1248,13 @@ class PlateArray(Plate):
         # Add cell info
         plate_info['Strain'] = self.cell_strain_name
         if self.cell_setup_method=='fixed_od600':
-            plate_info['Preculture Dilution'] = self.cell_predilution
+            plate_info['Preculture/Aliquot Dilution'] = self.cell_predilution
             plate_info['Initial OD600'] = self.cell_initial_od600
         elif self.cell_setup_method=='fixed_volume':
-            plate_info['Preculture Dilution'] = self.cell_predilution
+            plate_info['Preculture/Aliquot Dilution'] = self.cell_predilution
             plate_info['Cell Inoculated Vol.'] = self.cell_shot_vol
         elif self.cell_setup_method=='fixed_dilution':
-            plate_info['Preculture Dilution'] = self.cell_predilution
+            plate_info['Preculture/Aliquot Dilution'] = self.cell_predilution
             plate_info['Total Cell Dilution'] = self.cell_total_dilution
 
         # Add additional plate metadata
