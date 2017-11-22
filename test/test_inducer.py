@@ -125,7 +125,7 @@ class TestChemicalInducer(unittest.TestCase):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
             units=u'µM')
-        # Write concentrations should generate a corresponding _doses_table
+        # Writing concentrations should generate a corresponding _doses_table
         iptg.concentrations = numpy.linspace(0,1,11)
         # Test doses table
         df = pandas.DataFrame(
@@ -134,7 +134,7 @@ class TestChemicalInducer(unittest.TestCase):
         df.index.name='ID'
         pandas.util.testing.assert_frame_equal(iptg._doses_table, df)
         pandas.util.testing.assert_frame_equal(iptg.doses_table, df)
-        # Test conc attribute
+        # Test intensities attribute
         numpy.testing.assert_array_equal(iptg.concentrations,
                                          numpy.linspace(0,1,11))
 
