@@ -53,6 +53,8 @@ class Plate(object):
         Name of the plate, to be used in generated files.
     n_rows, n_cols : int
         Number of rows and columns in the plate.
+    n_plates : int
+        Number of physical plates handled by this object. Fixed to 1.
     samples_to_measure : int
         Number of samples to be measured.
     sample_media_vol : float
@@ -150,6 +152,14 @@ class Plate(object):
 
         # Initialize list of inducers
         self.inducers = {'rows': [], 'cols': [], 'wells': [], 'media': []}
+
+    @property
+    def n_plates(self):
+        """
+        Number of physical plates handled by this object. Fixed to 1.
+
+        """
+        return 1
 
     def apply_inducer_media_vol(self, apply_to):
         """
@@ -917,6 +927,9 @@ class PlateArray(Plate):
         Number of rows and columns in each plate.        
     n_rows, n_cols : int
         Total number of rows and columns in the plate array.
+    n_plates : int
+        Number of physical plates handled by this object. Returns
+        ``array_n_rows * array_n_cols``.
     samples_to_measure : int
         Number of samples to be measured.
     sample_media_vol : float
@@ -1034,6 +1047,14 @@ class PlateArray(Plate):
         
         """
         return self.array_n_cols*self.plate_n_cols
+
+    @property
+    def n_plates(self):
+        """
+        Number of physical plates handled by this object.
+
+        """
+        return self.array_n_rows*self.array_n_cols
 
     def save_rep_setup_instructions(self, file_name=None, workbook=None):
         """
