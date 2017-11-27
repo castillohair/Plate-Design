@@ -54,6 +54,7 @@ class TestPlate(unittest.TestCase):
         self.assertIsNone(p.cell_predilution_vol)
         self.assertIsNone(p.cell_initial_od600)
         self.assertIsNone(p.cell_shot_vol)
+        self.assertEqual(p.resources, collections.OrderedDict())
         self.assertEqual(p.metadata, collections.OrderedDict())
         self.assertEqual(p.inducers, {'rows': [],
                                       'cols': [],
@@ -76,6 +77,7 @@ class TestPlate(unittest.TestCase):
         self.assertIsNone(p.cell_predilution_vol)
         self.assertIsNone(p.cell_initial_od600)
         self.assertIsNone(p.cell_shot_vol)
+        self.assertEqual(p.resources, collections.OrderedDict())
         self.assertEqual(p.metadata, collections.OrderedDict())
         self.assertEqual(p.inducers, {'rows': [],
                                       'cols': [],
@@ -1934,6 +1936,47 @@ class TestPlate(unittest.TestCase):
         well_info['Measure'] = [True]*24
         pandas.util.testing.assert_frame_equal(cp.well_info, well_info)
 
+    def test_close_plates_resources(self):
+        # Create plate
+        p = platedesign.plate.Plate(name='P1')
+        p.cell_strain_name = 'Test strain 1'
+        # Add some resources
+        p.resources['Incubator'] = ['Incubator 1']
+        p.resources['Thermometer'] = ['Alcohol thermometer 1']
+        # Call close plates and check length of output
+        cps = p.close_plates()
+        self.assertEqual(len(cps), 1)
+        # Get the only closed place
+        cp = cps[0]
+        # Check basic properties
+        self.assertEqual(cp.name, 'P1')
+        self.assertEqual(cp.n_rows, 4)
+        self.assertEqual(cp.n_cols, 6)
+        # Check plate info
+        self.assertEqual(len(cp.plate_info), 3)
+        self.assertTrue('Strain' in cp.plate_info)
+        self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
+        self.assertTrue('Incubator' in cp.plate_info)
+        self.assertEqual(cp.plate_info['Incubator'], 'Incubator 1')
+        self.assertTrue('Thermometer' in cp.plate_info)
+        self.assertEqual(cp.plate_info['Thermometer'], 'Alcohol thermometer 1')
+        # Check well info
+        well_info = pandas.DataFrame()
+        well_info['Measure'] = [True]*24
+        pandas.util.testing.assert_frame_equal(cp.well_info, well_info)
+
+    def test_close_plates_resources_error_1(self):
+        # Create plate
+        p = platedesign.plate.Plate(name='P1')
+        p.cell_strain_name = 'Test strain 1'
+        # Add some resources
+        p.resources['Incubator'] = ['Incubator 1', 'Incubator 2']
+        p.resources['Thermometer'] = ['Alcohol thermometer 1']
+        # Call close plates and check error
+        self.assertRaisesRegexp(ValueError,
+                                "2 resources of type Incubator specified, should be 1",
+                                p.close_plates,)
+
     def test_close_plates_metadata(self):
         # Create plate
         p = platedesign.plate.Plate(name='P1')
@@ -2668,6 +2711,9 @@ class TestPlate(unittest.TestCase):
         # Create plate
         p = platedesign.plate.Plate(name='P1')
         p.cell_strain_name = 'Test strain 1'
+        # Add some resources
+        p.resources['Incubator'] = ['Incubator 1']
+        p.resources['Thermometer'] = ['Alcohol thermometer 1']
         # Add some metadata
         p.metadata['Meta 1'] = 'Value 1'
         p.metadata['Meta 2'] = 'Value 2'
@@ -2702,9 +2748,13 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(cp.n_cols, 6)
 
         # Check plate info
-        self.assertEqual(len(cp.plate_info), 5)
+        self.assertEqual(len(cp.plate_info), 7)
         self.assertTrue('Strain' in cp.plate_info)
         self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
+        self.assertTrue('Incubator' in cp.plate_info)
+        self.assertEqual(cp.plate_info['Incubator'], 'Incubator 1')
+        self.assertTrue('Thermometer' in cp.plate_info)
+        self.assertEqual(cp.plate_info['Thermometer'], 'Alcohol thermometer 1')
         self.assertTrue('Meta 1' in cp.plate_info)
         self.assertEqual(cp.plate_info['Meta 1'], 'Value 1')
         self.assertTrue('Meta 2' in cp.plate_info)
@@ -2788,6 +2838,7 @@ class TestPlateArray(unittest.TestCase):
         self.assertIsNone(p.cell_predilution_vol)
         self.assertIsNone(p.cell_initial_od600)
         self.assertIsNone(p.cell_shot_vol)
+        self.assertEqual(p.resources, collections.OrderedDict())
         self.assertEqual(p.metadata, collections.OrderedDict())
         self.assertEqual(p.inducers, {'rows': [],
                                       'cols': [],
@@ -2822,6 +2873,7 @@ class TestPlateArray(unittest.TestCase):
         self.assertIsNone(p.cell_predilution_vol)
         self.assertIsNone(p.cell_initial_od600)
         self.assertIsNone(p.cell_shot_vol)
+        self.assertEqual(p.resources, collections.OrderedDict())
         self.assertEqual(p.metadata, collections.OrderedDict())
         self.assertEqual(p.inducers, {'rows': [],
                                       'cols': [],
@@ -6814,6 +6866,96 @@ class TestPlateArray(unittest.TestCase):
             well_info['Measure'] = [True]*24
             pandas.util.testing.assert_frame_equal(cp.well_info, well_info)
 
+    def test_close_plates_resources(self):
+        # Create plate
+        p = platedesign.plate.PlateArray(name='A1',
+                                         array_n_rows=2,
+                                         array_n_cols=3,
+                                         plate_names=['P{}'.format(i+1)
+                                                      for i in range(6)])
+        p.cell_strain_name = 'Test strain 1'
+        # Add some resources
+        p.resources['Incubator'] = ['Incubator 1',
+                                    'Incubator 2',
+                                    'Incubator 3',
+                                    'Incubator 4',
+                                    'Incubator 5',
+                                    'Incubator 6',
+                                    ]
+        p.resources['Thermometer'] = ['Alcohol thermometer 1',
+                                      'Mercury thermometer 1',
+                                      'Alcohol thermometer 2',
+                                      'Mercury thermometer 2',
+                                      'Alcohol thermometer 3',
+                                      'Mercury thermometer 3',
+                                      ]
+        # Call close plates and check length of output
+        cps = p.close_plates()
+        self.assertEqual(len(cps), 6)
+        # Check basic properties
+        self.assertEqual(cps[0].name, 'P1')
+        self.assertEqual(cps[1].name, 'P2')
+        self.assertEqual(cps[2].name, 'P3')
+        self.assertEqual(cps[3].name, 'P4')
+        self.assertEqual(cps[4].name, 'P5')
+        self.assertEqual(cps[5].name, 'P6')
+        for cp in cps:
+            self.assertEqual(cp.n_rows, 4)
+            self.assertEqual(cp.n_cols, 6)
+
+        # Check plate info
+        for cp in cps:
+            self.assertEqual(len(cp.plate_info), 4)
+            self.assertTrue('Plate Array' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Plate Array'], 'A1')
+            self.assertTrue('Strain' in cp.plate_info)
+            self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
+            self.assertTrue('Incubator' in cp.plate_info)
+            self.assertTrue('Thermometer' in cp.plate_info)
+        self.assertEqual(cps[0].plate_info['Incubator'], 'Incubator 1')
+        self.assertEqual(cps[1].plate_info['Incubator'], 'Incubator 2')
+        self.assertEqual(cps[2].plate_info['Incubator'], 'Incubator 3')
+        self.assertEqual(cps[3].plate_info['Incubator'], 'Incubator 4')
+        self.assertEqual(cps[4].plate_info['Incubator'], 'Incubator 5')
+        self.assertEqual(cps[5].plate_info['Incubator'], 'Incubator 6')
+        self.assertEqual(cps[0].plate_info['Thermometer'], 'Alcohol thermometer 1')
+        self.assertEqual(cps[1].plate_info['Thermometer'], 'Mercury thermometer 1')
+        self.assertEqual(cps[2].plate_info['Thermometer'], 'Alcohol thermometer 2')
+        self.assertEqual(cps[3].plate_info['Thermometer'], 'Mercury thermometer 2')
+        self.assertEqual(cps[4].plate_info['Thermometer'], 'Alcohol thermometer 3')
+        self.assertEqual(cps[5].plate_info['Thermometer'], 'Mercury thermometer 3')
+
+        # Check well info
+        for cp in cps:
+            well_info = pandas.DataFrame()
+            well_info['Measure'] = [True]*24
+            pandas.util.testing.assert_frame_equal(cp.well_info, well_info)
+
+    def test_close_plates_resources_error_1(self):
+        # Create plate
+        p = platedesign.plate.PlateArray(name='A1',
+                                         array_n_rows=2,
+                                         array_n_cols=3,
+                                         plate_names=['P{}'.format(i+1)
+                                                      for i in range(6)])
+        p.cell_strain_name = 'Test strain 1'
+        # Add some resources
+        p.resources['Incubator'] = ['Incubator 1',
+                                    'Incubator 2',
+                                    'Incubator 3',
+                                    ]
+        p.resources['Thermometer'] = ['Alcohol thermometer 1',
+                                      'Mercury thermometer 1',
+                                      'Alcohol thermometer 2',
+                                      'Mercury thermometer 2',
+                                      'Alcohol thermometer 3',
+                                      'Mercury thermometer 3',
+                                      ]
+        # Call close plates and check length of output
+        self.assertRaisesRegexp(ValueError,
+                                "3 resources of type Incubator specified, should be 6",
+                                p.close_plates,)
+
     def test_close_plates_metadata(self):
         # Create plate
         # Create plate
@@ -8212,6 +8354,21 @@ class TestPlateArray(unittest.TestCase):
                                          plate_names=['P{}'.format(i+1)
                                                       for i in range(6)])
         p.cell_strain_name = 'Test strain 1'
+        # Add some resources
+        p.resources['Incubator'] = ['Incubator 1',
+                                    'Incubator 2',
+                                    'Incubator 3',
+                                    'Incubator 4',
+                                    'Incubator 5',
+                                    'Incubator 6',
+                                    ]
+        p.resources['Thermometer'] = ['Alcohol thermometer 1',
+                                      'Mercury thermometer 1',
+                                      'Alcohol thermometer 2',
+                                      'Mercury thermometer 2',
+                                      'Alcohol thermometer 3',
+                                      'Mercury thermometer 3',
+                                      ]
         # Add some metadata
         p.metadata['Meta 1'] = 'Value 1'
         p.metadata['Meta 2'] = 'Value 2'
@@ -8249,12 +8406,16 @@ class TestPlateArray(unittest.TestCase):
         for cp in cps:
             self.assertEqual(cp.n_rows, 4)
             self.assertEqual(cp.n_cols, 6)
-            # Check plate info
-            self.assertEqual(len(cp.plate_info), 6)
+
+        # Check plate info
+        for cp in cps:
+            self.assertEqual(len(cp.plate_info), 8)
             self.assertTrue('Plate Array' in cp.plate_info)
             self.assertEqual(cp.plate_info['Plate Array'], 'A1')
             self.assertTrue('Strain' in cp.plate_info)
             self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
+            self.assertTrue('Incubator' in cp.plate_info)
+            self.assertTrue('Thermometer' in cp.plate_info)
             self.assertTrue('Meta 1' in cp.plate_info)
             self.assertEqual(cp.plate_info['Meta 1'], 'Value 1')
             self.assertTrue('Meta 2' in cp.plate_info)
@@ -8263,6 +8424,18 @@ class TestPlateArray(unittest.TestCase):
             self.assertEqual(cp.plate_info['Preculture/Aliquot Dilution'], 100)
             self.assertTrue('Cell Inoculated Vol.' in cp.plate_info)
             self.assertEqual(cp.plate_info['Cell Inoculated Vol.'], 5)
+        self.assertEqual(cps[0].plate_info['Incubator'], 'Incubator 1')
+        self.assertEqual(cps[1].plate_info['Incubator'], 'Incubator 2')
+        self.assertEqual(cps[2].plate_info['Incubator'], 'Incubator 3')
+        self.assertEqual(cps[3].plate_info['Incubator'], 'Incubator 4')
+        self.assertEqual(cps[4].plate_info['Incubator'], 'Incubator 5')
+        self.assertEqual(cps[5].plate_info['Incubator'], 'Incubator 6')
+        self.assertEqual(cps[0].plate_info['Thermometer'], 'Alcohol thermometer 1')
+        self.assertEqual(cps[1].plate_info['Thermometer'], 'Mercury thermometer 1')
+        self.assertEqual(cps[2].plate_info['Thermometer'], 'Alcohol thermometer 2')
+        self.assertEqual(cps[3].plate_info['Thermometer'], 'Mercury thermometer 2')
+        self.assertEqual(cps[4].plate_info['Thermometer'], 'Alcohol thermometer 3')
+        self.assertEqual(cps[5].plate_info['Thermometer'], 'Mercury thermometer 3')
 
         # Check well info
         well_info_1 = pandas.DataFrame()

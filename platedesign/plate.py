@@ -86,6 +86,13 @@ class Plate(object):
     cell_total_dilution : float
         Total dilution from preculture/aliquot to be inoculated in the
         media. Only used if `cell_setup_method` is "fixed_dilution".
+    resources : OrderedDict
+        Names of per-plate resources, in a ``key: value`` format, where
+        ``value`` is a list of length ``n_plates``. The ClosedPlate
+        instance returned by ``close_plates()`` will include this
+        information in its ``samples_table`` attribute. In it, a column
+        with name ``key`` will be created, and all rows will be set to
+        ``value[0]``.
     metadata : OrderedDict
         Additional information about the plate, in a ``key: value`` format.
         The ClosedPlate instance returned by ``close_plates()`` will
@@ -146,6 +153,9 @@ class Plate(object):
         self.cell_initial_od600 = None
         self.cell_shot_vol = None
         self.cell_total_dilution = None
+
+        # Initialize plate resources dictionary
+        self.resources = collections.OrderedDict()
 
         # Initialize metadata dictionary
         self.metadata = collections.OrderedDict()
@@ -830,6 +840,21 @@ class Plate(object):
             plate_info['Preculture/Aliquot Dilution'] = self.cell_predilution
             plate_info['Total Cell Dilution'] = self.cell_total_dilution
 
+        # Add plate resource data
+        # The following try-catch block is needed to ensure compatibility with
+        # both python2 and python3.
+        try:
+            items = self.resources.iteritems()
+        except AttributeError:
+            items = self.resources.items()
+        for k, v in items:
+            # Check that length is appropriate, and add to plate_info
+            if len(v) != self.n_plates:
+                raise ValueError(
+                    "{} resources of type {} specified, should be {}".format(
+                        len(v), k, self.n_plates))
+            plate_info[k] = v[0]
+
         # Add additional plate metadata
         # The following try-catch block is needed to ensure compatibility with
         # both python2 and python3.
@@ -961,12 +986,19 @@ class PlateArray(Plate):
     cell_total_dilution : float
         Total dilution from preculture/aliquot to be inoculated in the
         media. Only used if `cell_setup_method` is "fixed_dilution".
+    resources : OrderedDict
+        Names of per-plate resources, in a ``key: value`` format, where
+        ``value`` is a list of length ``n_plates``. The ClosedPlate
+        instance returned by ``close_plates()`` will include this
+        information in its ``samples_table`` attribute. In it, a column
+        with name ``key`` will be created, and all rows will be set to
+        the element of ``value`` corresponding to the specific plate.
     metadata : OrderedDict
-        Additional information about the array, in a ``key: value`` format.
-        ClosedPlate instances returned by ``close_plates()`` will include
-        this information in their ``samples_table`` attribute. In them, a
-        column with name ``key`` will be created, and all rows will be
-        set to ``value``.
+        Additional information about the plate array, in a ``key: value``
+        format. ClosedPlate instances returned by ``close_plates()`` will
+        include this information in their ``samples_table`` attribute. In
+        them, a column with name ``key`` will be created, and all rows will
+        be set to ``value``.
     inducers : OrderedDict
         Keys in this dictionary represent how each inducer is applied
         ("rows", "cols", "wells", "media"), and the values are lists of
@@ -1025,6 +1057,9 @@ class PlateArray(Plate):
         self.cell_initial_od600 = None
         self.cell_shot_vol = None
         self.cell_total_dilution = None
+
+        # Initialize plate resources dictionary
+        self.resources = collections.OrderedDict()
 
         # Initialize metadata dictionary
         self.metadata = collections.OrderedDict()
@@ -1259,34 +1294,67 @@ class PlateArray(Plate):
             plates in the array, i.e., ``array_n_rows * array_n_cols``.
 
         """
-        # Prepare plate info
-        # Plate info will be the same on all plates, so it can be made once.
-        plate_info = collections.OrderedDict()
 
-        # Add plate array name
-        plate_info["Plate Array"] = self.name
-
-        # Add cell info
-        plate_info['Strain'] = self.cell_strain_name
-        if self.cell_setup_method=='fixed_od600':
-            plate_info['Preculture/Aliquot Dilution'] = self.cell_predilution
-            plate_info['Initial OD600'] = self.cell_initial_od600
-        elif self.cell_setup_method=='fixed_volume':
-            plate_info['Preculture/Aliquot Dilution'] = self.cell_predilution
-            plate_info['Cell Inoculated Vol.'] = self.cell_shot_vol
-        elif self.cell_setup_method=='fixed_dilution':
-            plate_info['Preculture/Aliquot Dilution'] = self.cell_predilution
-            plate_info['Total Cell Dilution'] = self.cell_total_dilution
-
-        # Add additional plate metadata
+        # Check length of plate resource data
         # The following try-catch block is needed to ensure compatibility with
         # both python2 and python3.
         try:
-            items = self.metadata.iteritems()
+            items = self.resources.iteritems()
         except AttributeError:
-            items = self.metadata.items()
+            items = self.resources.items()
         for k, v in items:
-            plate_info[k] = v
+            if len(v) != self.n_plates:
+                raise ValueError(
+                    "{} resources of type {} specified, should be {}".format(
+                        len(v), k, self.n_plates))
+
+        # Prepare plate info per plate
+        plates_info = [[collections.OrderedDict()
+                        for array_j in range(self.array_n_cols)]
+                        for array_i in range(self.array_n_rows)]
+
+        for array_i in range(self.array_n_rows):
+            for array_j in range(self.array_n_cols):
+                # Select appropriate plate info dictionary
+                plate_info = plates_info[array_i][array_j]
+
+                # Add plate array name
+                plate_info["Plate Array"] = self.name
+
+                # Add cell info
+                plate_info['Strain'] = self.cell_strain_name
+                if self.cell_setup_method=='fixed_od600':
+                    plate_info['Preculture/Aliquot Dilution'] = \
+                        self.cell_predilution
+                    plate_info['Initial OD600'] = self.cell_initial_od600
+                elif self.cell_setup_method=='fixed_volume':
+                    plate_info['Preculture/Aliquot Dilution'] = \
+                        self.cell_predilution
+                    plate_info['Cell Inoculated Vol.'] = self.cell_shot_vol
+                elif self.cell_setup_method=='fixed_dilution':
+                    plate_info['Preculture/Aliquot Dilution'] = \
+                        self.cell_predilution
+                    plate_info['Total Cell Dilution'] = self.cell_total_dilution
+
+                # Add plate resource data
+                # The following try-catch block is needed to ensure
+                # compatibility with both python2 and python3.
+                try:
+                    items = self.resources.iteritems()
+                except AttributeError:
+                    items = self.resources.items()
+                for k, v in items:
+                    plate_info[k] = v[array_i*self.array_n_cols + array_j]
+
+                # Add additional plate metadata
+                # The following try-catch block is needed to ensure
+                # compatibility with both python2 and python3.
+                try:
+                    items = self.metadata.iteritems()
+                except AttributeError:
+                    items = self.metadata.items()
+                for k, v in items:
+                    plate_info[k] = v
 
         # Prepare well info
         # Well info will be prepared for all the wells in the array. Later,
@@ -1342,13 +1410,17 @@ class PlateArray(Plate):
 
         # Create closed plate objects
         closed_plates = []
-        for i in range(self.array_n_rows):
-            for j in range(self.array_n_cols):
+        for array_i in range(self.array_n_rows):
+            for array_j in range(self.array_n_cols):
                 # Get plate name
-                plate_name = self.plate_names[i*self.array_n_cols + j]
+                plate_name = self.plate_names[
+                    array_i*self.array_n_cols + array_j]
+                # Get plate info
+                plate_info = plates_info[array_i][array_j]
                 # Filter well info
-                well_info = well_info_array[(well_info_array['Array Row']==i+1)\
-                                       & (well_info_array['Array Column']==j+1)]
+                well_info = well_info_array[
+                    (well_info_array['Array Row'] == array_i + 1) &\
+                    (well_info_array['Array Column'] == array_j + 1)]
                 # Drop columns "Array Row" and "Array Column"
                 well_info = well_info.drop('Array Row', axis=1)
                 well_info = well_info.drop('Array Column', axis=1)
@@ -1358,7 +1430,7 @@ class PlateArray(Plate):
                 closed_plate = ClosedPlate(name=plate_name,
                                            n_rows=self.plate_n_rows,
                                            n_cols=self.plate_n_cols,
-                                           plate_info=plate_info.copy(),
+                                           plate_info=plate_info,
                                            well_info=well_info)
                 closed_plates.append(closed_plate)
 
