@@ -4,6 +4,7 @@ Module that contains the experiment class.
 
 """
 
+import collections
 import copy
 import os
 import random
@@ -157,10 +158,10 @@ class Experiment(object):
 
         # Check that enough plate resources have been specified
         for k, v in self.plate_resources.iteritems():
-            if len(v) != n_closed_plates:
+            if len(v) < n_closed_plates:
                 raise ValueError(
-                    "{} resources of type {} specified, should be {}".format(
-                        len(v), k, n_closed_plates))
+                    "{} resources of type {} specified, should be {} or more".\
+                        format(len(v), k, n_closed_plates))
 
         # Create folders for each replicate, if necessary
         if self.n_replicates > 1:
@@ -287,18 +288,28 @@ class Experiment(object):
                 inducer.save_rep_setup_files(
                     path=replicate_folders[replicate_idx])
 
-            # Copy resources, and randomize if necessary
-            plate_resources_rep = copy.deepcopy(self.plate_resources)
+            # Randomize plate resources
+            # We will not modify the elements of ``plate_resources``. Instead,
+            # we will maintain a set of indices that will be shuffled.
+            # This will keep the original ``plate_resources`` intact for the
+            # next replicate. In addition, this will allow to sort closed plates
+            # based on a resource's original order later on.
+            plate_resources_ind = {k: range(len(v))
+                                   for k, v in self.plate_resources.iteritems()}
             if self.randomize_plate_resources:
-                for k, v in plate_resources_rep.iteritems():
+                for k, v in plate_resources_ind.iteritems():
                     random.shuffle(v)
 
             # Assign resources to plates
             resource_shift = 0
             for plate in self.plates:
-                for k, v in plate_resources_rep.iteritems():
-                    plate.resources[k] = v[resource_shift: \
-                                           resource_shift + plate.n_plates]
+                for k, v in self.plate_resources.iteritems():
+                    # Make a copy of the resource list, and reorganize it
+                    # using the shuffled indices
+                    v_rep = [v[i] for i in plate_resources_ind[k]]
+                    # Copy resources
+                    plate.resources[k] = v_rep[resource_shift: \
+                                               resource_shift + plate.n_plates]
                 resource_shift += plate.n_plates
 
             # Generate and save replicate setup information
@@ -319,16 +330,26 @@ class Experiment(object):
                 pass
             elif self.measurement_order == "Random":
                 random.shuffle(closed_plates)
-            elif self.measurement_order in plate_resources_rep:
-                # TODO
-                raise NotImplementedError
+            elif self.measurement_order in self.plate_resources:
+                # Reorganize based on original order of a plate resource
+                # To do this, we create a new ``closed_plates_temp`` list, and
+                # we add closed plates to positions determined by the shuffled
+                # resource indices
+                resources_idx = plate_resources_ind[self.measurement_order]
+                closed_plates_temp = [None]*len(resources_idx)
+                for i, closed_plate in zip(resources_idx, closed_plates):
+                    closed_plates_temp[i] = closed_plate
+                closed_plates = [c for c in closed_plates_temp if c is not None]
+            else:
+                raise ValueError("measurement order {} not supported".format(
+                    self.measurement_order))
 
-            # Add resources sheet
-            if plate_resources_rep:
+            # Add resources sheet to replicate setup instructions
+            if self.plate_resources:
                 # Generate table
                 resources_table = pandas.DataFrame()
                 resources_table['Plate'] = [p.name for p in closed_plates]
-                for k, v in plate_resources_rep.iteritems():
+                for k, v in self.plate_resources.iteritems():
                     resources_table[k] = [p.plate_info[k]
                                           for p in closed_plates]
                 # Generate pandas writer and reassign workbook

@@ -3,11 +3,15 @@ import platedesign
 
 exp = platedesign.experiment.Experiment()
 exp.n_replicates = 5
+exp.plate_resources['Location'] = ['Stack 1-1',
+                                   'Stack 1-2',
+                                   'Stack 1-3',
+                                   'Stack 1-4']
 exp.randomize_inducers = True
-exp.randomize_plates = True
-exp.plate_locations = ['Stack 1-1', 'Stack 1-2', 'Stack 1-3', 'Stack 1-4']
-exp.replicate_measurements = ['Date', 'Run by']
+exp.randomize_plate_resources = True
 exp.measurement_template = '../supporting_files/template_FlowCal.xlsx'
+exp.measurement_order = 'Location'
+exp.replicate_measurements = ['Date', 'Run by']
 
 # Inducers
 iptg = platedesign.inducer.ChemicalInducer(name='IPTG', units=u'µM')
