@@ -43,14 +43,30 @@ class Experiment(object):
 
     Attributes
     ----------
-    n_replicates : int
-        Number of replicates.
-    randomize_inducers : bool
-        Whether to randomize inducer concentrations for each replicate.
     plates : list
         Plates or plate arrays in the experiment.
     inducers : list
         Inducers in the experiment.
+    n_replicates : int
+        Number of replicates.
+    randomize_inducers : bool
+        Whether to randomize inducer concentrations for each replicate.
+    plate_resources : dict
+        Names of per-plate resources (e.g. slots in an incubator,
+        temperature sensors, optogenetic devices, etc), in a ``key: value``
+        format, where ``value`` is a list with as many elements as plates
+        are going to be handled in the experiment. Resources are assigned
+        to each closed plate at the end of the Replicate Setup Stage.
+    randomize_plate_resources : bool
+        Whether to randomize assignment of resources to each plate. Note
+        that each resource is randomized independently.
+    measurement_order : str
+        Order in which to measure plates. Can be in the order that plates
+        were added to the experiment ("Plate"), random ("Random"), or in
+        the specified order of one of the plate resources (by specifying
+        the resource name). Note that the latter will only be different
+        from the original plate order if `randomize_plate_resources` is
+        ``True``.
     measurement_template : str
         Name of a file to be used as template for the replicate measurement
         table. Sheets other than "Samples" will be copied unmodified. If a
@@ -79,18 +95,20 @@ class Experiment(object):
 
     """
     def __init__(self):
-        # Initialize properties
-        self.n_replicates = 3
-        self.randomize_inducers = False
+
         # Initialize containers of plates and inducers.
         self.plates = []
         self.inducers = []
-        # Template for table of samples for measurement.
+
+        # Initialize properties
+        self.n_replicates = 3
+        self.randomize_inducers = False
+        self.plate_resources = collections.OrderedDict()
+        self.randomize_plate_resources = False
+        self.measurement_order = 'Plate'
         self.measurement_template = None
-        # List of measurements per replicate to take
-        self.replicate_measurements = []
-        # List of measurements per plate to take
         self.plate_measurements = []
+        self.replicate_measurements = []
 
     def add_plate(self, plate):
         """
