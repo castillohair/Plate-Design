@@ -150,6 +150,18 @@ class Experiment(object):
             Folder in which to create all experiment files.
 
         """
+        # Obtain total number of closed plates
+        n_closed_plates = 0
+        for plate in self.plates:
+            n_closed_plates += plate.n_plates
+
+        # Check that enough plate resources have been specified
+        for k, v in self.plate_resources.iteritems():
+            if len(v) != n_closed_plates:
+                raise ValueError(
+                    "{} resources of type {} specified, should be {}".format(
+                        len(v), k, n_closed_plates))
+
         # Create folders for each replicate, if necessary
         if self.n_replicates > 1:
             replicate_folders = [os.path.join(path,
@@ -275,6 +287,20 @@ class Experiment(object):
                 inducer.save_rep_setup_files(
                     path=replicate_folders[replicate_idx])
 
+            # Copy resources, and randomize if necessary
+            plate_resources_rep = copy.deepcopy(self.plate_resources)
+            if self.randomize_plate_resources:
+                for k, v in plate_resources_rep.iteritems():
+                    random.shuffle(v)
+
+            # Assign resources to plates
+            resource_shift = 0
+            for plate in self.plates:
+                for k, v in plate_resources_rep.iteritems():
+                    plate.resources[k] = v[resource_shift: \
+                                           resource_shift + plate.n_plates]
+                resource_shift += plate.n_plates
+
             # Generate and save replicate setup information
             for plate in self.plates:
                 # Save files
@@ -286,6 +312,31 @@ class Experiment(object):
             closed_plates = []
             for plate in self.plates:
                 closed_plates.extend(plate.close_plates())
+
+            # Reorganize closed plates
+            if self.measurement_order == "Plate":
+                # Don't do anything
+                pass
+            elif self.measurement_order == "Random":
+                random.shuffle(closed_plates)
+            elif self.measurement_order in plate_resources_rep:
+                # TODO
+                raise NotImplementedError
+
+            # Add resources sheet
+            if plate_resources_rep:
+                # Generate table
+                resources_table = pandas.DataFrame()
+                resources_table['Plate'] = [p.name for p in closed_plates]
+                for k, v in plate_resources_rep.iteritems():
+                    resources_table[k] = [p.plate_info[k]
+                                          for p in closed_plates]
+                # Generate pandas writer and reassign workbook
+                writer = pandas.ExcelWriter('temp', engine='openpyxl')
+                writer.book = wb_rep_setup
+                resources_table.to_excel(writer,
+                                         sheet_name='Plate Resources',
+                                         index=False)
 
             # Save spreadsheet
             if self.n_replicates > 1:
