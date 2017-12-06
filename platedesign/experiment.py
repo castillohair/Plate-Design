@@ -13,6 +13,9 @@ import numpy
 import openpyxl
 import pandas
 
+import platedesign
+import platedesign.inducer
+
 class Experiment(object):
     """
     Object that represents a plate experiment.
@@ -84,15 +87,6 @@ class Experiment(object):
         at the end of the experiment for the whole replicate. An empty table
         in which to record these values will be created in the replicate
         measurement file, sheet "Replicate Measurements".
-
-    Methods
-    -------
-    add_plate
-        Add plate to experiment.
-    add_inducer
-        Add inducer to experiment.
-    generate
-        Generate instruction files for all stages of the experiment.
 
     """
     def __init__(self):
@@ -217,22 +211,24 @@ class Experiment(object):
                     " dimension on all plates")
             apply_to = apply_to_all[0]
 
-            # Consistency check: inducers should be applied to samples with
-            # identical volumes in all plates
-            media_vol_all = [a['plate'].apply_inducer_media_vol(apply_to)
-                             for a in ind_applications]
-            if not all([m==media_vol_all[0] for m in media_vol_all]):
-                raise ValueError("inducer can only be applied to the same"
-                    " media volume on all plates")
-            # Set media volume in inducer object
-            inducer.media_vol = media_vol_all[0]
+            # The following only applies to chemical inducers
+            if isinstance(inducer, platedesign.inducer.ChemicalInducerBase):
+                # Consistency check: inducers should be applied to samples with
+                # identical volumes in all plates
+                media_vol_all = [a['plate'].apply_inducer_media_vol(apply_to)
+                                 for a in ind_applications]
+                if not all([m==media_vol_all[0] for m in media_vol_all]):
+                    raise ValueError("inducer can only be applied to the same"
+                        " media volume on all plates")
+                # Set media volume in inducer object
+                inducer.media_vol = media_vol_all[0]
 
-            # Calculate total amount of inducer to make from number of shots
-            # and replicates
-            n_shots = sum([a['plate'].apply_inducer_n_shots(apply_to)
-                           for a in ind_applications])
-            inducer.set_vol_from_shots(n_shots=n_shots,
-                                       n_replicates=self.n_replicates)
+                # Calculate total amount of inducer to make from number of shots
+                # and replicates
+                n_shots = sum([a['plate'].apply_inducer_n_shots(apply_to)
+                               for a in ind_applications])
+                inducer.set_vol_from_shots(n_shots=n_shots,
+                                           n_replicates=self.n_replicates)
 
             # Save files
             inducer.save_exp_setup_instructions(workbook=wb_exp_setup)

@@ -104,29 +104,6 @@ class Plate(object):
         ("rows", "cols", "wells", "media"), and the values are lists of
         inducers to be applied as specified by the key.
 
-    Methods
-    -------
-    apply_inducer_media_vol
-        Get the media volume to which an inducer will be applied.
-    apply_inducer_n_shots
-        Get number of samples that each inducer dose will be applied to.
-    apply_inducer
-        Apply an inducer to the plate.
-    save_exp_setup_instructions
-        Calculate and save instructions for the Experiment Setup stage.
-    save_exp_setup_files
-        Save additional files required for the Experiment Setup stage.
-    save_rep_setup_instructions
-        Calculate and save instructions for the Replicate Setup stage.
-    add_inducer_setup_instructions
-        Add sheet with inducer pipetting instructions to specified workbook.
-    add_cell_setup_instructions
-        Add sheet with cell inoculation instructions to specified workbook.
-    save_rep_setup_files
-        Save additional files required for the Replicate Setup stage.
-    close_plates
-        Generate a ``ClosedPlate`` object using this plate's information.
-
     """
     def __init__(self,
                  name,
@@ -1004,23 +981,6 @@ class PlateArray(Plate):
         ("rows", "cols", "wells", "media"), and the values are lists of
         inducers to be applied as specified by the key.
 
-    Methods
-    -------
-    apply_inducer_media_vol
-        Get the media volume to which an inducer will be applied.
-    apply_inducer_n_shots
-        Get number of samples that each inducer dose will be applied to.
-    apply_inducer
-        Apply an inducer to the plate.
-    save_rep_setup_instructions
-        Calculate and save instructions for the Replicate Setup stage.
-    add_inducer_setup_instructions
-        Add sheet with inducer pipetting instructions to specified workbook.
-    add_cell_setup_instructions
-        Add sheet with cell inoculation instructions to specified workbook.
-    close_plates
-        Generate ``ClosedPlate`` objects for each plate in the array.
-
     """
     def __init__(self,
                  name,
@@ -1485,11 +1445,6 @@ class ClosedPlate(object):
         ``key:value`` pairs in `plate_info` are repeated in all rows. All
         the contents in `well_info` are copied into `samples_table` without
         modification.
-
-    Methods
-    -------
-    update_samples_table
-        Updates `samples_table` from all other attributes.
 
     """
     def __init__(self,

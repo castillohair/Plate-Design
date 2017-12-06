@@ -17,57 +17,117 @@ class InducerBase(object):
     Generic class that represents one or more doses of an inducer.
 
     This class is meant to be inherited by a class representing a concrete
-    inducer type. Functions that don't save files here raise a
-    NotImplementedError to force the child class to implement its own
-    version. Functions that save files are implemented as empty functions,
-    such that a child class only needs to redefine the necessary functions
-    depending on which files it has to save.
+    inducer type. Functions that save files are implemented as empty
+    functions, such that a child class only needs to redefine the necessary
+    functions depending on which files it has to save.
+
+    Parameters
+    ----------
+    name : str
+        Name of the inducer, to be used in generated files.
+    units : str
+        Units in which the inducer's dose is expressed.
 
     Attributes
     ----------
     name : str
         Name of the inducer.
+    units : str
+        Units in which the inducer's dose is expressed.
     doses_table : DataFrame
-        Table with information of each inducer dose.
+        Table containing information of all the inducer doses.
 
-    Methods
-    -------
-    set_vol_from_shots
-        Set volume to prepare from number of shots and replicates.
-    shuffle
-        Apply random shuffling to the dose table.
-    save_exp_setup_instructions
-        Save instructions for the Experiment Setup stage.
-    save_exp_setup_files
-        Save additional files for the Experiment Setup stage.
-    save_rep_setup_instructions
-        Save instructions for the Replicate Setup stage.
-    save_rep_setup_files
-        Save additional files for the Replicate Setup stage.
+    Other Attributes
+    ----------------
+    shuffling_enabled : bool
+        Whether shuffling of the doses table is enabled. If False, the
+        `shuffle` function will not change the order of the rows in the
+        doses table.
+    shuffled_idx : list
+        Randomized indices that result in the current shuffling of
+        doses.
+    shuffling_sync_list : list
+        List of inducers with which shuffling should be synchronized.
 
     """
-    def __init__(self, name):
-        # Store name
+    def __init__(self, name, units):
+        # Store name and units
         self.name = name
+        self.units = units
 
         # Initialize dose table
-        self.doses_table = pandas.DataFrame()
+        self._doses_table = pandas.DataFrame()
+        # Enable shuffling by default, but start with no shuffling and an
+        # empty list of inducers to synchronize shuffling with.
+        self.shuffling_enabled = True
+        self.shuffled_idx = None
+        self.shuffling_sync_list = []
 
-    def set_vol_from_shots(self,
-                           n_shots,
-                           n_replicates=1):
+    @property
+    def doses_table(self):
         """
-        Set volume to prepare from number of shots and replicates.
+        Table containing information of all the inducer concentrations.
 
         """
-        raise NotImplementedError
+        if self.shuffled_idx is None:
+            return self._doses_table
+        else:
+            return self._doses_table.iloc[self.shuffled_idx]
 
     def shuffle(self):
         """
         Apply random shuffling to the dose table.
 
+        Shuffling can only be applied if ``shuffling_enabled`` is True.
+
         """
-        raise NotImplementedError
+        if self.shuffling_enabled:
+            # Create list of indices, shuffle, and store.
+            shuffled_idx = list(range(len(self.doses_table)))
+            random.shuffle(shuffled_idx)
+            self.shuffled_idx = shuffled_idx
+            # Write shuffled indices on inducers to synchronize with
+            for inducer in self.shuffling_sync_list:
+                inducer.shuffled_idx = self.shuffled_idx
+
+    def unshuffle(self):
+        """
+        Reset dose table to its unshuffled state.
+
+        Unshuffling can only be performed if ``shuffling_enabled`` is True.
+
+        """
+        if self.shuffling_enabled:
+            self.shuffled_idx = None
+            # Reset shuffling on inducers to synchronize with
+            for inducer in self.shuffling_sync_list:
+                inducer.shuffled_idx = None
+
+    def sync_shuffling(self, inducer):
+        """
+        Register an inducer to synchronize shuffling with.
+
+        Inducers whose shuffling is synchronized should have the same
+        number of doses (i.e. the length of their doses table should be the
+        same). Shuffling synchronization is based on the controlling
+        inducer being able to directly modify the shuffling indices of the
+        controlled inducers. Therefore, this function sets the flag
+        ``shuffling_enabled`` in `inducer` to ``False``.
+
+        Parameters
+        ----------
+        inducer : Inducer
+            Inducer to synchronize shuffling with.
+
+        """
+        # Check length of doses table
+        if len(self.doses_table) != len(inducer.doses_table):
+            raise ValueError("inducers to synchronize should have the same "
+                "number of doses")
+        # Disable shuffling flag
+        inducer.shuffling_enabled = False
+        # Add to list of inducers to synchronize with
+        self.shuffling_sync_list.append(inducer)
 
     def save_exp_setup_instructions(self, file_name=None, workbook=None):
         """
@@ -123,8 +183,66 @@ class InducerBase(object):
         """
         pass
 
+class ChemicalInducerBase(InducerBase):
+    """
+    Generic class that represents one or more doses of a chemical inducer.
 
-class ChemicalInducer(InducerBase):
+    This class is meant to be inherited by a class representing a concrete
+    chemicalinducer type. Functions that save files are implemented as
+    empty functions, such that a child class only needs to redefine the
+    necessary functions depending on which files it has to save. Function
+    ``set_vol_from_shots()`` raises a ``NotImplementedError``, so a child
+    class should redefine it.
+
+    Parameters
+    ----------
+    name : str
+        Name of the inducer, to be used in generated files.
+    units : str
+        Units in which the inducer's dose is expressed.
+
+    Attributes
+    ----------
+    name : str
+        Name of the inducer.
+    units : str
+        Units in which the inducer's dose is expressed.
+    media_vol : float
+        Volume of sample media in which the inducer will be added.
+    doses_table : DataFrame
+        Table containing information of all the inducer doses.
+
+    Other Attributes
+    ----------------
+    shuffling_enabled : bool
+        Whether shuffling of the doses table is enabled. If False, the
+        `shuffle` function will not change the order of the rows in the
+        doses table.
+    shuffled_idx : list
+        Randomized indices that result in the current shuffling of
+        doses.
+    shuffling_sync_list : list
+        List of inducers with which shuffling should be synchronized.
+
+    """
+    def __init__(self, name, units):
+        # Parent's __init__ stores name, units, initializes doses table, and
+        # sets shuffling parameters.
+        super(ChemicalInducerBase, self).__init__(name=name, units=units)
+
+        # Initialize media volume
+        self.media_vol = None
+
+    def set_vol_from_shots(self,
+                           n_shots,
+                           n_replicates=1):
+        """
+        Set volume to prepare from number of shots and replicates.
+
+        """
+        raise NotImplementedError
+
+class ChemicalInducer(ChemicalInducerBase):
     """
     Object that represents different concentrations of a chemical inducer.
 
@@ -169,17 +287,6 @@ class ChemicalInducer(InducerBase):
     doses_table : DataFrame
         Table containing information of all the inducer concentrations.
 
-    Methods
-    -------
-    set_gradient
-        Set inducer concentrations from a specified gradient.
-    set_vol_from_shots
-        Set volume to prepare from number of shots and replicates.
-    shuffle
-        Apply random shuffling to the dose table.
-    save_exp_setup_instructions
-        Save instructions for the Experiment Setup stage.
-
     Other Attributes
     ----------------
     vol_safety_factor : float
@@ -216,9 +323,9 @@ class ChemicalInducer(InducerBase):
 
     """
     def __init__(self, name, units, id_prefix=None, id_offset=0):
-        # Store name and units
-        self.name = name
-        self.units = units
+        # Parent's __init__ stores name, units, initializes doses table, and
+        # sets shuffling parameters.
+        super(ChemicalInducer, self).__init__(name=name, units=units)
 
         # Store ID modifiers for dose table
         if id_prefix is None:
@@ -242,14 +349,6 @@ class ChemicalInducer(InducerBase):
         self.water_decimals = 1
         self.min_replicate_vol = 0
         self.min_total_vol = 0
-
-        # Initialize an empty dose table
-        self._doses_table = pandas.DataFrame()
-        # Enable shuffling by default, but start with no shuffling and an
-        # empty list of inducers to synchronize shuffling with.
-        self.shuffling_enabled = True
-        self.shuffled_idx = None
-        self.shuffling_sync_list = []
 
     @property
     def _concentrations_header(self):
@@ -284,17 +383,6 @@ class ChemicalInducer(InducerBase):
         self._doses_table = pandas.DataFrame({'ID': ids})
         self._doses_table.set_index('ID', inplace=True)
         self._doses_table[self._concentrations_header] = value
-
-    @property
-    def doses_table(self):
-        """
-        Table containing information of all the inducer concentrations.
-
-        """
-        if self.shuffled_idx is None:
-            return self._doses_table
-        else:
-            return self._doses_table.iloc[self.shuffled_idx]
 
     def set_gradient(self,
                      min,
@@ -395,46 +483,6 @@ class ChemicalInducer(InducerBase):
             self.replicate_vol = None
         # Compare to minimum total volume and set if necessary
         self.total_vol = max(self.total_vol, self.min_total_vol)
-
-    def sync_shuffling(self, inducer):
-        """
-        Register an inducer to synchronize shuffling with.
-
-        Inducers whose shuffling is synchronized should have the same
-        number of doses (i.e. the length of their doses table should be the
-        same). Shuffling synchronization is based on the controlling
-        inducer being able to directly modify the shuffling indices of the
-        controlled inducers. Therefore, this function sets the flag
-        ``shuffling_enabled`` in `inducer` to ``False``.
-
-        Parameters
-        ----------
-        inducer : Inducer
-            Inducer to synchronize shuffling with.
-
-        """
-        # Check length of doses table
-        if len(self.doses_table) != len(inducer.doses_table):
-            raise ValueError("inducers to synchronize should have the same "
-                "number of doses")
-        # Disable shuffling flag
-        inducer.shuffling_enabled = False
-        # Add to list of inducers to synchronize with
-        self.shuffling_sync_list.append(inducer)
-
-    def shuffle(self):
-        """
-        Apply random shuffling to the dose table.
-
-        """
-        if self.shuffling_enabled:
-            # Create list of indices, shuffle, and store.
-            shuffled_idx = list(range(len(self.doses_table)))
-            random.shuffle(shuffled_idx)
-            self.shuffled_idx = shuffled_idx
-            # Write shuffled indices on inducers to synchronize with
-            for inducer in self.shuffling_sync_list:
-                inducer.shuffled_idx = self.shuffled_idx
 
     def save_exp_setup_instructions(self, file_name=None, workbook=None):
         """
@@ -665,11 +713,6 @@ class ChemicalGeneExpression(ChemicalInducer):
     doses_table : DataFrame
         Table containing information of all the inducer concentrations.
 
-    Methods
-    -------
-    set_gradient
-        Set expression levels from a specified gradient.
-
     """
     def __init__(self,
                  name,
@@ -679,7 +722,9 @@ class ChemicalGeneExpression(ChemicalInducer):
                  hill_params,
                  id_prefix=None,
                  id_offset=0):
-        # Call parent's init function
+        # Parent's __init__ stores name, units, and id modifiers, initializes
+        # doses table, shuffling parameters, and media properties for
+        # calculations.
         super(ChemicalGeneExpression, self).__init__(name,
                                                      units,
                                                      id_prefix,
@@ -705,8 +750,8 @@ class ChemicalGeneExpression(ChemicalInducer):
         x : float or array
             Concentration value(s) to convert.
 
-        Return
-        ------
+        Returns
+        -------
         float or array
             Gene expression levels.
 
@@ -726,8 +771,8 @@ class ChemicalGeneExpression(ChemicalInducer):
         y : float or array
             Gene expression levels to convert.
 
-        Return
-        ------
+        Returns
+        -------
         float or array
             Inducer concentration.
 
