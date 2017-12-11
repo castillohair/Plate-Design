@@ -5,6 +5,7 @@ Module that contains plate classes.
 """
 
 import collections
+import six
 
 import numpy
 import openpyxl
@@ -818,13 +819,7 @@ class Plate(object):
             plate_info['Total Cell Dilution'] = self.cell_total_dilution
 
         # Add plate resource data
-        # The following try-catch block is needed to ensure compatibility with
-        # both python2 and python3.
-        try:
-            items = self.resources.iteritems()
-        except AttributeError:
-            items = self.resources.items()
-        for k, v in items:
+        for k, v in six.iteritems(self.resources):
             # Check that length is appropriate, and add to plate_info
             if len(v) != self.n_plates:
                 raise ValueError(
@@ -833,13 +828,7 @@ class Plate(object):
             plate_info[k] = v[0]
 
         # Add additional plate metadata
-        # The following try-catch block is needed to ensure compatibility with
-        # both python2 and python3.
-        try:
-            items = self.metadata.iteritems()
-        except AttributeError:
-            items = self.metadata.items()
-        for k, v in items:
+        for k, v in six.iteritems(self.metadata):
             plate_info[k] = v
 
         # Prepare well info
@@ -849,13 +838,7 @@ class Plate(object):
             self.samples_to_measure)
 
         # Add inducer info
-        # The following try-catch block is needed to ensure compatibility with
-        # both python2 and python3.
-        try:
-            items = self.inducers.iteritems()
-        except AttributeError:
-            items = self.inducers.items()
-        for apply_to, inducers in items:
+        for apply_to, inducers in six.iteritems(self.inducers):
             for inducer in inducers:
                 if apply_to=='rows':
                     for column in inducer.doses_table.columns:
@@ -1256,13 +1239,7 @@ class PlateArray(Plate):
         """
 
         # Check length of plate resource data
-        # The following try-catch block is needed to ensure compatibility with
-        # both python2 and python3.
-        try:
-            items = self.resources.iteritems()
-        except AttributeError:
-            items = self.resources.items()
-        for k, v in items:
+        for k, v in six.iteritems(self.resources):
             if len(v) != self.n_plates:
                 raise ValueError(
                     "{} resources of type {} specified, should be {}".format(
@@ -1297,23 +1274,11 @@ class PlateArray(Plate):
                     plate_info['Total Cell Dilution'] = self.cell_total_dilution
 
                 # Add plate resource data
-                # The following try-catch block is needed to ensure
-                # compatibility with both python2 and python3.
-                try:
-                    items = self.resources.iteritems()
-                except AttributeError:
-                    items = self.resources.items()
-                for k, v in items:
+                for k, v in six.iteritems(self.resources):
                     plate_info[k] = v[array_i*self.array_n_cols + array_j]
 
                 # Add additional plate metadata
-                # The following try-catch block is needed to ensure
-                # compatibility with both python2 and python3.
-                try:
-                    items = self.metadata.iteritems()
-                except AttributeError:
-                    items = self.metadata.items()
-                for k, v in items:
+                for k, v in six.iteritems(self.metadata):
                     plate_info[k] = v
 
         # Prepare well info
@@ -1332,13 +1297,7 @@ class PlateArray(Plate):
             self.samples_to_measure)
 
         # Add inducer info
-        # The following try-catch block is needed to ensure compatibility with
-        # both python2 and python3.
-        try:
-            items = self.inducers.iteritems()
-        except AttributeError:
-            items = self.inducers.items()
-        for apply_to, inducers in items:
+        for apply_to, inducers in six.iteritems(self.inducers):
             for inducer in inducers:
                 if apply_to=='rows':
                     for column in inducer.doses_table.columns:
@@ -1485,13 +1444,7 @@ class ClosedPlate(object):
 
         # Add plate information
         if self.plate_info is not None:
-            # The following try-catch block is needed to ensure compatibility
-            # with both python2 and python3.
-            try:
-                items = self.plate_info.iteritems()
-            except AttributeError:
-                items = self.plate_info.items()
-            for k, v in items:
+            for k, v in six.iteritems(self.plate_info):
                 samples_table[k] = v
 
         # Add row and column numbers

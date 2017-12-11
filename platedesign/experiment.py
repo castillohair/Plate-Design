@@ -8,6 +8,7 @@ import collections
 import copy
 import os
 import random
+import six
 
 import numpy
 import openpyxl
@@ -151,7 +152,7 @@ class Experiment(object):
             n_closed_plates += plate.n_plates
 
         # Check that enough plate resources have been specified
-        for k, v in self.plate_resources.iteritems():
+        for k, v in six.iteritems(self.plate_resources):
             if len(v) < n_closed_plates:
                 raise ValueError(
                     "{} resources of type {} specified, should be {} or more".\
@@ -192,13 +193,7 @@ class Experiment(object):
             # Get inducer applications on all plates
             ind_applications = []
             for plate in self.plates:
-                # The following try-catch block is needed to ensure
-                # compatibility with both python2 and python3.
-                try:
-                    items = plate.inducers.iteritems()
-                except AttributeError:
-                    items = plate.inducers.items()
-                for apply_to, plate_inducers in items:
+                for apply_to, plate_inducers in six.iteritems(plate.inducers):
                     if inducer in plate_inducers:
                         ind_applications.append({'apply_to': apply_to,
                                                  'plate': plate})
@@ -290,16 +285,17 @@ class Experiment(object):
             # This will keep the original ``plate_resources`` intact for the
             # next replicate. In addition, this will allow to sort closed plates
             # based on a resource's original order later on.
-            plate_resources_ind = {k: range(len(v))
-                                   for k, v in self.plate_resources.iteritems()}
+            plate_resources_ind = {
+                k: range(len(v))
+                for k, v in six.iteritems(self.plate_resources)}
             if self.randomize_plate_resources:
-                for k, v in plate_resources_ind.iteritems():
+                for k, v in six.iteritems(plate_resources_ind):
                     random.shuffle(v)
 
             # Assign resources to plates
             resource_shift = 0
             for plate in self.plates:
-                for k, v in self.plate_resources.iteritems():
+                for k, v in six.iteritems(self.plate_resources):
                     # Make a copy of the resource list, and reorganize it
                     # using the shuffled indices
                     v_rep = [v[i] for i in plate_resources_ind[k]]
@@ -345,7 +341,7 @@ class Experiment(object):
                 # Generate table
                 resources_table = pandas.DataFrame()
                 resources_table['Plate'] = [p.name for p in closed_plates]
-                for k, v in self.plate_resources.iteritems():
+                for k, v in six.iteritems(self.plate_resources):
                     resources_table[k] = [p.plate_info[k]
                                           for p in closed_plates]
                 # Generate pandas writer and reassign workbook
@@ -461,13 +457,7 @@ class Experiment(object):
                         # Extract first row
                         samples_extra = samples_extra.iloc[0]
                         # Add columns to samples_table
-                        # The following try-catch block is needed to ensure
-                        # compatibility with both python2 and python3.
-                        try:
-                            items = samples_extra.iteritems()
-                        except AttributeError:
-                            items = samples_extra.items()
-                        for index, value in items:
+                        for index, value in six.iteritems(samples_extra):
                             try:
                                 value = [value.format(i + 1)
                                          for i in range(len(samples_table))]
