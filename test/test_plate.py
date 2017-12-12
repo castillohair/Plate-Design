@@ -8,6 +8,8 @@ import collections
 import itertools
 import os
 import random
+import re
+import six
 import shutil
 import unittest
 
@@ -16,6 +18,19 @@ import openpyxl
 import pandas
 
 import platedesign
+
+def test_excel_division_formula(test_case, s, number, cell):
+    """
+    Checks that string str is of the form "={number}/{cell}"
+
+    """
+    r = re.compile(r"^=(\d+\.\d+)\/(\w+)$")
+    # Check that string matches the regex
+    six.assertRegex(test_case, s, r)
+    # Extract groups
+    match = r.match(s)
+    test_case.assertAlmostEqual(float(match.group(1)), number)
+    test_case.assertEqual(match.group(2), cell)
 
 class TestPlate(unittest.TestCase):
     """
@@ -433,7 +448,7 @@ class TestPlate(unittest.TestCase):
         # Create new spreadsheet
         wb_test = openpyxl.Workbook()
         # Remove sheet created by default
-        wb_test.remove_sheet(wb_test.active)
+        wb_test.remove(wb_test.active)
         # Run save_exp_setup_instructions
         p.save_exp_setup_instructions(workbook=wb_test)
         # save_exp_setup_instructions does not do anything in Plate. There is
@@ -482,7 +497,7 @@ class TestPlate(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Cells for Plate P1"])
         # Check cell inoculation instructions
-        ws = wb.get_sheet_by_name("Cells for Plate P1")
+        ws = wb["Cells for Plate P1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
         self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
         self.assertEqual(ws.cell(row=2, column=1).value, "Preculture/aliquot OD600")
@@ -492,7 +507,7 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(ws.cell(row=3, column=2).value, 1e-5)
         self.assertEqual(ws.cell(row=3, column=3).value, None)
         self.assertEqual(ws.cell(row=4, column=1).value, "Preculture/aliquot volume")
-        self.assertEqual(ws.cell(row=4, column=2).value, "=0.15/B2")
+        test_excel_division_formula(self, ws.cell(row=4, column=2).value, 0.15, "B2")
         self.assertEqual(ws.cell(row=4, column=3).value, u"µL")
         self.assertEqual(ws.cell(row=5, column=1).value, "Add into 15.00mL "
             "media, and distribute into plate wells.")
@@ -516,7 +531,7 @@ class TestPlate(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Cells for Plate P1"])
         # Check cell inoculation instructions
-        ws = wb.get_sheet_by_name("Cells for Plate P1")
+        ws = wb["Cells for Plate P1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
         self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
         self.assertTrue('A2:C2' in ws.merged_cell_ranges)
@@ -539,7 +554,7 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(ws.cell(row=8, column=2).value, 1e-5)
         self.assertEqual(ws.cell(row=8, column=3).value, None)
         self.assertEqual(ws.cell(row=9, column=1).value, "Predilution volume")
-        self.assertEqual(ws.cell(row=9, column=2).value, "=0.15/B6")
+        test_excel_division_formula(self, ws.cell(row=9, column=2).value, 0.15, "B6")
         self.assertEqual(ws.cell(row=9, column=3).value, u"µL")
         self.assertEqual(ws.cell(row=10, column=1).value, "Add into 15.00mL "
             "media, and distribute into plate wells.")
@@ -564,7 +579,7 @@ class TestPlate(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Cells for Plate P1"])
         # Check cell inoculation instructions
-        ws = wb.get_sheet_by_name("Cells for Plate P1")
+        ws = wb["Cells for Plate P1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
         self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
         self.assertTrue('A2:C2' in ws.merged_cell_ranges)
@@ -587,7 +602,7 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(ws.cell(row=8, column=2).value, 1e-5)
         self.assertEqual(ws.cell(row=8, column=3).value, None)
         self.assertEqual(ws.cell(row=9, column=1).value, "Predilution volume")
-        self.assertEqual(ws.cell(row=9, column=2).value, "=15.0/B3")
+        test_excel_division_formula(self, ws.cell(row=9, column=2).value, 15., "B3")
         self.assertEqual(ws.cell(row=9, column=3).value, u"µL")
         self.assertEqual(ws.cell(row=10, column=1).value, "Add into 15.00mL "
             "media, and distribute into plate wells.")
@@ -641,7 +656,7 @@ class TestPlate(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Cells for Plate P1"])
         # Check cell inoculation instructions
-        ws = wb.get_sheet_by_name("Cells for Plate P1")
+        ws = wb["Cells for Plate P1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
         self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
         self.assertEqual(ws.cell(row=2, column=1).value, "Preculture/aliquot volume")
@@ -669,7 +684,7 @@ class TestPlate(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Cells for Plate P1"])
         # Check cell inoculation instructions
-        ws = wb.get_sheet_by_name("Cells for Plate P1")
+        ws = wb["Cells for Plate P1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
         self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
         self.assertTrue('A2:C2' in ws.merged_cell_ranges)
@@ -740,7 +755,7 @@ class TestPlate(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Cells for Plate P1"])
         # Check cell inoculation instructions
-        ws = wb.get_sheet_by_name("Cells for Plate P1")
+        ws = wb["Cells for Plate P1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
         self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
         self.assertEqual(ws.cell(row=2, column=1).value, "Preculture/aliquot volume")
@@ -768,7 +783,7 @@ class TestPlate(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Cells for Plate P1"])
         # Check cell inoculation instructions
-        ws = wb.get_sheet_by_name("Cells for Plate P1")
+        ws = wb["Cells for Plate P1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
         self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
         self.assertTrue('A2:C2' in ws.merged_cell_ranges)
@@ -841,7 +856,7 @@ class TestPlate(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Inducers for Plate P1"])
         # Check inducer inoculation instructions
-        ws = wb.get_sheet_by_name("Inducers for Plate P1")
+        ws = wb["Inducers for Plate P1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "I001")
         self.assertEqual(ws.cell(row=1, column=2).value, "I002")
         self.assertEqual(ws.cell(row=1, column=3).value, "I003")
@@ -901,7 +916,7 @@ class TestPlate(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Inducers for Plate P1"])
         # Check inducer inoculation instructions
-        ws = wb.get_sheet_by_name("Inducers for Plate P1")
+        ws = wb["Inducers for Plate P1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "I001")
         self.assertEqual(ws.cell(row=1, column=2).value, "I002")
         self.assertEqual(ws.cell(row=1, column=3).value, "I003")
@@ -970,13 +985,22 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(wb.sheetnames, ["Inducers for Plate P1"])
         # Check inducer inoculation instructions
         # The order of IPTG values after shuffling has been checked manually
-        ws = wb.get_sheet_by_name("Inducers for Plate P1")
-        self.assertEqual(ws.cell(row=1, column=1).value, "I002")
-        self.assertEqual(ws.cell(row=1, column=2).value, "I003")
-        self.assertEqual(ws.cell(row=1, column=3).value, "I006")
-        self.assertEqual(ws.cell(row=1, column=4).value, "I004")
-        self.assertEqual(ws.cell(row=1, column=5).value, "I005")
-        self.assertEqual(ws.cell(row=1, column=6).value, "I001")
+        # The order after shuffling is different in python 2 and 3
+        ws = wb["Inducers for Plate P1"]
+        if six.PY2:
+            self.assertEqual(ws.cell(row=1, column=1).value, "I002")
+            self.assertEqual(ws.cell(row=1, column=2).value, "I003")
+            self.assertEqual(ws.cell(row=1, column=3).value, "I006")
+            self.assertEqual(ws.cell(row=1, column=4).value, "I004")
+            self.assertEqual(ws.cell(row=1, column=5).value, "I005")
+            self.assertEqual(ws.cell(row=1, column=6).value, "I001")
+        elif six.PY3:
+            self.assertEqual(ws.cell(row=1, column=1).value, "I003")
+            self.assertEqual(ws.cell(row=1, column=2).value, "I004")
+            self.assertEqual(ws.cell(row=1, column=3).value, "I006")
+            self.assertEqual(ws.cell(row=1, column=4).value, "I001")
+            self.assertEqual(ws.cell(row=1, column=5).value, "I005")
+            self.assertEqual(ws.cell(row=1, column=6).value, "I002")
         self.assertEqual(ws.cell(row=2, column=1).value, "a001")
         self.assertEqual(ws.cell(row=2, column=2).value, "a002")
         self.assertEqual(ws.cell(row=2, column=3).value, "a003")
@@ -1030,7 +1054,7 @@ class TestPlate(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Inducers for Plate P1"])
         # Check inducer inoculation instructions
-        ws = wb.get_sheet_by_name("Inducers for Plate P1")
+        ws = wb["Inducers for Plate P1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "I001")
         self.assertEqual(ws.cell(row=1, column=2).value, "(1, 1)")
         self.assertEqual(ws.cell(row=1, column=3).value, "(1, 2)")
@@ -1088,7 +1112,7 @@ class TestPlate(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Inducers for Plate P1"])
         # Check inducer inoculation instructions
-        ws = wb.get_sheet_by_name("Inducers for Plate P1")
+        ws = wb["Inducers for Plate P1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "I001")
         self.assertEqual(ws.cell(row=1, column=2).value, "a001")
         self.assertEqual(ws.cell(row=1, column=3).value, "(1, 1)")
@@ -1153,8 +1177,12 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(wb.sheetnames, ["Inducers for Plate P1"])
         # Check inducer inoculation instructions
         # IPTG concentrations have been checked manually
-        ws = wb.get_sheet_by_name("Inducers for Plate P1")
-        self.assertEqual(ws.cell(row=1, column=1).value, "I004")
+        # The order after shuffling is different in python 2 and 3
+        ws = wb["Inducers for Plate P1"]
+        if six.PY2:
+            self.assertEqual(ws.cell(row=1, column=1).value, "I004")
+        elif six.PY3:
+            self.assertEqual(ws.cell(row=1, column=1).value, "I004")
         self.assertEqual(ws.cell(row=1, column=2).value, "a001")
         self.assertEqual(ws.cell(row=1, column=3).value, "(1, 1)")
         self.assertEqual(ws.cell(row=1, column=4).value, "(1, 2)")
@@ -1162,7 +1190,10 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(ws.cell(row=1, column=6).value, "(1, 4)")
         self.assertEqual(ws.cell(row=1, column=7).value, "(1, 5)")
         self.assertEqual(ws.cell(row=1, column=8).value, "(1, 6)")
-        self.assertEqual(ws.cell(row=2, column=1).value, "I002")
+        if six.PY2:
+            self.assertEqual(ws.cell(row=2, column=1).value, "I002")
+        elif six.PY3:
+            self.assertEqual(ws.cell(row=2, column=1).value, "I001")
         self.assertEqual(ws.cell(row=2, column=2).value, "a002")
         self.assertEqual(ws.cell(row=2, column=3).value, "(2, 1)")
         self.assertEqual(ws.cell(row=2, column=4).value, "(2, 2)")
@@ -1170,7 +1201,10 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(ws.cell(row=2, column=6).value, "(2, 4)")
         self.assertEqual(ws.cell(row=2, column=7).value, "(2, 5)")
         self.assertEqual(ws.cell(row=2, column=8).value, "(2, 6)")
-        self.assertEqual(ws.cell(row=3, column=1).value, "I003")
+        if six.PY2:
+            self.assertEqual(ws.cell(row=3, column=1).value, "I003")
+        elif six.PY3:
+            self.assertEqual(ws.cell(row=3, column=1).value, "I003")
         self.assertEqual(ws.cell(row=3, column=2).value, "a003")
         self.assertEqual(ws.cell(row=3, column=3).value, "(3, 1)")
         self.assertEqual(ws.cell(row=3, column=4).value, "(3, 2)")
@@ -1178,7 +1212,10 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(ws.cell(row=3, column=6).value, "(3, 4)")
         self.assertEqual(ws.cell(row=3, column=7).value, "(3, 5)")
         self.assertEqual(ws.cell(row=3, column=8).value, "(3, 6)")
-        self.assertEqual(ws.cell(row=4, column=1).value, "I001")
+        if six.PY2:
+            self.assertEqual(ws.cell(row=4, column=1).value, "I001")
+        elif six.PY3:
+            self.assertEqual(ws.cell(row=4, column=1).value, "I002")
         self.assertEqual(ws.cell(row=4, column=2).value, "a004")
         self.assertEqual(ws.cell(row=4, column=3).value, "(4, 1)")
         self.assertEqual(ws.cell(row=4, column=4).value, "(4, 2)")
@@ -1209,7 +1246,7 @@ class TestPlate(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Inducers for Plate P1"])
         # Check inducer inoculation instructions
-        ws = wb.get_sheet_by_name("Inducers for Plate P1")
+        ws = wb["Inducers for Plate P1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "(1, 1)\nI001")
         self.assertEqual(ws.cell(row=1, column=2).value, "(1, 2)\nI002")
         self.assertEqual(ws.cell(row=1, column=3).value, "(1, 3)\nI003")
@@ -1263,7 +1300,7 @@ class TestPlate(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Inducers for Plate P1"])
         # Check inducer inoculation instructions
-        ws = wb.get_sheet_by_name("Inducers for Plate P1")
+        ws = wb["Inducers for Plate P1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "(1, 1)\nI001\na001")
         self.assertEqual(ws.cell(row=1, column=2).value, "(1, 2)\nI002\na002")
         self.assertEqual(ws.cell(row=1, column=3).value, "(1, 3)\nI003\na003")
@@ -1314,7 +1351,7 @@ class TestPlate(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Inducers for Plate P1"])
         # Check inducer inoculation instructions
-        ws = wb.get_sheet_by_name("Inducers for Plate P1")
+        ws = wb["Inducers for Plate P1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "(1, 1)\nI001")
         self.assertEqual(ws.cell(row=1, column=2).value, "(1, 2)\nI002")
         self.assertEqual(ws.cell(row=1, column=3).value, "(1, 3)\nI003")
@@ -1369,31 +1406,58 @@ class TestPlate(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Inducers for Plate P1"])
         # Check inducer inoculation instructions
-        ws = wb.get_sheet_by_name("Inducers for Plate P1")
-        self.assertEqual(ws.cell(row=1, column=1).value, "(1, 1)\nI024\na001")
-        self.assertEqual(ws.cell(row=1, column=2).value, "(1, 2)\nI003\na002")
-        self.assertEqual(ws.cell(row=1, column=3).value, "(1, 3)\nI008\na003")
-        self.assertEqual(ws.cell(row=1, column=4).value, "(1, 4)\nI022\na004")
-        self.assertEqual(ws.cell(row=1, column=5).value, "(1, 5)\nI011\na005")
-        self.assertEqual(ws.cell(row=1, column=6).value, "(1, 6)\nI013\na006")
-        self.assertEqual(ws.cell(row=2, column=1).value, "(2, 1)\nI019\na007")
-        self.assertEqual(ws.cell(row=2, column=2).value, "(2, 2)\nI016\na008")
-        self.assertEqual(ws.cell(row=2, column=3).value, "(2, 3)\nI007\na009")
-        self.assertEqual(ws.cell(row=2, column=4).value, "(2, 4)\nI005\na010")
-        self.assertEqual(ws.cell(row=2, column=5).value, "(2, 5)\nI015\na011")
-        self.assertEqual(ws.cell(row=2, column=6).value, "(2, 6)\nI023\na012")
-        self.assertEqual(ws.cell(row=3, column=1).value, "(3, 1)\nI021\na013")
-        self.assertEqual(ws.cell(row=3, column=2).value, "(3, 2)\nI018\na014")
-        self.assertEqual(ws.cell(row=3, column=3).value, "(3, 3)\nI001\na015")
-        self.assertEqual(ws.cell(row=3, column=4).value, "(3, 4)\nI002\na016")
-        self.assertEqual(ws.cell(row=3, column=5).value, "(3, 5)\nI014\na017")
-        self.assertEqual(ws.cell(row=3, column=6).value, "(3, 6)\nI012\na018")
-        self.assertEqual(ws.cell(row=4, column=1).value, "(4, 1)\nI009\na019")
-        self.assertEqual(ws.cell(row=4, column=2).value, "(4, 2)\nI010\na020")
-        self.assertEqual(ws.cell(row=4, column=3).value, "(4, 3)\nI006\na021")
-        self.assertEqual(ws.cell(row=4, column=4).value, "(4, 4)\nI017\na022")
-        self.assertEqual(ws.cell(row=4, column=5).value, "(4, 5)\nI020\na023")
-        self.assertEqual(ws.cell(row=4, column=6).value, "(4, 6)\nI004\na024")
+        # Results after shuffling are different in python 2 and 3
+        ws = wb["Inducers for Plate P1"]
+        if six.PY2:
+            self.assertEqual(ws.cell(row=1, column=1).value, "(1, 1)\nI024\na001")
+            self.assertEqual(ws.cell(row=1, column=2).value, "(1, 2)\nI003\na002")
+            self.assertEqual(ws.cell(row=1, column=3).value, "(1, 3)\nI008\na003")
+            self.assertEqual(ws.cell(row=1, column=4).value, "(1, 4)\nI022\na004")
+            self.assertEqual(ws.cell(row=1, column=5).value, "(1, 5)\nI011\na005")
+            self.assertEqual(ws.cell(row=1, column=6).value, "(1, 6)\nI013\na006")
+            self.assertEqual(ws.cell(row=2, column=1).value, "(2, 1)\nI019\na007")
+            self.assertEqual(ws.cell(row=2, column=2).value, "(2, 2)\nI016\na008")
+            self.assertEqual(ws.cell(row=2, column=3).value, "(2, 3)\nI007\na009")
+            self.assertEqual(ws.cell(row=2, column=4).value, "(2, 4)\nI005\na010")
+            self.assertEqual(ws.cell(row=2, column=5).value, "(2, 5)\nI015\na011")
+            self.assertEqual(ws.cell(row=2, column=6).value, "(2, 6)\nI023\na012")
+            self.assertEqual(ws.cell(row=3, column=1).value, "(3, 1)\nI021\na013")
+            self.assertEqual(ws.cell(row=3, column=2).value, "(3, 2)\nI018\na014")
+            self.assertEqual(ws.cell(row=3, column=3).value, "(3, 3)\nI001\na015")
+            self.assertEqual(ws.cell(row=3, column=4).value, "(3, 4)\nI002\na016")
+            self.assertEqual(ws.cell(row=3, column=5).value, "(3, 5)\nI014\na017")
+            self.assertEqual(ws.cell(row=3, column=6).value, "(3, 6)\nI012\na018")
+            self.assertEqual(ws.cell(row=4, column=1).value, "(4, 1)\nI009\na019")
+            self.assertEqual(ws.cell(row=4, column=2).value, "(4, 2)\nI010\na020")
+            self.assertEqual(ws.cell(row=4, column=3).value, "(4, 3)\nI006\na021")
+            self.assertEqual(ws.cell(row=4, column=4).value, "(4, 4)\nI017\na022")
+            self.assertEqual(ws.cell(row=4, column=5).value, "(4, 5)\nI020\na023")
+            self.assertEqual(ws.cell(row=4, column=6).value, "(4, 6)\nI004\na024")
+        elif six.PY3:
+            self.assertEqual(ws.cell(row=1, column=1).value, "(1, 1)\nI021\na001")
+            self.assertEqual(ws.cell(row=1, column=2).value, "(1, 2)\nI012\na002")
+            self.assertEqual(ws.cell(row=1, column=3).value, "(1, 3)\nI024\na003")
+            self.assertEqual(ws.cell(row=1, column=4).value, "(1, 4)\nI018\na004")
+            self.assertEqual(ws.cell(row=1, column=5).value, "(1, 5)\nI022\na005")
+            self.assertEqual(ws.cell(row=1, column=6).value, "(1, 6)\nI014\na006")
+            self.assertEqual(ws.cell(row=2, column=1).value, "(2, 1)\nI006\na007")
+            self.assertEqual(ws.cell(row=2, column=2).value, "(2, 2)\nI011\na008")
+            self.assertEqual(ws.cell(row=2, column=3).value, "(2, 3)\nI010\na009")
+            self.assertEqual(ws.cell(row=2, column=4).value, "(2, 4)\nI007\na010")
+            self.assertEqual(ws.cell(row=2, column=5).value, "(2, 5)\nI001\na011")
+            self.assertEqual(ws.cell(row=2, column=6).value, "(2, 6)\nI008\na012")
+            self.assertEqual(ws.cell(row=3, column=1).value, "(3, 1)\nI002\na013")
+            self.assertEqual(ws.cell(row=3, column=2).value, "(3, 2)\nI020\na014")
+            self.assertEqual(ws.cell(row=3, column=3).value, "(3, 3)\nI017\na015")
+            self.assertEqual(ws.cell(row=3, column=4).value, "(3, 4)\nI013\na016")
+            self.assertEqual(ws.cell(row=3, column=5).value, "(3, 5)\nI023\na017")
+            self.assertEqual(ws.cell(row=3, column=6).value, "(3, 6)\nI015\na018")
+            self.assertEqual(ws.cell(row=4, column=1).value, "(4, 1)\nI016\na019")
+            self.assertEqual(ws.cell(row=4, column=2).value, "(4, 2)\nI004\na020")
+            self.assertEqual(ws.cell(row=4, column=3).value, "(4, 3)\nI009\na021")
+            self.assertEqual(ws.cell(row=4, column=4).value, "(4, 4)\nI003\na022")
+            self.assertEqual(ws.cell(row=4, column=5).value, "(4, 5)\nI019\na023")
+            self.assertEqual(ws.cell(row=4, column=6).value, "(4, 6)\nI005\na024")
         self.assertIsNone(ws.cell(row=5, column=1).value)
         self.assertEqual(ws.cell(row=6, column=1).value, u"Add 5.00µL of IPTG to each well.")
         self.assertEqual(ws.cell(row=7, column=1).value, u"Add 10.00µL of aTc to each well.")
@@ -1419,7 +1483,7 @@ class TestPlate(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Inducers for Plate P1"])
         # Check inducer inoculation instructions
-        ws = wb.get_sheet_by_name("Inducers for Plate P1")
+        ws = wb["Inducers for Plate P1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "(1, 1)")
         self.assertEqual(ws.cell(row=1, column=2).value, "(1, 2)")
         self.assertEqual(ws.cell(row=1, column=3).value, "(1, 3)")
@@ -1477,7 +1541,7 @@ class TestPlate(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Inducers for Plate P1"])
         # Check inducer inoculation instructions
-        ws = wb.get_sheet_by_name("Inducers for Plate P1")
+        ws = wb["Inducers for Plate P1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "(1, 1)")
         self.assertEqual(ws.cell(row=1, column=2).value, "(1, 2)")
         self.assertEqual(ws.cell(row=1, column=3).value, "(1, 3)")
@@ -1559,7 +1623,7 @@ class TestPlate(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Inducers for Plate P1"])
         # Check inducer inoculation instructions
-        ws = wb.get_sheet_by_name("Inducers for Plate P1")
+        ws = wb["Inducers for Plate P1"]
         self.assertEqual(ws.cell(row=1, column=1).value, None)
         self.assertEqual(ws.cell(row=1, column=2).value, "I001")
         self.assertEqual(ws.cell(row=1, column=3).value, "I002")
@@ -1663,7 +1727,7 @@ class TestPlate(unittest.TestCase):
         # Check that sheet exists in spreadsheet
         self.assertTrue("Inducers for Plate P1" in wb.sheetnames)
         # Check inducer inoculation instructions
-        ws = wb.get_sheet_by_name("Inducers for Plate P1")
+        ws = wb["Inducers for Plate P1"]
         self.assertEqual(ws.cell(row=1, column=1).value, None)
         self.assertEqual(ws.cell(row=1, column=2).value, "I001")
         self.assertEqual(ws.cell(row=1, column=3).value, "I002")
@@ -1711,7 +1775,7 @@ class TestPlate(unittest.TestCase):
         # Check that sheet exists in spreadsheet
         self.assertTrue("Cells for Plate P1" in wb.sheetnames)
         # Check cell inoculation instructions
-        ws = wb.get_sheet_by_name("Cells for Plate P1")
+        ws = wb["Cells for Plate P1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
         self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
         self.assertTrue('A2:C2' in ws.merged_cell_ranges)
@@ -1734,7 +1798,7 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(ws.cell(row=8, column=2).value, 1e-5)
         self.assertEqual(ws.cell(row=8, column=3).value, None)
         self.assertEqual(ws.cell(row=9, column=1).value, "Predilution volume")
-        self.assertEqual(ws.cell(row=9, column=2).value, "=0.15/B6")
+        test_excel_division_formula(self, ws.cell(row=9, column=2).value, 0.15, "B6")
         self.assertEqual(ws.cell(row=9, column=3).value, u"µL")
         self.assertEqual(ws.cell(row=10, column=1).value, "Add into 15.00mL "
             "media, and distribute into plate wells.")
@@ -1798,7 +1862,7 @@ class TestPlate(unittest.TestCase):
         # Check that sheet exists in spreadsheet
         self.assertTrue("Inducers for Plate P1" in wb.sheetnames)
         # Check inducer inoculation instructions
-        ws = wb.get_sheet_by_name("Inducers for Plate P1")
+        ws = wb["Inducers for Plate P1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "")
         self.assertEqual(ws.cell(row=1, column=2).value, "I001")
         self.assertEqual(ws.cell(row=1, column=3).value, "I002")
@@ -1846,7 +1910,7 @@ class TestPlate(unittest.TestCase):
         # Check that sheet exists in spreadsheet
         self.assertTrue("Cells for Plate P1" in wb.sheetnames)
         # Check cell inoculation instructions
-        ws = wb.get_sheet_by_name("Cells for Plate P1")
+        ws = wb["Cells for Plate P1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
         self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
         self.assertTrue('A2:C2' in ws.merged_cell_ranges)
@@ -1869,7 +1933,7 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(ws.cell(row=8, column=2).value, 1e-5)
         self.assertEqual(ws.cell(row=8, column=3).value, None)
         self.assertEqual(ws.cell(row=9, column=1).value, "Predilution volume")
-        self.assertEqual(ws.cell(row=9, column=2).value, "=0.15/B6")
+        test_excel_division_formula(self, ws.cell(row=9, column=2).value, 0.15, "B6")
         self.assertEqual(ws.cell(row=9, column=3).value, u"µL")
         self.assertEqual(ws.cell(row=10, column=1).value, "Add into 15.00mL "
             "media, and distribute into plate wells.")
@@ -1973,9 +2037,10 @@ class TestPlate(unittest.TestCase):
         p.resources['Incubator'] = ['Incubator 1', 'Incubator 2']
         p.resources['Thermometer'] = ['Alcohol thermometer 1']
         # Call close plates and check error
-        self.assertRaisesRegexp(ValueError,
-                                "2 resources of type Incubator specified, should be 1",
-                                p.close_plates,)
+        six.assertRaisesRegex(self,
+                              ValueError,
+                              "2 resources of type Incubator specified, should be 1",
+                              p.close_plates,)
 
     def test_close_plates_metadata(self):
         # Create plate
@@ -2300,10 +2365,17 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
         # Check well info
         well_info = pandas.DataFrame()
-        well_info[u'IPTG Concentration (µM)'] = [4., 5., 8., 6., 7., 3.,
-                                                 4., 5., 8., 6., 7., 3.,
-                                                 4., 5., 8., 6., 7., 3.,
-                                                 4., 5., 8., 6., 7., 3.,]
+        # Results of shuffling are different in python 2 and 3
+        if six.PY2:
+            well_info[u'IPTG Concentration (µM)'] = [4., 5., 8., 6., 7., 3.,
+                                                     4., 5., 8., 6., 7., 3.,
+                                                     4., 5., 8., 6., 7., 3.,
+                                                     4., 5., 8., 6., 7., 3.,]
+        elif six.PY3:
+            well_info[u'IPTG Concentration (µM)'] = [5., 6., 8., 3., 7., 4.,
+                                                     5., 6., 8., 3., 7., 4.,
+                                                     5., 6., 8., 3., 7., 4.,
+                                                     5., 6., 8., 3., 7., 4.,]
         well_info[u'aTc Concentration (ng/µL)'] = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6,
                                                    0.1, 0.2, 0.3, 0.4, 0.5, 0.6,
                                                    0.1, 0.2, 0.3, 0.4, 0.5, 0.6,
@@ -2425,10 +2497,17 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
         # Check well info
         well_info = pandas.DataFrame()
-        well_info[u'IPTG Concentration (µM)'] = [6., 6., 6., 6., 6., 6.,
-                                                 4., 4., 4., 4., 4., 4.,
-                                                 5., 5., 5., 5., 5., 5.,
-                                                 3., 3., 3., 3., 3., 3.,]
+        # Results of shuffling are different in python 2 and 3
+        if six.PY2:
+            well_info[u'IPTG Concentration (µM)'] = [6., 6., 6., 6., 6., 6.,
+                                                     4., 4., 4., 4., 4., 4.,
+                                                     5., 5., 5., 5., 5., 5.,
+                                                     3., 3., 3., 3., 3., 3.,]
+        elif six.PY3:
+            well_info[u'IPTG Concentration (µM)'] = [6., 6., 6., 6., 6., 6.,
+                                                     3., 3., 3., 3., 3., 3.,
+                                                     5., 5., 5., 5., 5., 5.,
+                                                     4., 4., 4., 4., 4., 4.,]
         well_info[u'aTc Concentration (ng/µL)'] = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
                                                    0.2, 0.2, 0.2, 0.2, 0.2, 0.2,
                                                    0.3, 0.3, 0.3, 0.3, 0.3, 0.3,
@@ -2548,10 +2627,17 @@ class TestPlate(unittest.TestCase):
         self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
         # Check well info
         well_info = pandas.DataFrame()
-        well_info[u'IPTG Concentration (µM)'] = [24., 3., 8., 22., 11., 13.,
-                                                 19., 16., 7., 5., 15., 23.,
-                                                 21., 18., 1., 2., 14., 12.,
-                                                 9., 10., 6., 17., 20., 4.,]
+        # Results from shuffling are different in python 2 and 3
+        if six.PY2:
+            well_info[u'IPTG Concentration (µM)'] = [24., 3., 8., 22., 11., 13.,
+                                                     19., 16., 7., 5., 15., 23.,
+                                                     21., 18., 1., 2., 14., 12.,
+                                                     9., 10., 6., 17., 20., 4.,]
+        elif six.PY3:
+            well_info[u'IPTG Concentration (µM)'] = [ 21., 12., 24., 18., 22., 14.,
+                                                       6., 11., 10.,  7.,  1.,  8.,
+                                                       2., 20., 17., 13., 23., 15.,
+                                                       16., 4.,  9.,  3., 19.,  5.]
         well_info[u'aTc Concentration (ng/µL)'] = [0.1, 0.2, 0.3, 0.4, 0.5 ,0.6,
                                                    0.7, 0.8, 0.9, 1.0, 1.1, 1.2,
                                                    1.3, 1.4, 1.5, 1.6, 1.7, 1.8,
@@ -3303,7 +3389,7 @@ class TestPlateArray(unittest.TestCase):
         # Create new spreadsheet
         wb_test = openpyxl.Workbook()
         # Remove sheet created by default
-        wb_test.remove_sheet(wb_test.active)
+        wb_test.remove(wb_test.active)
         # Run save_exp_setup_instructions
         p.save_exp_setup_instructions(workbook=wb_test)
         # save_exp_setup_instructions does not do anything in Plate. There is
@@ -3368,7 +3454,7 @@ class TestPlateArray(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Cells for Plate Array A1"])
         # Check cell inoculation instructions
-        ws = wb.get_sheet_by_name("Cells for Plate Array A1")
+        ws = wb["Cells for Plate Array A1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
         self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
         self.assertEqual(ws.cell(row=2, column=1).value, "Preculture/aliquot OD600")
@@ -3378,7 +3464,7 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=3, column=2).value, 1e-5)
         self.assertEqual(ws.cell(row=3, column=3).value, None)
         self.assertEqual(ws.cell(row=4, column=1).value, "Preculture/aliquot volume")
-        self.assertEqual(ws.cell(row=4, column=2).value, "=0.8/B2")
+        test_excel_division_formula(self, ws.cell(row=4, column=2).value, 0.8, "B2")
         self.assertEqual(ws.cell(row=4, column=3).value, u"µL")
         self.assertEqual(ws.cell(row=5, column=1).value, "Add into 80.00mL "
             "media, and distribute into plate wells.")
@@ -3406,7 +3492,7 @@ class TestPlateArray(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Cells for Plate Array A1"])
         # Check cell inoculation instructions
-        ws = wb.get_sheet_by_name("Cells for Plate Array A1")
+        ws = wb["Cells for Plate Array A1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
         self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
         self.assertTrue('A2:C2' in ws.merged_cell_ranges)
@@ -3429,7 +3515,7 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=8, column=2).value, 1e-5)
         self.assertEqual(ws.cell(row=8, column=3).value, None)
         self.assertEqual(ws.cell(row=9, column=1).value, "Predilution volume")
-        self.assertEqual(ws.cell(row=9, column=2).value, "=0.8/B6")
+        test_excel_division_formula(self, ws.cell(row=9, column=2).value, 0.8, "B6")
         self.assertEqual(ws.cell(row=9, column=3).value, u"µL")
         self.assertEqual(ws.cell(row=10, column=1).value, "Add into 80.00mL "
             "media, and distribute into plate wells.")
@@ -3458,7 +3544,7 @@ class TestPlateArray(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Cells for Plate Array A1"])
         # Check cell inoculation instructions
-        ws = wb.get_sheet_by_name("Cells for Plate Array A1")
+        ws = wb["Cells for Plate Array A1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
         self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
         self.assertTrue('A2:C2' in ws.merged_cell_ranges)
@@ -3481,7 +3567,7 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=8, column=2).value, 1e-5)
         self.assertEqual(ws.cell(row=8, column=3).value, None)
         self.assertEqual(ws.cell(row=9, column=1).value, "Predilution volume")
-        self.assertEqual(ws.cell(row=9, column=2).value, "=80.0/B3")
+        test_excel_division_formula(self, ws.cell(row=9, column=2).value, 80., "B3")
         self.assertEqual(ws.cell(row=9, column=3).value, u"µL")
         self.assertEqual(ws.cell(row=10, column=1).value, "Add into 80.00mL "
             "media, and distribute into plate wells.")
@@ -3547,7 +3633,7 @@ class TestPlateArray(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Cells for Plate Array A1"])
         # Check cell inoculation instructions
-        ws = wb.get_sheet_by_name("Cells for Plate Array A1")
+        ws = wb["Cells for Plate Array A1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
         self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
         self.assertEqual(ws.cell(row=2, column=1).value, "Preculture/aliquot volume")
@@ -3579,7 +3665,7 @@ class TestPlateArray(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Cells for Plate Array A1"])
         # Check cell inoculation instructions
-        ws = wb.get_sheet_by_name("Cells for Plate Array A1")
+        ws = wb["Cells for Plate Array A1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
         self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
         self.assertTrue('A2:C2' in ws.merged_cell_ranges)
@@ -3662,7 +3748,7 @@ class TestPlateArray(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Cells for Plate Array A1"])
         # Check cell inoculation instructions
-        ws = wb.get_sheet_by_name("Cells for Plate Array A1")
+        ws = wb["Cells for Plate Array A1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
         self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
         self.assertEqual(ws.cell(row=2, column=1).value, "Preculture/aliquot volume")
@@ -3694,7 +3780,7 @@ class TestPlateArray(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Cells for Plate Array A1"])
         # Check cell inoculation instructions
-        ws = wb.get_sheet_by_name("Cells for Plate Array A1")
+        ws = wb["Cells for Plate Array A1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
         self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
         self.assertTrue('A2:C2' in ws.merged_cell_ranges)
@@ -3779,7 +3865,7 @@ class TestPlateArray(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Inducers for Plate Array A1"])
         # Check inducer inoculation instructions
-        ws = wb.get_sheet_by_name("Inducers for Plate Array A1")
+        ws = wb["Inducers for Plate Array A1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "I001")
         self.assertEqual(ws.cell(row=1, column=2).value, "I002")
         self.assertEqual(ws.cell(row=1, column=3).value, "I003")
@@ -3976,7 +4062,7 @@ class TestPlateArray(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Inducers for Plate Array A1"])
         # Check inducer inoculation instructions
-        ws = wb.get_sheet_by_name("Inducers for Plate Array A1")
+        ws = wb["Inducers for Plate Array A1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "I001")
         self.assertEqual(ws.cell(row=1, column=2).value, "I002")
         self.assertEqual(ws.cell(row=1, column=3).value, "I003")
@@ -4194,25 +4280,46 @@ class TestPlateArray(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Inducers for Plate Array A1"])
         # Check inducer inoculation instructions
-        ws = wb.get_sheet_by_name("Inducers for Plate Array A1")
-        self.assertEqual(ws.cell(row=1, column=1).value, "I012")
-        self.assertEqual(ws.cell(row=1, column=2).value, "I016")
-        self.assertEqual(ws.cell(row=1, column=3).value, "I018")
-        self.assertEqual(ws.cell(row=1, column=4).value, "I002")
-        self.assertEqual(ws.cell(row=1, column=5).value, "I011")
-        self.assertEqual(ws.cell(row=1, column=6).value, "I005")
-        self.assertEqual(ws.cell(row=1, column=7).value, "I017")
-        self.assertEqual(ws.cell(row=1, column=8).value, "I014")
-        self.assertEqual(ws.cell(row=1, column=9).value, "I010")
-        self.assertEqual(ws.cell(row=1, column=10).value, "I001")
-        self.assertEqual(ws.cell(row=1, column=11).value, "I009")
-        self.assertEqual(ws.cell(row=1, column=12).value, "I008")
-        self.assertEqual(ws.cell(row=1, column=13).value, "I006")
-        self.assertEqual(ws.cell(row=1, column=14).value, "I007")
-        self.assertEqual(ws.cell(row=1, column=15).value, "I004")
-        self.assertEqual(ws.cell(row=1, column=16).value, "I013")
-        self.assertEqual(ws.cell(row=1, column=17).value, "I015")
-        self.assertEqual(ws.cell(row=1, column=18).value, "I003")
+        ws = wb["Inducers for Plate Array A1"]
+        # Shuffling results are different in python 2 and 3
+        if six.PY2:
+            self.assertEqual(ws.cell(row=1, column=1).value, "I012")
+            self.assertEqual(ws.cell(row=1, column=2).value, "I016")
+            self.assertEqual(ws.cell(row=1, column=3).value, "I018")
+            self.assertEqual(ws.cell(row=1, column=4).value, "I002")
+            self.assertEqual(ws.cell(row=1, column=5).value, "I011")
+            self.assertEqual(ws.cell(row=1, column=6).value, "I005")
+            self.assertEqual(ws.cell(row=1, column=7).value, "I017")
+            self.assertEqual(ws.cell(row=1, column=8).value, "I014")
+            self.assertEqual(ws.cell(row=1, column=9).value, "I010")
+            self.assertEqual(ws.cell(row=1, column=10).value, "I001")
+            self.assertEqual(ws.cell(row=1, column=11).value, "I009")
+            self.assertEqual(ws.cell(row=1, column=12).value, "I008")
+            self.assertEqual(ws.cell(row=1, column=13).value, "I006")
+            self.assertEqual(ws.cell(row=1, column=14).value, "I007")
+            self.assertEqual(ws.cell(row=1, column=15).value, "I004")
+            self.assertEqual(ws.cell(row=1, column=16).value, "I013")
+            self.assertEqual(ws.cell(row=1, column=17).value, "I015")
+            self.assertEqual(ws.cell(row=1, column=18).value, "I003")
+        elif six.PY3:
+            self.assertEqual(ws.cell(row=1, column=1).value, "I011")
+            self.assertEqual(ws.cell(row=1, column=2).value, "I006")
+            self.assertEqual(ws.cell(row=1, column=3).value, "I017")
+            self.assertEqual(ws.cell(row=1, column=4).value, "I018")
+            self.assertEqual(ws.cell(row=1, column=5).value, "I010")
+            self.assertEqual(ws.cell(row=1, column=6).value, "I001")
+            self.assertEqual(ws.cell(row=1, column=7).value, "I016")
+            self.assertEqual(ws.cell(row=1, column=8).value, "I015")
+            self.assertEqual(ws.cell(row=1, column=9).value, "I004")
+            self.assertEqual(ws.cell(row=1, column=10).value, "I007")
+            self.assertEqual(ws.cell(row=1, column=11).value, "I012")
+            self.assertEqual(ws.cell(row=1, column=12).value, "I014")
+            self.assertEqual(ws.cell(row=1, column=13).value, "I013")
+            self.assertEqual(ws.cell(row=1, column=14).value, "I008")
+            self.assertEqual(ws.cell(row=1, column=15).value, "I002")
+            self.assertEqual(ws.cell(row=1, column=16).value, "I009")
+            self.assertEqual(ws.cell(row=1, column=17).value, "I003")
+            self.assertEqual(ws.cell(row=1, column=18).value, "I005")
         self.assertEqual(ws.cell(row=2, column=1).value, "a001")
         self.assertEqual(ws.cell(row=2, column=2).value, "a002")
         self.assertEqual(ws.cell(row=2, column=3).value, "a003")
@@ -4403,7 +4510,7 @@ class TestPlateArray(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Inducers for Plate Array A1"])
         # Check inducer inoculation instructions
-        ws = wb.get_sheet_by_name("Inducers for Plate Array A1")
+        ws = wb["Inducers for Plate Array A1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "I001")
         self.assertEqual(ws.cell(row=1, column=2).value, "P1 (1, 1)")
         self.assertEqual(ws.cell(row=1, column=3).value, "P1 (1, 2)")
@@ -4589,7 +4696,7 @@ class TestPlateArray(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Inducers for Plate Array A1"])
         # Check inducer inoculation instructions
-        ws = wb.get_sheet_by_name("Inducers for Plate Array A1")
+        ws = wb["Inducers for Plate Array A1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "I001")
         self.assertEqual(ws.cell(row=1, column=2).value, "a001")
         self.assertEqual(ws.cell(row=1, column=3).value, "P1 (1, 1)")
@@ -4786,8 +4893,12 @@ class TestPlateArray(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Inducers for Plate Array A1"])
         # Check inducer inoculation instructions
-        ws = wb.get_sheet_by_name("Inducers for Plate Array A1")
-        self.assertEqual(ws.cell(row=1, column=1).value, "I001")
+        # Results of shuffling are different in python 2 and 3
+        ws = wb["Inducers for Plate Array A1"]
+        if six.PY2:
+            self.assertEqual(ws.cell(row=1, column=1).value, "I001")
+        elif six.PY3:
+            self.assertEqual(ws.cell(row=1, column=1).value, "I004")
         self.assertEqual(ws.cell(row=1, column=2).value, "a001")
         self.assertEqual(ws.cell(row=1, column=3).value, "P1 (1, 1)")
         self.assertEqual(ws.cell(row=1, column=4).value, "P1 (1, 2)")
@@ -4807,7 +4918,10 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=1, column=18).value, "P3 (1, 4)")
         self.assertEqual(ws.cell(row=1, column=19).value, "P3 (1, 5)")
         self.assertEqual(ws.cell(row=1, column=20).value, "P3 (1, 6)")
-        self.assertEqual(ws.cell(row=2, column=1).value, "I003")
+        if six.PY2:
+            self.assertEqual(ws.cell(row=2, column=1).value, "I003")
+        elif six.PY3:
+            self.assertEqual(ws.cell(row=2, column=1).value, "I007")
         self.assertEqual(ws.cell(row=2, column=2).value, "a002")
         self.assertEqual(ws.cell(row=2, column=3).value, "P1 (2, 1)")
         self.assertEqual(ws.cell(row=2, column=4).value, "P1 (2, 2)")
@@ -4827,7 +4941,10 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=2, column=18).value, "P3 (2, 4)")
         self.assertEqual(ws.cell(row=2, column=19).value, "P3 (2, 5)")
         self.assertEqual(ws.cell(row=2, column=20).value, "P3 (2, 6)")
-        self.assertEqual(ws.cell(row=3, column=1).value, "I004")
+        if six.PY2:
+            self.assertEqual(ws.cell(row=3, column=1).value, "I004")
+        elif six.PY3:
+            self.assertEqual(ws.cell(row=3, column=1).value, "I002")
         self.assertEqual(ws.cell(row=3, column=2).value, "a003")
         self.assertEqual(ws.cell(row=3, column=3).value, "P1 (3, 1)")
         self.assertEqual(ws.cell(row=3, column=4).value, "P1 (3, 2)")
@@ -4847,7 +4964,10 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=3, column=18).value, "P3 (3, 4)")
         self.assertEqual(ws.cell(row=3, column=19).value, "P3 (3, 5)")
         self.assertEqual(ws.cell(row=3, column=20).value, "P3 (3, 6)")
-        self.assertEqual(ws.cell(row=4, column=1).value, "I007")
+        if six.PY2:
+            self.assertEqual(ws.cell(row=4, column=1).value, "I007")
+        elif six.PY3:
+            self.assertEqual(ws.cell(row=4, column=1).value, "I006")
         self.assertEqual(ws.cell(row=4, column=2).value, "a004")
         self.assertEqual(ws.cell(row=4, column=3).value, "P1 (4, 1)")
         self.assertEqual(ws.cell(row=4, column=4).value, "P1 (4, 2)")
@@ -4867,7 +4987,10 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=4, column=18).value, "P3 (4, 4)")
         self.assertEqual(ws.cell(row=4, column=19).value, "P3 (4, 5)")
         self.assertEqual(ws.cell(row=4, column=20).value, "P3 (4, 6)")
-        self.assertEqual(ws.cell(row=5, column=1).value, "I008")
+        if six.PY2:
+            self.assertEqual(ws.cell(row=5, column=1).value, "I008")
+        elif six.PY3:
+            self.assertEqual(ws.cell(row=5, column=1).value, "I008")
         self.assertEqual(ws.cell(row=5, column=2).value, "a005")
         self.assertEqual(ws.cell(row=5, column=3).value, "P4 (1, 1)")
         self.assertEqual(ws.cell(row=5, column=4).value, "P4 (1, 2)")
@@ -4887,7 +5010,10 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=5, column=18).value, "P6 (1, 4)")
         self.assertEqual(ws.cell(row=5, column=19).value, "P6 (1, 5)")
         self.assertEqual(ws.cell(row=5, column=20).value, "P6 (1, 6)")
-        self.assertEqual(ws.cell(row=6, column=1).value, "I005")
+        if six.PY2:
+            self.assertEqual(ws.cell(row=6, column=1).value, "I005")
+        elif six.PY3:
+            self.assertEqual(ws.cell(row=6, column=1).value, "I001")
         self.assertEqual(ws.cell(row=6, column=2).value, "a006")
         self.assertEqual(ws.cell(row=6, column=3).value, "P4 (2, 1)")
         self.assertEqual(ws.cell(row=6, column=4).value, "P4 (2, 2)")
@@ -4907,7 +5033,10 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=6, column=18).value, "P6 (2, 4)")
         self.assertEqual(ws.cell(row=6, column=19).value, "P6 (2, 5)")
         self.assertEqual(ws.cell(row=6, column=20).value, "P6 (2, 6)")
-        self.assertEqual(ws.cell(row=7, column=1).value, "I006")
+        if six.PY2:
+            self.assertEqual(ws.cell(row=7, column=1).value, "I006")
+        elif six.PY3:
+            self.assertEqual(ws.cell(row=7, column=1).value, "I005")
         self.assertEqual(ws.cell(row=7, column=2).value, "a007")
         self.assertEqual(ws.cell(row=7, column=3).value, "P4 (3, 1)")
         self.assertEqual(ws.cell(row=7, column=4).value, "P4 (3, 2)")
@@ -4927,7 +5056,10 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=7, column=18).value, "P6 (3, 4)")
         self.assertEqual(ws.cell(row=7, column=19).value, "P6 (3, 5)")
         self.assertEqual(ws.cell(row=7, column=20).value, "P6 (3, 6)")
-        self.assertEqual(ws.cell(row=8, column=1).value, "I002")
+        if six.PY2:
+            self.assertEqual(ws.cell(row=8, column=1).value, "I002")
+        elif six.PY3:
+            self.assertEqual(ws.cell(row=8, column=1).value, "I003")
         self.assertEqual(ws.cell(row=8, column=2).value, "a008")
         self.assertEqual(ws.cell(row=8, column=3).value, "P4 (4, 1)")
         self.assertEqual(ws.cell(row=8, column=4).value, "P4 (4, 2)")
@@ -4975,7 +5107,7 @@ class TestPlateArray(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Inducers for Plate Array A1"])
         # Check inducer inoculation instructions
-        ws = wb.get_sheet_by_name("Inducers for Plate Array A1")
+        ws = wb["Inducers for Plate Array A1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "P1 (1, 1)\nI001")
         self.assertEqual(ws.cell(row=1, column=2).value, "P1 (1, 2)\nI002")
         self.assertEqual(ws.cell(row=1, column=3).value, "P1 (1, 3)\nI003")
@@ -5153,7 +5285,7 @@ class TestPlateArray(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Inducers for Plate Array A1"])
         # Check inducer inoculation instructions
-        ws = wb.get_sheet_by_name("Inducers for Plate Array A1")
+        ws = wb["Inducers for Plate Array A1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "P1 (1, 1)\nI001\na001")
         self.assertEqual(ws.cell(row=1, column=2).value, "P1 (1, 2)\nI002\na002")
         self.assertEqual(ws.cell(row=1, column=3).value, "P1 (1, 3)\nI003\na003")
@@ -5328,7 +5460,7 @@ class TestPlateArray(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Inducers for Plate Array A1"])
         # Check inducer inoculation instructions
-        ws = wb.get_sheet_by_name("Inducers for Plate Array A1")
+        ws = wb["Inducers for Plate Array A1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "P1 (1, 1)\nI001")
         self.assertEqual(ws.cell(row=1, column=2).value, "P1 (1, 2)\nI002")
         self.assertEqual(ws.cell(row=1, column=3).value, "P1 (1, 3)\nI003")
@@ -5507,151 +5639,298 @@ class TestPlateArray(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Inducers for Plate Array A1"])
         # Check inducer inoculation instructions
-        ws = wb.get_sheet_by_name("Inducers for Plate Array A1")
-        self.assertEqual(ws.cell(row=1, column=1).value, "P1 (1, 1)\nI018\na001")
-        self.assertEqual(ws.cell(row=1, column=2).value, "P1 (1, 2)\nI116\na002")
-        self.assertEqual(ws.cell(row=1, column=3).value, "P1 (1, 3)\nI081\na003")
-        self.assertEqual(ws.cell(row=1, column=4).value, "P1 (1, 4)\nI049\na004")
-        self.assertEqual(ws.cell(row=1, column=5).value, "P1 (1, 5)\nI062\na005")
-        self.assertEqual(ws.cell(row=1, column=6).value, "P1 (1, 6)\nI059\na006")
-        self.assertEqual(ws.cell(row=1, column=7).value, "P2 (1, 1)\nI072\na007")
-        self.assertEqual(ws.cell(row=1, column=8).value, "P2 (1, 2)\nI011\na008")
-        self.assertEqual(ws.cell(row=1, column=9).value, "P2 (1, 3)\nI044\na009")
-        self.assertEqual(ws.cell(row=1, column=10).value, "P2 (1, 4)\nI123\na010")
-        self.assertEqual(ws.cell(row=1, column=11).value, "P2 (1, 5)\nI075\na011")
-        self.assertEqual(ws.cell(row=1, column=12).value, "P2 (1, 6)\nI033\na012")
-        self.assertEqual(ws.cell(row=1, column=13).value, "P3 (1, 1)\nI048\na013")
-        self.assertEqual(ws.cell(row=1, column=14).value, "P3 (1, 2)\nI129\na014")
-        self.assertEqual(ws.cell(row=1, column=15).value, "P3 (1, 3)\nI010\na015")
-        self.assertEqual(ws.cell(row=1, column=16).value, "P3 (1, 4)\nI028\na016")
-        self.assertEqual(ws.cell(row=1, column=17).value, "P3 (1, 5)\nI005\na017")
-        self.assertEqual(ws.cell(row=1, column=18).value, "P3 (1, 6)\nI043\na018")
-        self.assertEqual(ws.cell(row=2, column=1).value, "P1 (2, 1)\nI023\na019")
-        self.assertEqual(ws.cell(row=2, column=2).value, "P1 (2, 2)\nI110\na020")
-        self.assertEqual(ws.cell(row=2, column=3).value, "P1 (2, 3)\nI002\na021")
-        self.assertEqual(ws.cell(row=2, column=4).value, "P1 (2, 4)\nI061\na022")
-        self.assertEqual(ws.cell(row=2, column=5).value, "P1 (2, 5)\nI085\na023")
-        self.assertEqual(ws.cell(row=2, column=6).value, "P1 (2, 6)\nI007\na024")
-        self.assertEqual(ws.cell(row=2, column=7).value, "P2 (2, 1)\nI083\na025")
-        self.assertEqual(ws.cell(row=2, column=8).value, "P2 (2, 2)\nI098\na026")
-        self.assertEqual(ws.cell(row=2, column=9).value, "P2 (2, 3)\nI079\na027")
-        self.assertEqual(ws.cell(row=2, column=10).value, "P2 (2, 4)\nI127\na028")
-        self.assertEqual(ws.cell(row=2, column=11).value, "P2 (2, 5)\nI017\na029")
-        self.assertEqual(ws.cell(row=2, column=12).value, "P2 (2, 6)\nI006\na030")
-        self.assertEqual(ws.cell(row=2, column=13).value, "P3 (2, 1)\nI008\na031")
-        self.assertEqual(ws.cell(row=2, column=14).value, "P3 (2, 2)\nI103\na032")
-        self.assertEqual(ws.cell(row=2, column=15).value, "P3 (2, 3)\nI056\na033")
-        self.assertEqual(ws.cell(row=2, column=16).value, "P3 (2, 4)\nI076\na034")
-        self.assertEqual(ws.cell(row=2, column=17).value, "P3 (2, 5)\nI087\na035")
-        self.assertEqual(ws.cell(row=2, column=18).value, "P3 (2, 6)\nI065\na036")
-        self.assertEqual(ws.cell(row=3, column=1).value, "P1 (3, 1)\nI102\na037")
-        self.assertEqual(ws.cell(row=3, column=2).value, "P1 (3, 2)\nI014\na038")
-        self.assertEqual(ws.cell(row=3, column=3).value, "P1 (3, 3)\nI019\na039")
-        self.assertEqual(ws.cell(row=3, column=4).value, "P1 (3, 4)\nI021\na040")
-        self.assertEqual(ws.cell(row=3, column=5).value, "P1 (3, 5)\nI009\na041")
-        self.assertEqual(ws.cell(row=3, column=6).value, "P1 (3, 6)\nI024\na042")
-        self.assertEqual(ws.cell(row=3, column=7).value, "P2 (3, 1)\nI038\na043")
-        self.assertEqual(ws.cell(row=3, column=8).value, "P2 (3, 2)\nI100\na044")
-        self.assertEqual(ws.cell(row=3, column=9).value, "P2 (3, 3)\nI105\na045")
-        self.assertEqual(ws.cell(row=3, column=10).value, "P2 (3, 4)\nI117\na046")
-        self.assertEqual(ws.cell(row=3, column=11).value, "P2 (3, 5)\nI134\na047")
-        self.assertEqual(ws.cell(row=3, column=12).value, "P2 (3, 6)\nI039\na048")
-        self.assertEqual(ws.cell(row=3, column=13).value, "P3 (3, 1)\nI074\na049")
-        self.assertEqual(ws.cell(row=3, column=14).value, "P3 (3, 2)\nI045\na050")
-        self.assertEqual(ws.cell(row=3, column=15).value, "P3 (3, 3)\nI042\na051")
-        self.assertEqual(ws.cell(row=3, column=16).value, "P3 (3, 4)\nI140\na052")
-        self.assertEqual(ws.cell(row=3, column=17).value, "P3 (3, 5)\nI131\na053")
-        self.assertEqual(ws.cell(row=3, column=18).value, "P3 (3, 6)\nI111\na054")
-        self.assertEqual(ws.cell(row=4, column=1).value, "P1 (4, 1)\nI077\na055")
-        self.assertEqual(ws.cell(row=4, column=2).value, "P1 (4, 2)\nI016\na056")
-        self.assertEqual(ws.cell(row=4, column=3).value, "P1 (4, 3)\nI068\na057")
-        self.assertEqual(ws.cell(row=4, column=4).value, "P1 (4, 4)\nI139\na058")
-        self.assertEqual(ws.cell(row=4, column=5).value, "P1 (4, 5)\nI057\na059")
-        self.assertEqual(ws.cell(row=4, column=6).value, "P1 (4, 6)\nI031\na060")
-        self.assertEqual(ws.cell(row=4, column=7).value, "P2 (4, 1)\nI084\na061")
-        self.assertEqual(ws.cell(row=4, column=8).value, "P2 (4, 2)\nI054\na062")
-        self.assertEqual(ws.cell(row=4, column=9).value, "P2 (4, 3)\nI066\na063")
-        self.assertEqual(ws.cell(row=4, column=10).value, "P2 (4, 4)\nI099\na064")
-        self.assertEqual(ws.cell(row=4, column=11).value, "P2 (4, 5)\nI095\na065")
-        self.assertEqual(ws.cell(row=4, column=12).value, "P2 (4, 6)\nI132\na066")
-        self.assertEqual(ws.cell(row=4, column=13).value, "P3 (4, 1)\nI012\na067")
-        self.assertEqual(ws.cell(row=4, column=14).value, "P3 (4, 2)\nI113\na068")
-        self.assertEqual(ws.cell(row=4, column=15).value, "P3 (4, 3)\nI097\na069")
-        self.assertEqual(ws.cell(row=4, column=16).value, "P3 (4, 4)\nI086\na070")
-        self.assertEqual(ws.cell(row=4, column=17).value, "P3 (4, 5)\nI050\na071")
-        self.assertEqual(ws.cell(row=4, column=18).value, "P3 (4, 6)\nI088\na072")
-        self.assertEqual(ws.cell(row=5, column=1).value, "P4 (1, 1)\nI137\na073")
-        self.assertEqual(ws.cell(row=5, column=2).value, "P4 (1, 2)\nI037\na074")
-        self.assertEqual(ws.cell(row=5, column=3).value, "P4 (1, 3)\nI096\na075")
-        self.assertEqual(ws.cell(row=5, column=4).value, "P4 (1, 4)\nI108\na076")
-        self.assertEqual(ws.cell(row=5, column=5).value, "P4 (1, 5)\nI107\na077")
-        self.assertEqual(ws.cell(row=5, column=6).value, "P4 (1, 6)\nI040\na078")
-        self.assertEqual(ws.cell(row=5, column=7).value, "P5 (1, 1)\nI035\na079")
-        self.assertEqual(ws.cell(row=5, column=8).value, "P5 (1, 2)\nI128\na080")
-        self.assertEqual(ws.cell(row=5, column=9).value, "P5 (1, 3)\nI093\na081")
-        self.assertEqual(ws.cell(row=5, column=10).value, "P5 (1, 4)\nI143\na082")
-        self.assertEqual(ws.cell(row=5, column=11).value, "P5 (1, 5)\nI138\na083")
-        self.assertEqual(ws.cell(row=5, column=12).value, "P5 (1, 6)\nI015\na084")
-        self.assertEqual(ws.cell(row=5, column=13).value, "P6 (1, 1)\nI141\na085")
-        self.assertEqual(ws.cell(row=5, column=14).value, "P6 (1, 2)\nI106\na086")
-        self.assertEqual(ws.cell(row=5, column=15).value, "P6 (1, 3)\nI022\na087")
-        self.assertEqual(ws.cell(row=5, column=16).value, "P6 (1, 4)\nI118\na088")
-        self.assertEqual(ws.cell(row=5, column=17).value, "P6 (1, 5)\nI053\na089")
-        self.assertEqual(ws.cell(row=5, column=18).value, "P6 (1, 6)\nI046\na090")
-        self.assertEqual(ws.cell(row=6, column=1).value, "P4 (2, 1)\nI078\na091")
-        self.assertEqual(ws.cell(row=6, column=2).value, "P4 (2, 2)\nI082\na092")
-        self.assertEqual(ws.cell(row=6, column=3).value, "P4 (2, 3)\nI055\na093")
-        self.assertEqual(ws.cell(row=6, column=4).value, "P4 (2, 4)\nI029\na094")
-        self.assertEqual(ws.cell(row=6, column=5).value, "P4 (2, 5)\nI064\na095")
-        self.assertEqual(ws.cell(row=6, column=6).value, "P4 (2, 6)\nI080\na096")
-        self.assertEqual(ws.cell(row=6, column=7).value, "P5 (2, 1)\nI041\na097")
-        self.assertEqual(ws.cell(row=6, column=8).value, "P5 (2, 2)\nI092\na098")
-        self.assertEqual(ws.cell(row=6, column=9).value, "P5 (2, 3)\nI071\na099")
-        self.assertEqual(ws.cell(row=6, column=10).value, "P5 (2, 4)\nI073\na100")
-        self.assertEqual(ws.cell(row=6, column=11).value, "P5 (2, 5)\nI034\na101")
-        self.assertEqual(ws.cell(row=6, column=12).value, "P5 (2, 6)\nI136\na102")
-        self.assertEqual(ws.cell(row=6, column=13).value, "P6 (2, 1)\nI089\na103")
-        self.assertEqual(ws.cell(row=6, column=14).value, "P6 (2, 2)\nI104\na104")
-        self.assertEqual(ws.cell(row=6, column=15).value, "P6 (2, 3)\nI144\na105")
-        self.assertEqual(ws.cell(row=6, column=16).value, "P6 (2, 4)\nI069\na106")
-        self.assertEqual(ws.cell(row=6, column=17).value, "P6 (2, 5)\nI060\na107")
-        self.assertEqual(ws.cell(row=6, column=18).value, "P6 (2, 6)\nI091\na108")
-        self.assertEqual(ws.cell(row=7, column=1).value, "P4 (3, 1)\nI003\na109")
-        self.assertEqual(ws.cell(row=7, column=2).value, "P4 (3, 2)\nI032\na110")
-        self.assertEqual(ws.cell(row=7, column=3).value, "P4 (3, 3)\nI052\na111")
-        self.assertEqual(ws.cell(row=7, column=4).value, "P4 (3, 4)\nI025\na112")
-        self.assertEqual(ws.cell(row=7, column=5).value, "P4 (3, 5)\nI126\na113")
-        self.assertEqual(ws.cell(row=7, column=6).value, "P4 (3, 6)\nI027\na114")
-        self.assertEqual(ws.cell(row=7, column=7).value, "P5 (3, 1)\nI130\na115")
-        self.assertEqual(ws.cell(row=7, column=8).value, "P5 (3, 2)\nI119\na116")
-        self.assertEqual(ws.cell(row=7, column=9).value, "P5 (3, 3)\nI120\na117")
-        self.assertEqual(ws.cell(row=7, column=10).value, "P5 (3, 4)\nI124\na118")
-        self.assertEqual(ws.cell(row=7, column=11).value, "P5 (3, 5)\nI051\na119")
-        self.assertEqual(ws.cell(row=7, column=12).value, "P5 (3, 6)\nI026\na120")
-        self.assertEqual(ws.cell(row=7, column=13).value, "P6 (3, 1)\nI047\na121")
-        self.assertEqual(ws.cell(row=7, column=14).value, "P6 (3, 2)\nI115\na122")
-        self.assertEqual(ws.cell(row=7, column=15).value, "P6 (3, 3)\nI067\na123")
-        self.assertEqual(ws.cell(row=7, column=16).value, "P6 (3, 4)\nI125\na124")
-        self.assertEqual(ws.cell(row=7, column=17).value, "P6 (3, 5)\nI135\na125")
-        self.assertEqual(ws.cell(row=7, column=18).value, "P6 (3, 6)\nI114\na126")
-        self.assertEqual(ws.cell(row=8, column=1).value, "P4 (4, 1)\nI121\na127")
-        self.assertEqual(ws.cell(row=8, column=2).value, "P4 (4, 2)\nI030\na128")
-        self.assertEqual(ws.cell(row=8, column=3).value, "P4 (4, 3)\nI094\na129")
-        self.assertEqual(ws.cell(row=8, column=4).value, "P4 (4, 4)\nI133\na130")
-        self.assertEqual(ws.cell(row=8, column=5).value, "P4 (4, 5)\nI001\na131")
-        self.assertEqual(ws.cell(row=8, column=6).value, "P4 (4, 6)\nI101\na132")
-        self.assertEqual(ws.cell(row=8, column=7).value, "P5 (4, 1)\nI058\na133")
-        self.assertEqual(ws.cell(row=8, column=8).value, "P5 (4, 2)\nI112\na134")
-        self.assertEqual(ws.cell(row=8, column=9).value, "P5 (4, 3)\nI004\na135")
-        self.assertEqual(ws.cell(row=8, column=10).value, "P5 (4, 4)\nI013\na136")
-        self.assertEqual(ws.cell(row=8, column=11).value, "P5 (4, 5)\nI142\na137")
-        self.assertEqual(ws.cell(row=8, column=12).value, "P5 (4, 6)\nI090\na138")
-        self.assertEqual(ws.cell(row=8, column=13).value, "P6 (4, 1)\nI063\na139")
-        self.assertEqual(ws.cell(row=8, column=14).value, "P6 (4, 2)\nI070\na140")
-        self.assertEqual(ws.cell(row=8, column=15).value, "P6 (4, 3)\nI036\na141")
-        self.assertEqual(ws.cell(row=8, column=16).value, "P6 (4, 4)\nI109\na142")
-        self.assertEqual(ws.cell(row=8, column=17).value, "P6 (4, 5)\nI122\na143")
-        self.assertEqual(ws.cell(row=8, column=18).value, "P6 (4, 6)\nI020\na144")
+        # Results of shuffling are different in python 2 and 3
+        ws = wb["Inducers for Plate Array A1"]
+        if six.PY2:
+            self.assertEqual(ws.cell(row=1, column=1).value, "P1 (1, 1)\nI018\na001")
+            self.assertEqual(ws.cell(row=1, column=2).value, "P1 (1, 2)\nI116\na002")
+            self.assertEqual(ws.cell(row=1, column=3).value, "P1 (1, 3)\nI081\na003")
+            self.assertEqual(ws.cell(row=1, column=4).value, "P1 (1, 4)\nI049\na004")
+            self.assertEqual(ws.cell(row=1, column=5).value, "P1 (1, 5)\nI062\na005")
+            self.assertEqual(ws.cell(row=1, column=6).value, "P1 (1, 6)\nI059\na006")
+            self.assertEqual(ws.cell(row=1, column=7).value, "P2 (1, 1)\nI072\na007")
+            self.assertEqual(ws.cell(row=1, column=8).value, "P2 (1, 2)\nI011\na008")
+            self.assertEqual(ws.cell(row=1, column=9).value, "P2 (1, 3)\nI044\na009")
+            self.assertEqual(ws.cell(row=1, column=10).value, "P2 (1, 4)\nI123\na010")
+            self.assertEqual(ws.cell(row=1, column=11).value, "P2 (1, 5)\nI075\na011")
+            self.assertEqual(ws.cell(row=1, column=12).value, "P2 (1, 6)\nI033\na012")
+            self.assertEqual(ws.cell(row=1, column=13).value, "P3 (1, 1)\nI048\na013")
+            self.assertEqual(ws.cell(row=1, column=14).value, "P3 (1, 2)\nI129\na014")
+            self.assertEqual(ws.cell(row=1, column=15).value, "P3 (1, 3)\nI010\na015")
+            self.assertEqual(ws.cell(row=1, column=16).value, "P3 (1, 4)\nI028\na016")
+            self.assertEqual(ws.cell(row=1, column=17).value, "P3 (1, 5)\nI005\na017")
+            self.assertEqual(ws.cell(row=1, column=18).value, "P3 (1, 6)\nI043\na018")
+            self.assertEqual(ws.cell(row=2, column=1).value, "P1 (2, 1)\nI023\na019")
+            self.assertEqual(ws.cell(row=2, column=2).value, "P1 (2, 2)\nI110\na020")
+            self.assertEqual(ws.cell(row=2, column=3).value, "P1 (2, 3)\nI002\na021")
+            self.assertEqual(ws.cell(row=2, column=4).value, "P1 (2, 4)\nI061\na022")
+            self.assertEqual(ws.cell(row=2, column=5).value, "P1 (2, 5)\nI085\na023")
+            self.assertEqual(ws.cell(row=2, column=6).value, "P1 (2, 6)\nI007\na024")
+            self.assertEqual(ws.cell(row=2, column=7).value, "P2 (2, 1)\nI083\na025")
+            self.assertEqual(ws.cell(row=2, column=8).value, "P2 (2, 2)\nI098\na026")
+            self.assertEqual(ws.cell(row=2, column=9).value, "P2 (2, 3)\nI079\na027")
+            self.assertEqual(ws.cell(row=2, column=10).value, "P2 (2, 4)\nI127\na028")
+            self.assertEqual(ws.cell(row=2, column=11).value, "P2 (2, 5)\nI017\na029")
+            self.assertEqual(ws.cell(row=2, column=12).value, "P2 (2, 6)\nI006\na030")
+            self.assertEqual(ws.cell(row=2, column=13).value, "P3 (2, 1)\nI008\na031")
+            self.assertEqual(ws.cell(row=2, column=14).value, "P3 (2, 2)\nI103\na032")
+            self.assertEqual(ws.cell(row=2, column=15).value, "P3 (2, 3)\nI056\na033")
+            self.assertEqual(ws.cell(row=2, column=16).value, "P3 (2, 4)\nI076\na034")
+            self.assertEqual(ws.cell(row=2, column=17).value, "P3 (2, 5)\nI087\na035")
+            self.assertEqual(ws.cell(row=2, column=18).value, "P3 (2, 6)\nI065\na036")
+            self.assertEqual(ws.cell(row=3, column=1).value, "P1 (3, 1)\nI102\na037")
+            self.assertEqual(ws.cell(row=3, column=2).value, "P1 (3, 2)\nI014\na038")
+            self.assertEqual(ws.cell(row=3, column=3).value, "P1 (3, 3)\nI019\na039")
+            self.assertEqual(ws.cell(row=3, column=4).value, "P1 (3, 4)\nI021\na040")
+            self.assertEqual(ws.cell(row=3, column=5).value, "P1 (3, 5)\nI009\na041")
+            self.assertEqual(ws.cell(row=3, column=6).value, "P1 (3, 6)\nI024\na042")
+            self.assertEqual(ws.cell(row=3, column=7).value, "P2 (3, 1)\nI038\na043")
+            self.assertEqual(ws.cell(row=3, column=8).value, "P2 (3, 2)\nI100\na044")
+            self.assertEqual(ws.cell(row=3, column=9).value, "P2 (3, 3)\nI105\na045")
+            self.assertEqual(ws.cell(row=3, column=10).value, "P2 (3, 4)\nI117\na046")
+            self.assertEqual(ws.cell(row=3, column=11).value, "P2 (3, 5)\nI134\na047")
+            self.assertEqual(ws.cell(row=3, column=12).value, "P2 (3, 6)\nI039\na048")
+            self.assertEqual(ws.cell(row=3, column=13).value, "P3 (3, 1)\nI074\na049")
+            self.assertEqual(ws.cell(row=3, column=14).value, "P3 (3, 2)\nI045\na050")
+            self.assertEqual(ws.cell(row=3, column=15).value, "P3 (3, 3)\nI042\na051")
+            self.assertEqual(ws.cell(row=3, column=16).value, "P3 (3, 4)\nI140\na052")
+            self.assertEqual(ws.cell(row=3, column=17).value, "P3 (3, 5)\nI131\na053")
+            self.assertEqual(ws.cell(row=3, column=18).value, "P3 (3, 6)\nI111\na054")
+            self.assertEqual(ws.cell(row=4, column=1).value, "P1 (4, 1)\nI077\na055")
+            self.assertEqual(ws.cell(row=4, column=2).value, "P1 (4, 2)\nI016\na056")
+            self.assertEqual(ws.cell(row=4, column=3).value, "P1 (4, 3)\nI068\na057")
+            self.assertEqual(ws.cell(row=4, column=4).value, "P1 (4, 4)\nI139\na058")
+            self.assertEqual(ws.cell(row=4, column=5).value, "P1 (4, 5)\nI057\na059")
+            self.assertEqual(ws.cell(row=4, column=6).value, "P1 (4, 6)\nI031\na060")
+            self.assertEqual(ws.cell(row=4, column=7).value, "P2 (4, 1)\nI084\na061")
+            self.assertEqual(ws.cell(row=4, column=8).value, "P2 (4, 2)\nI054\na062")
+            self.assertEqual(ws.cell(row=4, column=9).value, "P2 (4, 3)\nI066\na063")
+            self.assertEqual(ws.cell(row=4, column=10).value, "P2 (4, 4)\nI099\na064")
+            self.assertEqual(ws.cell(row=4, column=11).value, "P2 (4, 5)\nI095\na065")
+            self.assertEqual(ws.cell(row=4, column=12).value, "P2 (4, 6)\nI132\na066")
+            self.assertEqual(ws.cell(row=4, column=13).value, "P3 (4, 1)\nI012\na067")
+            self.assertEqual(ws.cell(row=4, column=14).value, "P3 (4, 2)\nI113\na068")
+            self.assertEqual(ws.cell(row=4, column=15).value, "P3 (4, 3)\nI097\na069")
+            self.assertEqual(ws.cell(row=4, column=16).value, "P3 (4, 4)\nI086\na070")
+            self.assertEqual(ws.cell(row=4, column=17).value, "P3 (4, 5)\nI050\na071")
+            self.assertEqual(ws.cell(row=4, column=18).value, "P3 (4, 6)\nI088\na072")
+            self.assertEqual(ws.cell(row=5, column=1).value, "P4 (1, 1)\nI137\na073")
+            self.assertEqual(ws.cell(row=5, column=2).value, "P4 (1, 2)\nI037\na074")
+            self.assertEqual(ws.cell(row=5, column=3).value, "P4 (1, 3)\nI096\na075")
+            self.assertEqual(ws.cell(row=5, column=4).value, "P4 (1, 4)\nI108\na076")
+            self.assertEqual(ws.cell(row=5, column=5).value, "P4 (1, 5)\nI107\na077")
+            self.assertEqual(ws.cell(row=5, column=6).value, "P4 (1, 6)\nI040\na078")
+            self.assertEqual(ws.cell(row=5, column=7).value, "P5 (1, 1)\nI035\na079")
+            self.assertEqual(ws.cell(row=5, column=8).value, "P5 (1, 2)\nI128\na080")
+            self.assertEqual(ws.cell(row=5, column=9).value, "P5 (1, 3)\nI093\na081")
+            self.assertEqual(ws.cell(row=5, column=10).value, "P5 (1, 4)\nI143\na082")
+            self.assertEqual(ws.cell(row=5, column=11).value, "P5 (1, 5)\nI138\na083")
+            self.assertEqual(ws.cell(row=5, column=12).value, "P5 (1, 6)\nI015\na084")
+            self.assertEqual(ws.cell(row=5, column=13).value, "P6 (1, 1)\nI141\na085")
+            self.assertEqual(ws.cell(row=5, column=14).value, "P6 (1, 2)\nI106\na086")
+            self.assertEqual(ws.cell(row=5, column=15).value, "P6 (1, 3)\nI022\na087")
+            self.assertEqual(ws.cell(row=5, column=16).value, "P6 (1, 4)\nI118\na088")
+            self.assertEqual(ws.cell(row=5, column=17).value, "P6 (1, 5)\nI053\na089")
+            self.assertEqual(ws.cell(row=5, column=18).value, "P6 (1, 6)\nI046\na090")
+            self.assertEqual(ws.cell(row=6, column=1).value, "P4 (2, 1)\nI078\na091")
+            self.assertEqual(ws.cell(row=6, column=2).value, "P4 (2, 2)\nI082\na092")
+            self.assertEqual(ws.cell(row=6, column=3).value, "P4 (2, 3)\nI055\na093")
+            self.assertEqual(ws.cell(row=6, column=4).value, "P4 (2, 4)\nI029\na094")
+            self.assertEqual(ws.cell(row=6, column=5).value, "P4 (2, 5)\nI064\na095")
+            self.assertEqual(ws.cell(row=6, column=6).value, "P4 (2, 6)\nI080\na096")
+            self.assertEqual(ws.cell(row=6, column=7).value, "P5 (2, 1)\nI041\na097")
+            self.assertEqual(ws.cell(row=6, column=8).value, "P5 (2, 2)\nI092\na098")
+            self.assertEqual(ws.cell(row=6, column=9).value, "P5 (2, 3)\nI071\na099")
+            self.assertEqual(ws.cell(row=6, column=10).value, "P5 (2, 4)\nI073\na100")
+            self.assertEqual(ws.cell(row=6, column=11).value, "P5 (2, 5)\nI034\na101")
+            self.assertEqual(ws.cell(row=6, column=12).value, "P5 (2, 6)\nI136\na102")
+            self.assertEqual(ws.cell(row=6, column=13).value, "P6 (2, 1)\nI089\na103")
+            self.assertEqual(ws.cell(row=6, column=14).value, "P6 (2, 2)\nI104\na104")
+            self.assertEqual(ws.cell(row=6, column=15).value, "P6 (2, 3)\nI144\na105")
+            self.assertEqual(ws.cell(row=6, column=16).value, "P6 (2, 4)\nI069\na106")
+            self.assertEqual(ws.cell(row=6, column=17).value, "P6 (2, 5)\nI060\na107")
+            self.assertEqual(ws.cell(row=6, column=18).value, "P6 (2, 6)\nI091\na108")
+            self.assertEqual(ws.cell(row=7, column=1).value, "P4 (3, 1)\nI003\na109")
+            self.assertEqual(ws.cell(row=7, column=2).value, "P4 (3, 2)\nI032\na110")
+            self.assertEqual(ws.cell(row=7, column=3).value, "P4 (3, 3)\nI052\na111")
+            self.assertEqual(ws.cell(row=7, column=4).value, "P4 (3, 4)\nI025\na112")
+            self.assertEqual(ws.cell(row=7, column=5).value, "P4 (3, 5)\nI126\na113")
+            self.assertEqual(ws.cell(row=7, column=6).value, "P4 (3, 6)\nI027\na114")
+            self.assertEqual(ws.cell(row=7, column=7).value, "P5 (3, 1)\nI130\na115")
+            self.assertEqual(ws.cell(row=7, column=8).value, "P5 (3, 2)\nI119\na116")
+            self.assertEqual(ws.cell(row=7, column=9).value, "P5 (3, 3)\nI120\na117")
+            self.assertEqual(ws.cell(row=7, column=10).value, "P5 (3, 4)\nI124\na118")
+            self.assertEqual(ws.cell(row=7, column=11).value, "P5 (3, 5)\nI051\na119")
+            self.assertEqual(ws.cell(row=7, column=12).value, "P5 (3, 6)\nI026\na120")
+            self.assertEqual(ws.cell(row=7, column=13).value, "P6 (3, 1)\nI047\na121")
+            self.assertEqual(ws.cell(row=7, column=14).value, "P6 (3, 2)\nI115\na122")
+            self.assertEqual(ws.cell(row=7, column=15).value, "P6 (3, 3)\nI067\na123")
+            self.assertEqual(ws.cell(row=7, column=16).value, "P6 (3, 4)\nI125\na124")
+            self.assertEqual(ws.cell(row=7, column=17).value, "P6 (3, 5)\nI135\na125")
+            self.assertEqual(ws.cell(row=7, column=18).value, "P6 (3, 6)\nI114\na126")
+            self.assertEqual(ws.cell(row=8, column=1).value, "P4 (4, 1)\nI121\na127")
+            self.assertEqual(ws.cell(row=8, column=2).value, "P4 (4, 2)\nI030\na128")
+            self.assertEqual(ws.cell(row=8, column=3).value, "P4 (4, 3)\nI094\na129")
+            self.assertEqual(ws.cell(row=8, column=4).value, "P4 (4, 4)\nI133\na130")
+            self.assertEqual(ws.cell(row=8, column=5).value, "P4 (4, 5)\nI001\na131")
+            self.assertEqual(ws.cell(row=8, column=6).value, "P4 (4, 6)\nI101\na132")
+            self.assertEqual(ws.cell(row=8, column=7).value, "P5 (4, 1)\nI058\na133")
+            self.assertEqual(ws.cell(row=8, column=8).value, "P5 (4, 2)\nI112\na134")
+            self.assertEqual(ws.cell(row=8, column=9).value, "P5 (4, 3)\nI004\na135")
+            self.assertEqual(ws.cell(row=8, column=10).value, "P5 (4, 4)\nI013\na136")
+            self.assertEqual(ws.cell(row=8, column=11).value, "P5 (4, 5)\nI142\na137")
+            self.assertEqual(ws.cell(row=8, column=12).value, "P5 (4, 6)\nI090\na138")
+            self.assertEqual(ws.cell(row=8, column=13).value, "P6 (4, 1)\nI063\na139")
+            self.assertEqual(ws.cell(row=8, column=14).value, "P6 (4, 2)\nI070\na140")
+            self.assertEqual(ws.cell(row=8, column=15).value, "P6 (4, 3)\nI036\na141")
+            self.assertEqual(ws.cell(row=8, column=16).value, "P6 (4, 4)\nI109\na142")
+            self.assertEqual(ws.cell(row=8, column=17).value, "P6 (4, 5)\nI122\na143")
+            self.assertEqual(ws.cell(row=8, column=18).value, "P6 (4, 6)\nI020\na144")
+        elif six.PY3:
+            self.assertEqual(ws.cell(row=1, column=1).value, "P1 (1, 1)\nI096\na001")
+            self.assertEqual(ws.cell(row=1, column=2).value, "P1 (1, 2)\nI129\na002")
+            self.assertEqual(ws.cell(row=1, column=3).value, "P1 (1, 3)\nI027\na003")
+            self.assertEqual(ws.cell(row=1, column=4).value, "P1 (1, 4)\nI021\na004")
+            self.assertEqual(ws.cell(row=1, column=5).value, "P1 (1, 5)\nI085\na005")
+            self.assertEqual(ws.cell(row=1, column=6).value, "P1 (1, 6)\nI060\na006")
+            self.assertEqual(ws.cell(row=1, column=7).value, "P2 (1, 1)\nI104\na007")
+            self.assertEqual(ws.cell(row=1, column=8).value, "P2 (1, 2)\nI082\na008")
+            self.assertEqual(ws.cell(row=1, column=9).value, "P2 (1, 3)\nI120\na009")
+            self.assertEqual(ws.cell(row=1, column=10).value, "P2 (1, 4)\nI107\na010")
+            self.assertEqual(ws.cell(row=1, column=11).value, "P2 (1, 5)\nI058\na011")
+            self.assertEqual(ws.cell(row=1, column=12).value, "P2 (1, 6)\nI010\na012")
+            self.assertEqual(ws.cell(row=1, column=13).value, "P3 (1, 1)\nI006\na013")
+            self.assertEqual(ws.cell(row=1, column=14).value, "P3 (1, 2)\nI133\na014")
+            self.assertEqual(ws.cell(row=1, column=15).value, "P3 (1, 3)\nI080\na015")
+            self.assertEqual(ws.cell(row=1, column=16).value, "P3 (1, 4)\nI122\na016")
+            self.assertEqual(ws.cell(row=1, column=17).value, "P3 (1, 5)\nI061\na017")
+            self.assertEqual(ws.cell(row=1, column=18).value, "P3 (1, 6)\nI077\na018")
+            self.assertEqual(ws.cell(row=2, column=1).value, "P1 (2, 1)\nI073\na019")
+            self.assertEqual(ws.cell(row=2, column=2).value, "P1 (2, 2)\nI143\na020")
+            self.assertEqual(ws.cell(row=2, column=3).value, "P1 (2, 3)\nI078\na021")
+            self.assertEqual(ws.cell(row=2, column=4).value, "P1 (2, 4)\nI099\na022")
+            self.assertEqual(ws.cell(row=2, column=5).value, "P1 (2, 5)\nI112\na023")
+            self.assertEqual(ws.cell(row=2, column=6).value, "P1 (2, 6)\nI018\na024")
+            self.assertEqual(ws.cell(row=2, column=7).value, "P2 (2, 1)\nI022\na025")
+            self.assertEqual(ws.cell(row=2, column=8).value, "P2 (2, 2)\nI009\na026")
+            self.assertEqual(ws.cell(row=2, column=9).value, "P2 (2, 3)\nI036\na027")
+            self.assertEqual(ws.cell(row=2, column=10).value, "P2 (2, 4)\nI075\na028")
+            self.assertEqual(ws.cell(row=2, column=11).value, "P2 (2, 5)\nI019\na029")
+            self.assertEqual(ws.cell(row=2, column=12).value, "P2 (2, 6)\nI110\na030")
+            self.assertEqual(ws.cell(row=2, column=13).value, "P3 (2, 1)\nI074\na031")
+            self.assertEqual(ws.cell(row=2, column=14).value, "P3 (2, 2)\nI106\na032")
+            self.assertEqual(ws.cell(row=2, column=15).value, "P3 (2, 3)\nI053\na033")
+            self.assertEqual(ws.cell(row=2, column=16).value, "P3 (2, 4)\nI044\na034")
+            self.assertEqual(ws.cell(row=2, column=17).value, "P3 (2, 5)\nI079\na035")
+            self.assertEqual(ws.cell(row=2, column=18).value, "P3 (2, 6)\nI144\na036")
+            self.assertEqual(ws.cell(row=3, column=1).value, "P1 (3, 1)\nI089\na037")
+            self.assertEqual(ws.cell(row=3, column=2).value, "P1 (3, 2)\nI130\na038")
+            self.assertEqual(ws.cell(row=3, column=3).value, "P1 (3, 3)\nI015\na039")
+            self.assertEqual(ws.cell(row=3, column=4).value, "P1 (3, 4)\nI091\na040")
+            self.assertEqual(ws.cell(row=3, column=5).value, "P1 (3, 5)\nI063\na041")
+            self.assertEqual(ws.cell(row=3, column=6).value, "P1 (3, 6)\nI095\na042")
+            self.assertEqual(ws.cell(row=3, column=7).value, "P2 (3, 1)\nI042\na043")
+            self.assertEqual(ws.cell(row=3, column=8).value, "P2 (3, 2)\nI056\na044")
+            self.assertEqual(ws.cell(row=3, column=9).value, "P2 (3, 3)\nI142\na045")
+            self.assertEqual(ws.cell(row=3, column=10).value, "P2 (3, 4)\nI086\na046")
+            self.assertEqual(ws.cell(row=3, column=11).value, "P2 (3, 5)\nI040\na047")
+            self.assertEqual(ws.cell(row=3, column=12).value, "P2 (3, 6)\nI046\na048")
+            self.assertEqual(ws.cell(row=3, column=13).value, "P3 (3, 1)\nI020\na049")
+            self.assertEqual(ws.cell(row=3, column=14).value, "P3 (3, 2)\nI108\na050")
+            self.assertEqual(ws.cell(row=3, column=15).value, "P3 (3, 3)\nI141\na051")
+            self.assertEqual(ws.cell(row=3, column=16).value, "P3 (3, 4)\nI114\na052")
+            self.assertEqual(ws.cell(row=3, column=17).value, "P3 (3, 5)\nI067\na053")
+            self.assertEqual(ws.cell(row=3, column=18).value, "P3 (3, 6)\nI101\na054")
+            self.assertEqual(ws.cell(row=4, column=1).value, "P1 (4, 1)\nI131\na055")
+            self.assertEqual(ws.cell(row=4, column=2).value, "P1 (4, 2)\nI026\na056")
+            self.assertEqual(ws.cell(row=4, column=3).value, "P1 (4, 3)\nI128\na057")
+            self.assertEqual(ws.cell(row=4, column=4).value, "P1 (4, 4)\nI034\na058")
+            self.assertEqual(ws.cell(row=4, column=5).value, "P1 (4, 5)\nI011\na059")
+            self.assertEqual(ws.cell(row=4, column=6).value, "P1 (4, 6)\nI050\na060")
+            self.assertEqual(ws.cell(row=4, column=7).value, "P2 (4, 1)\nI007\na061")
+            self.assertEqual(ws.cell(row=4, column=8).value, "P2 (4, 2)\nI033\na062")
+            self.assertEqual(ws.cell(row=4, column=9).value, "P2 (4, 3)\nI123\na063")
+            self.assertEqual(ws.cell(row=4, column=10).value, "P2 (4, 4)\nI126\na064")
+            self.assertEqual(ws.cell(row=4, column=11).value, "P2 (4, 5)\nI012\na065")
+            self.assertEqual(ws.cell(row=4, column=12).value, "P2 (4, 6)\nI048\na066")
+            self.assertEqual(ws.cell(row=4, column=13).value, "P3 (4, 1)\nI047\na067")
+            self.assertEqual(ws.cell(row=4, column=14).value, "P3 (4, 2)\nI023\na068")
+            self.assertEqual(ws.cell(row=4, column=15).value, "P3 (4, 3)\nI092\na069")
+            self.assertEqual(ws.cell(row=4, column=16).value, "P3 (4, 4)\nI052\na070")
+            self.assertEqual(ws.cell(row=4, column=17).value, "P3 (4, 5)\nI032\na071")
+            self.assertEqual(ws.cell(row=4, column=18).value, "P3 (4, 6)\nI062\na072")
+            self.assertEqual(ws.cell(row=5, column=1).value, "P4 (1, 1)\nI005\na073")
+            self.assertEqual(ws.cell(row=5, column=2).value, "P4 (1, 2)\nI051\na074")
+            self.assertEqual(ws.cell(row=5, column=3).value, "P4 (1, 3)\nI097\na075")
+            self.assertEqual(ws.cell(row=5, column=4).value, "P4 (1, 4)\nI102\na076")
+            self.assertEqual(ws.cell(row=5, column=5).value, "P4 (1, 5)\nI124\na077")
+            self.assertEqual(ws.cell(row=5, column=6).value, "P4 (1, 6)\nI037\na078")
+            self.assertEqual(ws.cell(row=5, column=7).value, "P5 (1, 1)\nI039\na079")
+            self.assertEqual(ws.cell(row=5, column=8).value, "P5 (1, 2)\nI135\na080")
+            self.assertEqual(ws.cell(row=5, column=9).value, "P5 (1, 3)\nI090\na081")
+            self.assertEqual(ws.cell(row=5, column=10).value, "P5 (1, 4)\nI109\na082")
+            self.assertEqual(ws.cell(row=5, column=11).value, "P5 (1, 5)\nI065\na083")
+            self.assertEqual(ws.cell(row=5, column=12).value, "P5 (1, 6)\nI043\na084")
+            self.assertEqual(ws.cell(row=5, column=13).value, "P6 (1, 1)\nI016\na085")
+            self.assertEqual(ws.cell(row=5, column=14).value, "P6 (1, 2)\nI094\na086")
+            self.assertEqual(ws.cell(row=5, column=15).value, "P6 (1, 3)\nI081\na087")
+            self.assertEqual(ws.cell(row=5, column=16).value, "P6 (1, 4)\nI024\na088")
+            self.assertEqual(ws.cell(row=5, column=17).value, "P6 (1, 5)\nI013\na089")
+            self.assertEqual(ws.cell(row=5, column=18).value, "P6 (1, 6)\nI083\na090")
+            self.assertEqual(ws.cell(row=6, column=1).value, "P4 (2, 1)\nI072\na091")
+            self.assertEqual(ws.cell(row=6, column=2).value, "P4 (2, 2)\nI136\na092")
+            self.assertEqual(ws.cell(row=6, column=3).value, "P4 (2, 3)\nI118\na093")
+            self.assertEqual(ws.cell(row=6, column=4).value, "P4 (2, 4)\nI038\na094")
+            self.assertEqual(ws.cell(row=6, column=5).value, "P4 (2, 5)\nI059\na095")
+            self.assertEqual(ws.cell(row=6, column=6).value, "P4 (2, 6)\nI105\na096")
+            self.assertEqual(ws.cell(row=6, column=7).value, "P5 (2, 1)\nI087\na097")
+            self.assertEqual(ws.cell(row=6, column=8).value, "P5 (2, 2)\nI132\na098")
+            self.assertEqual(ws.cell(row=6, column=9).value, "P5 (2, 3)\nI045\na099")
+            self.assertEqual(ws.cell(row=6, column=10).value, "P5 (2, 4)\nI134\na100")
+            self.assertEqual(ws.cell(row=6, column=11).value, "P5 (2, 5)\nI071\na101")
+            self.assertEqual(ws.cell(row=6, column=12).value, "P5 (2, 6)\nI064\na102")
+            self.assertEqual(ws.cell(row=6, column=13).value, "P6 (2, 1)\nI057\na103")
+            self.assertEqual(ws.cell(row=6, column=14).value, "P6 (2, 2)\nI137\na104")
+            self.assertEqual(ws.cell(row=6, column=15).value, "P6 (2, 3)\nI029\na105")
+            self.assertEqual(ws.cell(row=6, column=16).value, "P6 (2, 4)\nI068\na106")
+            self.assertEqual(ws.cell(row=6, column=17).value, "P6 (2, 5)\nI117\na107")
+            self.assertEqual(ws.cell(row=6, column=18).value, "P6 (2, 6)\nI140\na108")
+            self.assertEqual(ws.cell(row=7, column=1).value, "P4 (3, 1)\nI055\na109")
+            self.assertEqual(ws.cell(row=7, column=2).value, "P4 (3, 2)\nI028\na110")
+            self.assertEqual(ws.cell(row=7, column=3).value, "P4 (3, 3)\nI088\na111")
+            self.assertEqual(ws.cell(row=7, column=4).value, "P4 (3, 4)\nI049\na112")
+            self.assertEqual(ws.cell(row=7, column=5).value, "P4 (3, 5)\nI113\na113")
+            self.assertEqual(ws.cell(row=7, column=6).value, "P4 (3, 6)\nI002\na114")
+            self.assertEqual(ws.cell(row=7, column=7).value, "P5 (3, 1)\nI070\na115")
+            self.assertEqual(ws.cell(row=7, column=8).value, "P5 (3, 2)\nI084\na116")
+            self.assertEqual(ws.cell(row=7, column=9).value, "P5 (3, 3)\nI119\na117")
+            self.assertEqual(ws.cell(row=7, column=10).value, "P5 (3, 4)\nI003\na118")
+            self.assertEqual(ws.cell(row=7, column=11).value, "P5 (3, 5)\nI004\na119")
+            self.assertEqual(ws.cell(row=7, column=12).value, "P5 (3, 6)\nI041\na120")
+            self.assertEqual(ws.cell(row=7, column=13).value, "P6 (3, 1)\nI139\na121")
+            self.assertEqual(ws.cell(row=7, column=14).value, "P6 (3, 2)\nI014\na122")
+            self.assertEqual(ws.cell(row=7, column=15).value, "P6 (3, 3)\nI138\na123")
+            self.assertEqual(ws.cell(row=7, column=16).value, "P6 (3, 4)\nI076\na124")
+            self.assertEqual(ws.cell(row=7, column=17).value, "P6 (3, 5)\nI030\na125")
+            self.assertEqual(ws.cell(row=7, column=18).value, "P6 (3, 6)\nI103\na126")
+            self.assertEqual(ws.cell(row=8, column=1).value, "P4 (4, 1)\nI093\na127")
+            self.assertEqual(ws.cell(row=8, column=2).value, "P4 (4, 2)\nI069\na128")
+            self.assertEqual(ws.cell(row=8, column=3).value, "P4 (4, 3)\nI115\na129")
+            self.assertEqual(ws.cell(row=8, column=4).value, "P4 (4, 4)\nI001\na130")
+            self.assertEqual(ws.cell(row=8, column=5).value, "P4 (4, 5)\nI111\na131")
+            self.assertEqual(ws.cell(row=8, column=6).value, "P4 (4, 6)\nI100\na132")
+            self.assertEqual(ws.cell(row=8, column=7).value, "P5 (4, 1)\nI008\na133")
+            self.assertEqual(ws.cell(row=8, column=8).value, "P5 (4, 2)\nI125\na134")
+            self.assertEqual(ws.cell(row=8, column=9).value, "P5 (4, 3)\nI025\na135")
+            self.assertEqual(ws.cell(row=8, column=10).value, "P5 (4, 4)\nI054\na136")
+            self.assertEqual(ws.cell(row=8, column=11).value, "P5 (4, 5)\nI098\na137")
+            self.assertEqual(ws.cell(row=8, column=12).value, "P5 (4, 6)\nI121\na138")
+            self.assertEqual(ws.cell(row=8, column=13).value, "P6 (4, 1)\nI116\na139")
+            self.assertEqual(ws.cell(row=8, column=14).value, "P6 (4, 2)\nI127\na140")
+            self.assertEqual(ws.cell(row=8, column=15).value, "P6 (4, 3)\nI031\na141")
+            self.assertEqual(ws.cell(row=8, column=16).value, "P6 (4, 4)\nI066\na142")
+            self.assertEqual(ws.cell(row=8, column=17).value, "P6 (4, 5)\nI017\na143")
+            self.assertEqual(ws.cell(row=8, column=18).value, "P6 (4, 6)\nI035\na144")
         self.assertEqual(ws.cell(row=10, column=1).value,
                          u"Add 5.00µL of IPTG to each well.")
         self.assertEqual(ws.cell(row=11, column=1).value,
@@ -5682,7 +5961,7 @@ class TestPlateArray(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Inducers for Plate Array A1"])
         # Check inducer inoculation instructions
-        ws = wb.get_sheet_by_name("Inducers for Plate Array A1")
+        ws = wb["Inducers for Plate Array A1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "P1 (1, 1)")
         self.assertEqual(ws.cell(row=1, column=2).value, "P1 (1, 2)")
         self.assertEqual(ws.cell(row=1, column=3).value, "P1 (1, 3)")
@@ -5862,7 +6141,7 @@ class TestPlateArray(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Inducers for Plate Array A1"])
         # Check inducer inoculation instructions
-        ws = wb.get_sheet_by_name("Inducers for Plate Array A1")
+        ws = wb["Inducers for Plate Array A1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "P1 (1, 1)")
         self.assertEqual(ws.cell(row=1, column=2).value, "P1 (1, 2)")
         self.assertEqual(ws.cell(row=1, column=3).value, "P1 (1, 3)")
@@ -6061,7 +6340,7 @@ class TestPlateArray(unittest.TestCase):
         # Spreadsheet should contain one sheet
         self.assertEqual(wb.sheetnames, ["Inducers for Plate Array A1"])
         # Check inducer inoculation instructions
-        ws = wb.get_sheet_by_name("Inducers for Plate Array A1")
+        ws = wb["Inducers for Plate Array A1"]
         self.assertEqual(ws.cell(row=1, column=1).value, None)
         self.assertEqual(ws.cell(row=1, column=2).value, "I001")
         self.assertEqual(ws.cell(row=1, column=3).value, "I002")
@@ -6298,7 +6577,7 @@ class TestPlateArray(unittest.TestCase):
         # Check that sheet exists in spreadsheet
         self.assertTrue("Inducers for Plate Array A1" in wb.sheetnames)
         # Check inducer inoculation instructions
-        ws = wb.get_sheet_by_name("Inducers for Plate Array A1")
+        ws = wb["Inducers for Plate Array A1"]
         self.assertEqual(ws.cell(row=1, column=1).value, None)
         self.assertEqual(ws.cell(row=1, column=2).value, "I001")
         self.assertEqual(ws.cell(row=1, column=3).value, "I002")
@@ -6482,7 +6761,7 @@ class TestPlateArray(unittest.TestCase):
         # Check that sheet exists in spreadsheet
         self.assertTrue("Cells for Plate Array A1" in wb.sheetnames)
         # Check cell inoculation instructions
-        ws = wb.get_sheet_by_name("Cells for Plate Array A1")
+        ws = wb["Cells for Plate Array A1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
         self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
         self.assertTrue('A2:C2' in ws.merged_cell_ranges)
@@ -6505,7 +6784,7 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=8, column=2).value, 1e-5)
         self.assertEqual(ws.cell(row=8, column=3).value, None)
         self.assertEqual(ws.cell(row=9, column=1).value, "Predilution volume")
-        self.assertEqual(ws.cell(row=9, column=2).value, "=0.8/B6")
+        test_excel_division_formula(self, ws.cell(row=9, column=2).value, 0.8, "B6")
         self.assertEqual(ws.cell(row=9, column=3).value, u"µL")
         self.assertEqual(ws.cell(row=10, column=1).value, "Add into 80.00mL "
             "media, and distribute into plate wells.")
@@ -6565,7 +6844,7 @@ class TestPlateArray(unittest.TestCase):
         # Check that sheet exists in spreadsheet
         self.assertTrue("Inducers for Plate Array A1" in wb.sheetnames)
         # Check inducer inoculation instructions
-        ws = wb.get_sheet_by_name("Inducers for Plate Array A1")
+        ws = wb["Inducers for Plate Array A1"]
         self.assertEqual(ws.cell(row=1, column=1).value, '')
         self.assertEqual(ws.cell(row=1, column=2).value, "I001")
         self.assertEqual(ws.cell(row=1, column=3).value, "I002")
@@ -6749,7 +7028,7 @@ class TestPlateArray(unittest.TestCase):
         # Check that sheet exists in spreadsheet
         self.assertTrue("Cells for Plate Array A1" in wb.sheetnames)
         # Check cell inoculation instructions
-        ws = wb.get_sheet_by_name("Cells for Plate Array A1")
+        ws = wb["Cells for Plate Array A1"]
         self.assertEqual(ws.cell(row=1, column=1).value, "Strain Name")
         self.assertEqual(ws.cell(row=1, column=2).value, "Test strain 1")
         self.assertTrue('A2:C2' in ws.merged_cell_ranges)
@@ -6772,7 +7051,7 @@ class TestPlateArray(unittest.TestCase):
         self.assertEqual(ws.cell(row=8, column=2).value, 1e-5)
         self.assertEqual(ws.cell(row=8, column=3).value, None)
         self.assertEqual(ws.cell(row=9, column=1).value, "Predilution volume")
-        self.assertEqual(ws.cell(row=9, column=2).value, "=0.8/B6")
+        test_excel_division_formula(self, ws.cell(row=9, column=2).value, 0.8, "B6")
         self.assertEqual(ws.cell(row=9, column=3).value, u"µL")
         self.assertEqual(ws.cell(row=10, column=1).value, "Add into 80.00mL "
             "media, and distribute into plate wells.")
@@ -6952,9 +7231,10 @@ class TestPlateArray(unittest.TestCase):
                                       'Mercury thermometer 3',
                                       ]
         # Call close plates and check length of output
-        self.assertRaisesRegexp(ValueError,
-                                "3 resources of type Incubator specified, should be 6",
-                                p.close_plates,)
+        six.assertRaisesRegex(self,
+                              ValueError,
+                              "3 resources of type Incubator specified, should be 6",
+                              p.close_plates,)
 
     def test_close_plates_metadata(self):
         # Create plate
@@ -7448,12 +7728,20 @@ class TestPlateArray(unittest.TestCase):
             self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
 
         # Check well info
+        # Shuffling results are different in python 2 and 3
         well_info_1 = pandas.DataFrame()
-        well_info_1[u'IPTG Concentration (µM)'] = \
-            [14., 18., 20., 4., 13., 7.,
-             14., 18., 20., 4., 13., 7.,
-             14., 18., 20., 4., 13., 7.,
-             14., 18., 20., 4., 13., 7.,]
+        if six.PY2:
+            well_info_1[u'IPTG Concentration (µM)'] = \
+                [14., 18., 20., 4., 13., 7.,
+                 14., 18., 20., 4., 13., 7.,
+                 14., 18., 20., 4., 13., 7.,
+                 14., 18., 20., 4., 13., 7.,]
+        elif six.PY3:
+            well_info_1[u'IPTG Concentration (µM)'] = \
+                [13., 8., 19., 20., 12., 3.,
+                 13., 8., 19., 20., 12., 3.,
+                 13., 8., 19., 20., 12., 3.,
+                 13., 8., 19., 20., 12., 3.,]
         well_info_1[u'aTc Concentration (ng/µL)'] = \
             [0.1, 0.2, 0.3, 0.4, 0.5, 0.6,
              0.1, 0.2, 0.3, 0.4, 0.5, 0.6,
@@ -7462,11 +7750,18 @@ class TestPlateArray(unittest.TestCase):
         well_info_1['Measure'] = [True]*24
 
         well_info_2 = pandas.DataFrame()
-        well_info_2[u'IPTG Concentration (µM)'] = \
-            [19., 16., 12., 3., 11., 10.,
-             19., 16., 12., 3., 11., 10.,
-             19., 16., 12., 3., 11., 10.,
-             19., 16., 12., 3., 11., 10.,]
+        if six.PY2:
+            well_info_2[u'IPTG Concentration (µM)'] = \
+                [19., 16., 12., 3., 11., 10.,
+                 19., 16., 12., 3., 11., 10.,
+                 19., 16., 12., 3., 11., 10.,
+                 19., 16., 12., 3., 11., 10.,]
+        elif six.PY3:
+            well_info_2[u'IPTG Concentration (µM)'] = \
+                [18., 17., 6., 9., 14., 16.,
+                 18., 17., 6., 9., 14., 16.,
+                 18., 17., 6., 9., 14., 16.,
+                 18., 17., 6., 9., 14., 16.,]
         well_info_2[u'aTc Concentration (ng/µL)'] = \
             [0.7, 0.8, 0.9, 1.0, 1.1, 1.2,
              0.7, 0.8, 0.9, 1.0, 1.1, 1.2,
@@ -7475,11 +7770,18 @@ class TestPlateArray(unittest.TestCase):
         well_info_2['Measure'] = [True]*24
 
         well_info_3 = pandas.DataFrame()
-        well_info_3[u'IPTG Concentration (µM)'] = \
-            [8., 9., 6., 15., 17., 5.,
-             8., 9., 6., 15., 17., 5.,
-             8., 9., 6., 15., 17., 5.,
-             8., 9., 6., 15., 17., 5.,]
+        if six.PY2:
+            well_info_3[u'IPTG Concentration (µM)'] = \
+                [8., 9., 6., 15., 17., 5.,
+                 8., 9., 6., 15., 17., 5.,
+                 8., 9., 6., 15., 17., 5.,
+                 8., 9., 6., 15., 17., 5.,]
+        elif six.PY3:
+            well_info_3[u'IPTG Concentration (µM)'] = \
+                [15., 10., 4., 11., 5., 7.,
+                 15., 10., 4., 11., 5., 7.,
+                 15., 10., 4., 11., 5., 7.,
+                 15., 10., 4., 11., 5., 7.,]
         well_info_3[u'aTc Concentration (ng/µL)'] = \
             [1.3, 1.4, 1.5, 1.6, 1.7, 1.8,
              1.3, 1.4, 1.5, 1.6, 1.7, 1.8,
@@ -7678,12 +7980,20 @@ class TestPlateArray(unittest.TestCase):
             self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
 
         # Check well info
+        # Shuffling results are different in python 2 and 3
         well_info_1 = pandas.DataFrame()
-        well_info_1[u'IPTG Concentration (µM)'] = \
-            [3., 3., 3., 3., 3., 3.,
-             5., 5., 5., 5., 5., 5.,
-             6., 6., 6., 6., 6., 6.,
-             9., 9., 9., 9., 9., 9.,]
+        if six.PY2:
+            well_info_1[u'IPTG Concentration (µM)'] = \
+                [3., 3., 3., 3., 3., 3.,
+                 5., 5., 5., 5., 5., 5.,
+                 6., 6., 6., 6., 6., 6.,
+                 9., 9., 9., 9., 9., 9.,]
+        elif six.PY3:
+            well_info_1[u'IPTG Concentration (µM)'] = \
+                [6., 6., 6., 6., 6., 6.,
+                 9., 9., 9., 9., 9., 9.,
+                 4., 4., 4., 4., 4., 4.,
+                 8., 8., 8., 8., 8., 8.,]
         well_info_1[u'aTc Concentration (ng/µL)'] = \
             [0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
              0.2, 0.2, 0.2, 0.2, 0.2, 0.2,
@@ -7692,11 +8002,18 @@ class TestPlateArray(unittest.TestCase):
         well_info_1['Measure'] = [True]*24
 
         well_info_2 = pandas.DataFrame()
-        well_info_2[u'IPTG Concentration (µM)'] = \
-            [10., 10., 10., 10., 10., 10.,
-              7., 7., 7., 7., 7., 7.,
-              8., 8., 8., 8., 8., 8.,
-              4., 4., 4., 4., 4., 4.,]
+        if six.PY2:
+            well_info_2[u'IPTG Concentration (µM)'] = \
+                [10., 10., 10., 10., 10., 10.,
+                  7., 7., 7., 7., 7., 7.,
+                  8., 8., 8., 8., 8., 8.,
+                  4., 4., 4., 4., 4., 4.,]
+        elif six.PY3:
+            well_info_2[u'IPTG Concentration (µM)'] = \
+                [10., 10., 10., 10., 10., 10.,
+                  3., 3., 3., 3., 3., 3.,
+                  7., 7., 7., 7., 7., 7.,
+                  5., 5., 5., 5., 5., 5.,]
         well_info_2[u'aTc Concentration (ng/µL)'] = \
             [0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
              0.6, 0.6, 0.6, 0.6, 0.6, 0.6,
@@ -7977,12 +8294,20 @@ class TestPlateArray(unittest.TestCase):
             self.assertEqual(cp.plate_info['Strain'], 'Test strain 1')
 
         # Check well info
+        # Shuffling results are different in python 2 and 3
         well_info_1 = pandas.DataFrame()
-        well_info_1[u'IPTG Concentration (µM)'] = \
-            [  20.,  118.,   83.,   51.,   64.,   61.,
-               25.,  112.,    4.,   63.,   87.,    9.,
-              104.,   16.,   21.,   23.,   11.,   26.,
-               79.,   18.,   70.,  141.,   59.,   33.]
+        if six.PY2:
+            well_info_1[u'IPTG Concentration (µM)'] = \
+                [  20.,  118.,   83.,   51.,   64.,   61.,
+                   25.,  112.,    4.,   63.,   87.,    9.,
+                  104.,   16.,   21.,   23.,   11.,   26.,
+                   79.,   18.,   70.,  141.,   59.,   33.]
+        elif six.PY3:
+            well_info_1[u'IPTG Concentration (µM)'] = \
+                [ 98.0, 131.0,  29.0,  23.0,  87.0,  62.0,
+                  75.0, 145.0,  80.0, 101.0, 114.0,  20.0,
+                  91.0, 132.0,  17.0,  93.0,  65.0,  97.0,
+                 133.0,  28.0, 130.0,  36.0,  13.0,  52.0]
         well_info_1[u'aTc Concentration (ng/µL)'] = \
             [ 0.1,  0.2,  0.3,  0.4,  0.5,  0.6,
               1.9,  2. ,  2.1,  2.2,  2.3,  2.4,
@@ -7991,11 +8316,18 @@ class TestPlateArray(unittest.TestCase):
         well_info_1['Measure'] = [True]*24
 
         well_info_2 = pandas.DataFrame()
-        well_info_2[u'IPTG Concentration (µM)'] = \
-            [  74.,   13.,   46.,  125.,   77.,   35.,
-               85.,  100.,   81.,  129.,   19.,    8.,
-               40.,  102.,  107.,  119.,  136.,   41.,
-               86.,   56.,   68.,  101.,   97.,  134.]
+        if six.PY2:
+            well_info_2[u'IPTG Concentration (µM)'] = \
+                [  74.,   13.,   46.,  125.,   77.,   35.,
+                   85.,  100.,   81.,  129.,   19.,    8.,
+                   40.,  102.,  107.,  119.,  136.,   41.,
+                   86.,   56.,   68.,  101.,   97.,  134.]
+        elif six.PY3:
+            well_info_2[u'IPTG Concentration (µM)'] = \
+                [106.0,  84.0, 122.0, 109.0,  60.0,  12.0,
+                  24.0,  11.0,  38.0,  77.0,  21.0, 112.0,
+                  44.0,  58.0, 144.0,  88.0,  42.0,  48.0,
+                   9.0,  35.0, 125.0, 128.0,  14.0,  50.0]
         well_info_2[u'aTc Concentration (ng/µL)'] = \
             [ 0.7,  0.8,  0.9,  1. ,  1.1,  1.2,
               2.5,  2.6,  2.7,  2.8,  2.9,  3. ,
@@ -8004,11 +8336,18 @@ class TestPlateArray(unittest.TestCase):
         well_info_2['Measure'] = [True]*24
 
         well_info_3 = pandas.DataFrame()
-        well_info_3[u'IPTG Concentration (µM)'] = \
-            [  50.,  131.,   12.,   30.,    7.,   45.,
-               10.,  105.,   58.,   78.,   89.,   67.,
-               76.,   47.,   44.,  142.,  133.,  113.,
-               14.,  115.,   99.,   88.,   52.,   90.]
+        if six.PY2:
+            well_info_3[u'IPTG Concentration (µM)'] = \
+                [  50.,  131.,   12.,   30.,    7.,   45.,
+                   10.,  105.,   58.,   78.,   89.,   67.,
+                   76.,   47.,   44.,  142.,  133.,  113.,
+                   14.,  115.,   99.,   88.,   52.,   90.]
+        elif six.PY3:
+            well_info_3[u'IPTG Concentration (µM)'] = \
+                [  8.0, 135.0,  82.0, 124.0,  63.0,  79.0,
+                  76.0, 108.0,  55.0,  46.0,  81.0, 146.0,
+                  22.0, 110.0, 143.0, 116.0,  69.0, 103.0,
+                  49.0,  25.0,  94.0,  54.0,  34.0,  64.0]
         well_info_3[u'aTc Concentration (ng/µL)'] = \
             [ 1.3,  1.4,  1.5,  1.6,  1.7,  1.8,
               3.1,  3.2,  3.3,  3.4,  3.5,  3.6,
@@ -8017,11 +8356,18 @@ class TestPlateArray(unittest.TestCase):
         well_info_3['Measure'] = [True]*24
 
         well_info_4 = pandas.DataFrame()
-        well_info_4[u'IPTG Concentration (µM)'] = \
-            [ 139.,   39.,   98.,  110.,  109.,   42.,
-               80.,   84.,   57.,   31.,   66.,   82.,
-                5.,   34.,   54.,   27.,  128.,   29.,
-              123.,   32.,   96.,  135.,    3.,  103.]
+        if six.PY2:
+            well_info_4[u'IPTG Concentration (µM)'] = \
+                [ 139.,   39.,   98.,  110.,  109.,   42.,
+                   80.,   84.,   57.,   31.,   66.,   82.,
+                    5.,   34.,   54.,   27.,  128.,   29.,
+                  123.,   32.,   96.,  135.,    3.,  103.]
+        elif six.PY3:
+            well_info_4[u'IPTG Concentration (µM)'] = \
+                [  7.0,  53.0,  99.0, 104.0, 126.0,  39.0,
+                  74.0, 138.0, 120.0,  40.0,  61.0, 107.0,
+                  57.0,  30.0,  90.0,  51.0, 115.0,   4.0,
+                  95.0,  71.0, 117.0,   3.0, 113.0, 102.0]
         well_info_4[u'aTc Concentration (ng/µL)'] = \
             [  7.3,   7.4,   7.5,   7.6,   7.7,   7.8,
                9.1,   9.2,   9.3,   9.4,   9.5,   9.6,
@@ -8030,11 +8376,18 @@ class TestPlateArray(unittest.TestCase):
         well_info_4['Measure'] = [True]*24
 
         well_info_5 = pandas.DataFrame()
-        well_info_5[u'IPTG Concentration (µM)'] = \
-            [  37.,  130.,   95.,  145.,  140.,   17.,
-               43.,   94.,   73.,   75.,   36.,  138.,
-              132.,  121.,  122.,  126.,   53.,   28.,
-               60.,  114.,    6.,   15.,  144.,   92.]
+        if six.PY2:
+            well_info_5[u'IPTG Concentration (µM)'] = \
+                [  37.,  130.,   95.,  145.,  140.,   17.,
+                   43.,   94.,   73.,   75.,   36.,  138.,
+                  132.,  121.,  122.,  126.,   53.,   28.,
+                   60.,  114.,    6.,   15.,  144.,   92.]
+        elif six.PY3:
+            well_info_5[u'IPTG Concentration (µM)'] = \
+                [ 41.0, 137.0,  92.0, 111.0,  67.0,  45.0,
+                  89.0, 134.0,  47.0, 136.0,  73.0,  66.0,
+                  72.0,  86.0, 121.0,   5.0,   6.0,  43.0,
+                  10.0, 127.0,  27.0,  56.0, 100.0, 123.0]
         well_info_5[u'aTc Concentration (ng/µL)'] = \
             [  7.9,   8. ,   8.1,   8.2,   8.3,   8.4,
                9.7,   9.8,   9.9,  10. ,  10.1,  10.2,
@@ -8043,11 +8396,18 @@ class TestPlateArray(unittest.TestCase):
         well_info_5['Measure'] = [True]*24
 
         well_info_6 = pandas.DataFrame()
-        well_info_6[u'IPTG Concentration (µM)'] = \
-            [ 143.,  108.,   24.,  120.,   55.,   48.,
-               91.,  106.,  146.,   71.,   62.,   93.,
-               49.,  117.,   69.,  127.,  137.,  116.,
-               65.,   72.,   38.,  111.,  124.,   22.]
+        if six.PY2:
+            well_info_6[u'IPTG Concentration (µM)'] = \
+                [ 143.,  108.,   24.,  120.,   55.,   48.,
+                   91.,  106.,  146.,   71.,   62.,   93.,
+                   49.,  117.,   69.,  127.,  137.,  116.,
+                   65.,   72.,   38.,  111.,  124.,   22.]
+        elif six.PY3:
+            well_info_6[u'IPTG Concentration (µM)'] = \
+                [ 18.0,  96.0,  83.0,  26.0,  15.0,  85.0,
+                  59.0, 139.0,  31.0,  70.0, 119.0, 142.0,
+                 141.0,  16.0, 140.0,  78.0,  32.0, 105.0,
+                 118.0, 129.0,  33.0,  68.0,  19.0,  37.0]
         well_info_6[u'aTc Concentration (ng/µL)'] = \
             [  8.5,   8.6,   8.7,   8.8,   8.9,   9. ,
               10.3,  10.4,  10.5,  10.6,  10.7,  10.8,

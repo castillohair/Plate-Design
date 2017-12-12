@@ -7,6 +7,7 @@ Unit tests for inducer classes
 import itertools
 import os
 import random
+import six
 import shutil
 import unittest
 
@@ -55,12 +56,21 @@ class TestInducerBase(unittest.TestCase):
         pandas.testing.assert_frame_equal(
             ind._doses_table,
             pandas.DataFrame({'Concentration': numpy.arange(10)}))
-        pandas.testing.assert_frame_equal(
-            ind.doses_table,
-            pandas.DataFrame(
-                {'Concentration': numpy.array(
-                    [8, 0, 3, 4, 5, 2, 9, 6, 7, 1])},
-                index=[8, 0, 3, 4, 5, 2, 9, 6, 7, 1]))
+        # Results of shuffling vary in python 2 and 3
+        if six.PY2:
+            pandas.testing.assert_frame_equal(
+                ind.doses_table,
+                pandas.DataFrame(
+                    {'Concentration': numpy.array(
+                        [8, 0, 3, 4, 5, 2, 9, 6, 7, 1])},
+                    index=[8, 0, 3, 4, 5, 2, 9, 6, 7, 1]))
+        elif six.PY3:
+            pandas.testing.assert_frame_equal(
+                ind.doses_table,
+                pandas.DataFrame(
+                    {'Concentration': numpy.array(
+                        [6, 8, 9, 7, 5, 3, 0, 4, 1, 2])},
+                    index=[6, 8, 9, 7, 5, 3, 0, 4, 1, 2]))
 
     def test_shuffle_disabled(self):
         ind = platedesign.inducer.InducerBase('Inducer', 'M')
@@ -89,12 +99,21 @@ class TestInducerBase(unittest.TestCase):
         pandas.testing.assert_frame_equal(
             ind._doses_table,
             pandas.DataFrame({'Concentration': numpy.arange(10)}))
-        pandas.testing.assert_frame_equal(
-            ind.doses_table,
-            pandas.DataFrame(
-                {'Concentration': numpy.array(
-                    [8, 0, 3, 4, 5, 2, 9, 6, 7, 1])},
-                index=[8, 0, 3, 4, 5, 2, 9, 6, 7, 1]))
+        # Results of shuffling vary in python 2 and 3
+        if six.PY2:
+            pandas.testing.assert_frame_equal(
+                ind.doses_table,
+                pandas.DataFrame(
+                    {'Concentration': numpy.array(
+                        [8, 0, 3, 4, 5, 2, 9, 6, 7, 1])},
+                    index=[8, 0, 3, 4, 5, 2, 9, 6, 7, 1]))
+        elif six.PY3:
+            pandas.testing.assert_frame_equal(
+                ind.doses_table,
+                pandas.DataFrame(
+                    {'Concentration': numpy.array(
+                        [6, 8, 9, 7, 5, 3, 0, 4, 1, 2])},
+                    index=[6, 8, 9, 7, 5, 3, 0, 4, 1, 2]))
         # Unshuffle
         ind.unshuffle()
         # Test
@@ -172,7 +191,11 @@ class TestInducerBase(unittest.TestCase):
         iptg.shuffle()
         # The following indices give the correct shuffled concentrations array
         # after setting the random seed to one.
-        shuffling_ind = [8, 0, 3, 4, 5, 2, 9, 6, 7, 1]
+        # Results of shuffling vary in python 2 and 3
+        if six.PY2:
+            shuffling_ind = [8, 0, 3, 4, 5, 2, 9, 6, 7, 1]
+        elif six.PY3:
+            shuffling_ind = [6, 8, 9, 7, 5, 3, 0, 4, 1, 2]
         # Check doses table in iptg
         doses_table_iptg = pandas.DataFrame({'Concentration': numpy.arange(10)})
         pandas.testing.assert_frame_equal(
@@ -208,7 +231,11 @@ class TestInducerBase(unittest.TestCase):
         atc.shuffle()
         # The following indices give the correct shuffled concentrations array
         # after setting the random seed to one.
-        shuffling_ind = [8, 0, 3, 4, 5, 2, 9, 6, 7, 1]
+        # Results of shuffling vary in python 2 and 3
+        if six.PY2:
+            shuffling_ind = [8, 0, 3, 4, 5, 2, 9, 6, 7, 1]
+        elif six.PY3:
+            shuffling_ind = [6, 8, 9, 7, 5, 3, 0, 4, 1, 2]
         # Check doses table in iptg
         doses_table_iptg = pandas.DataFrame({'Concentration': numpy.arange(10)})
         pandas.testing.assert_frame_equal(
@@ -244,7 +271,11 @@ class TestInducerBase(unittest.TestCase):
         atc.unshuffle()
         # The following indices give the correct shuffled concentrations array
         # after setting the random seed to one.
-        shuffling_ind = [8, 0, 3, 4, 5, 2, 9, 6, 7, 1]
+        # Results of shuffling vary in python 2 and 3
+        if six.PY2:
+            shuffling_ind = [8, 0, 3, 4, 5, 2, 9, 6, 7, 1]
+        elif six.PY3:
+            shuffling_ind = [6, 8, 9, 7, 5, 3, 0, 4, 1, 2]
         # Check doses table in iptg
         doses_table_iptg = pandas.DataFrame({'Concentration': numpy.arange(10)})
         pandas.testing.assert_frame_equal(
@@ -726,7 +757,11 @@ class TestChemicalInducer(unittest.TestCase):
         iptg.shuffle()
         # The following indices give the correct shuffled concentrations array
         # after setting the random seed to one.
-        shuffling_ind = [10, 5, 0, 4, 9, 7, 3, 2, 6, 8, 1]
+        # Results of shuffling vary in python 2 and 3
+        if six.PY2:
+            shuffling_ind = [10, 5, 0, 4, 9, 7, 3, 2, 6, 8, 1]
+        elif six.PY3:
+            shuffling_ind = [6, 8, 10, 7, 5, 3, 0, 4, 1, 9, 2]
         # Check concentrations
         concentrations = numpy.linspace(0,1,11)
         numpy.testing.assert_almost_equal(iptg.concentrations,
@@ -834,7 +869,11 @@ class TestChemicalInducer(unittest.TestCase):
         atc.shuffle()
         # The following indices give the correct shuffled concentrations array
         # after setting the random seed to one.
-        shuffling_ind = [10, 5, 0, 4, 9, 7, 3, 2, 6, 8, 1]
+        # Results of shuffling vary in python 2 and 3
+        if six.PY2:
+            shuffling_ind = [10, 5, 0, 4, 9, 7, 3, 2, 6, 8, 1]
+        elif six.PY3:
+            shuffling_ind = [6, 8, 10, 7, 5, 3, 0, 4, 1, 9, 2]
         # Check concentrations for independent inducer
         concentrations = numpy.linspace(0,1,11)
         numpy.testing.assert_almost_equal(iptg.concentrations,
@@ -1152,11 +1191,11 @@ class TestChemicalInducer(unittest.TestCase):
         # Create new spreadsheet
         wb_test = openpyxl.Workbook()
         # Remove sheet created by default
-        wb_test.remove_sheet(wb_test.active)
+        wb_test.remove(wb_test.active)
         # Try to generate setup instructions
         iptg.save_exp_setup_instructions(workbook=wb_test)
         # Extract data from worksheet and convert into dataframe
-        ws_values = wb_test.get_sheet_by_name('IPTG').values
+        ws_values = wb_test['IPTG'].values
         cols = next(ws_values)
         ws_values = list(ws_values)
         df_in_wb = pandas.DataFrame(ws_values, columns=cols)
@@ -2323,7 +2362,11 @@ class TestChemicalGeneExpression(unittest.TestCase):
         rr.shuffle()
         # The following indices give the correct shuffled concentrations array
         # after setting the random seed to one.
-        shuffling_ind = [10, 5, 0, 4, 9, 7, 3, 2, 6, 8, 1]
+        # Results of shuffling vary in python 2 and 3
+        if six.PY2:
+            shuffling_ind = [10, 5, 0, 4, 9, 7, 3, 2, 6, 8, 1]
+        elif six.PY3:
+            shuffling_ind = [6, 8, 10, 7, 5, 3, 0, 4, 1, 9, 2]
         # Check concentrations and expression levels
         numpy.testing.assert_almost_equal(rr.concentrations,
                                           concentrations[shuffling_ind])
@@ -2512,7 +2555,11 @@ class TestChemicalGeneExpression(unittest.TestCase):
         rr.shuffle()
         # The following indices give the correct shuffled concentrations array
         # after setting the random seed to one.
-        shuffling_ind = [8, 11, 4, 0, 5, 6, 10, 3, 2, 7, 9, 1]
+        # Results of shuffling vary in python 2 and 3
+        if six.PY2:
+            shuffling_ind = [8, 11, 4, 0, 5, 6, 10, 3, 2, 7, 9, 1]
+        else:
+            shuffling_ind = [7, 11, 0, 8, 5, 6, 3, 10, 4, 1, 9, 2]
         # Check expression levels and concentrations
         numpy.testing.assert_almost_equal(rr.concentrations,
                                           rr_concentrations[shuffling_ind])
@@ -2856,11 +2903,11 @@ class TestChemicalGeneExpression(unittest.TestCase):
         # Create new spreadsheet
         wb_test = openpyxl.Workbook()
         # Remove sheet created by default
-        wb_test.remove_sheet(wb_test.active)
+        wb_test.remove(wb_test.active)
         # Try to generate setup instructions
         rr.save_exp_setup_instructions(workbook=wb_test)
         # Extract data from worksheet and convert into dataframe
-        ws_values = wb_test.get_sheet_by_name('RR').values
+        ws_values = wb_test['RR'].values
         cols = next(ws_values)
         ws_values = list(ws_values)
         df_in_wb = pandas.DataFrame(ws_values, columns=cols)

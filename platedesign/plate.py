@@ -314,7 +314,7 @@ class Plate(object):
         if workbook is None:
             # Create and remove empty sheet created by default
             workbook = openpyxl.Workbook()
-            workbook.remove_sheet(workbook.active)
+            workbook.remove(workbook.active)
             save_workbook = True
         else:
             save_workbook = False
@@ -1059,7 +1059,7 @@ class PlateArray(Plate):
         if workbook is None:
             # Create and remove empty sheet created by default
             workbook = openpyxl.Workbook()
-            workbook.remove_sheet(workbook.active)
+            workbook.remove(workbook.active)
             save_workbook = True
         else:
             save_workbook = False
@@ -1142,8 +1142,8 @@ class PlateArray(Plate):
         # Add well coordinates
         for i in range(self.n_rows):
             for j in range(self.n_cols):
-                array_i = i/(self.plate_n_rows)
-                array_j = j/(self.plate_n_cols)
+                array_i = i//(self.plate_n_rows)
+                array_j = j//(self.plate_n_cols)
                 plate_i = i%(self.plate_n_rows)
                 plate_j = j%(self.plate_n_cols)
                 row = i + len(inducers_rows)
@@ -1209,8 +1209,8 @@ class PlateArray(Plate):
                 # Apply styles
                 if (i >= plate_min_row) and (i < plate_max_row) and\
                         (j >= plate_min_col) and (j < plate_max_col):
-                    array_i = (i - plate_min_row) / self.plate_n_rows
-                    array_j = (j - plate_min_col) / self.plate_n_cols
+                    array_i = (i - plate_min_row) // self.plate_n_rows
+                    array_j = (j - plate_min_col) // self.plate_n_cols
                     cell.fill = plate_fill[(array_i + array_j)%2]
                     cell.border = plate_border
                     cell.alignment = plate_alignment

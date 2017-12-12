@@ -420,18 +420,18 @@ class ChemicalInducer(ChemicalInducerBase):
 
         # Calculate gradient
         if scale == 'linear':
-            self.concentrations = numpy.linspace(min, max, n/n_repeat)
+            self.concentrations = numpy.linspace(min, max, int(n/n_repeat))
         elif scale == 'log':
             if use_zero:
                 self.concentrations = numpy.logspace(numpy.log10(min),
                                                      numpy.log10(max),
-                                                     (n/n_repeat - 1))
+                                                     int(n/n_repeat - 1))
                 self.concentrations = \
                     numpy.concatenate(([0], self.concentrations))
             else:
                 self.concentrations = numpy.logspace(numpy.log10(min),
                                                      numpy.log10(max),
-                                                     n/n_repeat)
+                                                     int(n/n_repeat))
         else:
             raise ValueError("scale {} not recognized".format(scale))
 
@@ -956,11 +956,11 @@ class ChemicalGeneExpression(ChemicalInducer):
 
         # Calculate gradient
         if scale == 'linear':
-            self.expression_levels = numpy.linspace(min, max, n/n_repeat)
+            self.expression_levels = numpy.linspace(min, max, int(n/n_repeat))
         elif scale == 'log':
             self.expression_levels = numpy.logspace(numpy.log10(min),
                                                     numpy.log10(max),
-                                                    n/n_repeat)
+                                                    int(n/n_repeat))
         else:
             raise ValueError("scale {} not recognized".format(scale))
 
