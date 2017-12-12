@@ -286,7 +286,7 @@ class Experiment(object):
             # next replicate. In addition, this will allow to sort closed plates
             # based on a resource's original order later on.
             plate_resources_ind = {
-                k: range(len(v))
+                k: list(range(len(v)))
                 for k, v in six.iteritems(self.plate_resources)}
             if self.randomize_plate_resources:
                 for k, v in six.iteritems(plate_resources_ind):
