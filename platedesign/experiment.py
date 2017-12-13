@@ -187,7 +187,7 @@ class Experiment(object):
         # Create single spreadsheet for all experiment setup instructions
         wb_exp_setup = openpyxl.Workbook()
         # Remove sheet created by default
-        wb_exp_setup.remove_sheet(wb_exp_setup.active)
+        wb_exp_setup.remove(wb_exp_setup.active)
         # Run Experiment Setup for inducers
         for inducer in self.inducers:
             # Get inducer applications on all plates
@@ -247,7 +247,7 @@ class Experiment(object):
             # replicate, else keep using the experiment setup spreadsheet.
             if self.n_replicates > 1:
                 wb_rep_setup = openpyxl.Workbook()
-                wb_rep_setup.remove_sheet(wb_rep_setup.active)
+                wb_rep_setup.remove(wb_rep_setup.active)
             else:
                 wb_rep_setup = wb_exp_setup
 
@@ -368,10 +368,6 @@ class Experiment(object):
             # Replicate Measurement Stage
             ###
 
-            # Samples table
-            samples_table = pandas.DataFrame()
-            samples_table_columns = []
-
             # Plate measurements table
             plate_measurements_table = pandas.DataFrame()
             plate_measurements_table['Plate'] = [p.name for p in closed_plates]
@@ -386,6 +382,9 @@ class Experiment(object):
             replicate_measurements_table['Value'] = numpy.nan
             replicate_measurements_table.set_index('Key', inplace=True)
 
+            # Samples table
+            samples_table = pandas.DataFrame()
+            samples_table_columns = []
             for closed_plate in closed_plates:
                 # Update and extract samples table from plate, and eliminate
                 # samples that should not be measured
