@@ -5,6 +5,7 @@ Module that contains plate classes.
 """
 
 import collections
+import six
 
 import numpy
 import openpyxl
@@ -53,6 +54,8 @@ class Plate(object):
         Name of the plate, to be used in generated files.
     n_rows, n_cols : int
         Number of rows and columns in the plate.
+    n_plates : int
+        Number of physical plates handled by this object. Fixed to 1.
     samples_to_measure : int
         Number of samples to be measured.
     sample_media_vol : float
@@ -66,18 +69,31 @@ class Plate(object):
         be one of the following: "fixed_od600", "fixed_volume", or
         "fixed_dilution".
     cell_predilution : float
-        Dilution factor for the cell preculture before inoculating.
+        Dilution factor for the cell preculture/aliquot before inoculating.
     cell_predilution_vol : float
-        Volume of diluted preculture to make in µL.
+        Volume of diluted preculture/aliquot to make in µL.
+    cell_od600_measure_from_dilution : bool
+        If True, the OD600 of the diluted preculture/aliquot is measured
+        and used to calculate volumes. If False, the OD600 of the undiluted
+        preculture/aliquot is used instead. Only used if cell_setup_method`
+        is "fixed_od600" and `cell_predilution` is greater than one.
+        Default: True.
     cell_initial_od600 : float
         Target initial OD600 for inoculating cells. Only used if
         `cell_setup_method` is "fixed_od600".
     cell_shot_vol : float
-        Volume of diluted preculture to inoculate in media. Only used if
-        `cell_setup_method` is "fixed_volume".
+        Volume of diluted preculture/aliquot to inoculate in media. Only
+        used if `cell_setup_method` is "fixed_volume".
     cell_total_dilution : float
-        Total dilution from preculture to be inoculated in the media. Only
-        used if `cell_setup_method` is "fixed_dilution".
+        Total dilution from preculture/aliquot to be inoculated in the
+        media. Only used if `cell_setup_method` is "fixed_dilution".
+    resources : OrderedDict
+        Names of per-plate resources, in a ``key: value`` format, where
+        ``value`` is a list of length ``n_plates``. The ClosedPlate
+        instance returned by ``close_plates()`` will include this
+        information in its ``samples_table`` attribute. In it, a column
+        with name ``key`` will be created, and all rows will be set to
+        ``value[0]``.
     metadata : OrderedDict
         Additional information about the plate, in a ``key: value`` format.
         The ClosedPlate instance returned by ``close_plates()`` will
@@ -88,29 +104,6 @@ class Plate(object):
         Keys in this dictionary represent how each inducer is applied
         ("rows", "cols", "wells", "media"), and the values are lists of
         inducers to be applied as specified by the key.
-
-    Methods
-    -------
-    apply_inducer_media_vol
-        Get the media volume to which an inducer will be applied.
-    apply_inducer_n_shots
-        Get number of samples that each inducer dose will be applied to.
-    apply_inducer
-        Apply an inducer to the plate.
-    save_exp_setup_instructions
-        Calculate and save instructions for the Experiment Setup stage.
-    save_exp_setup_files
-        Save additional files required for the Experiment Setup stage.
-    save_rep_setup_instructions
-        Calculate and save instructions for the Replicate Setup stage.
-    add_inducer_setup_instructions
-        Add sheet with inducer pipetting instructions to specified workbook.
-    add_cell_setup_instructions
-        Add sheet with cell inoculation instructions to specified workbook.
-    save_rep_setup_files
-        Save additional files required for the Replicate Setup stage.
-    close_plates
-        Generate a ``ClosedPlate`` object using this plate's information.
 
     """
     def __init__(self,
@@ -134,15 +127,27 @@ class Plate(object):
         self.cell_setup_method = None
         self.cell_predilution = 1
         self.cell_predilution_vol = None
+        self.cell_od600_measure_from_dilution = True
         self.cell_initial_od600 = None
         self.cell_shot_vol = None
         self.cell_total_dilution = None
+
+        # Initialize plate resources dictionary
+        self.resources = collections.OrderedDict()
 
         # Initialize metadata dictionary
         self.metadata = collections.OrderedDict()
 
         # Initialize list of inducers
         self.inducers = {'rows': [], 'cols': [], 'wells': [], 'media': []}
+
+    @property
+    def n_plates(self):
+        """
+        Number of physical plates handled by this object. Fixed to 1.
+
+        """
+        return 1
 
     def apply_inducer_media_vol(self, apply_to):
         """
@@ -309,7 +314,7 @@ class Plate(object):
         if workbook is None:
             # Create and remove empty sheet created by default
             workbook = openpyxl.Workbook()
-            workbook.remove_sheet(workbook.active)
+            workbook.remove(workbook.active)
             save_workbook = True
         else:
             save_workbook = False
@@ -378,6 +383,7 @@ class Plate(object):
         # Initialize inducer instructions table
         ind_layout = []
         ind_layout_rows = self.n_rows + len(inducers_rows) + \
+            len(inducers_rows) + len(inducers_cols) + len(inducers_wells) + \
             len(inducers_media) + 1
         ind_layout_cols = self.n_cols + len(inducers_cols)
         for i in range(ind_layout_rows):
@@ -411,11 +417,24 @@ class Plate(object):
                     col = j + len(inducers_cols)
                     ind_layout[row][col] += "\n{}".format(
                         inducer.doses_table.index[i*self.n_cols + j])
-        # Add information about inducers added to the media
-        for l, inducer in enumerate(inducers_media):
-            row = self.n_rows + len(inducers_rows) + 1 + l
-            ind_layout[row][0] = "Add {:.2f}µL of {} to media".format(
-                inducer.shot_vol, inducer.name)
+        # Add volume of each inducer to add
+        current_row = self.n_rows + len(inducers_rows) + 1
+        for inducer in inducers_rows:
+            ind_layout[current_row][0] = "Add {:.2f}µL of {} to each well.".\
+            format(inducer.shot_vol, inducer.name)
+            current_row += 1
+        for inducer in inducers_cols:
+            ind_layout[current_row][0] = "Add {:.2f}µL of {} to each well.".\
+            format(inducer.shot_vol, inducer.name)
+            current_row += 1
+        for inducer in inducers_wells:
+            ind_layout[current_row][0] = "Add {:.2f}µL of {} to each well.".\
+            format(inducer.shot_vol, inducer.name)
+            current_row += 1
+        for inducer in inducers_media:
+            ind_layout[current_row][0] = "Add {:.2f}µL of {} to media.".\
+            format(inducer.shot_vol, inducer.name)
+            current_row += 1
 
         # Plate area
         plate_min_row = len(inducers_rows)
@@ -477,67 +496,129 @@ class Plate(object):
                 if self.cell_predilution_vol is None:
                     raise ValueError("cell predilution volume should be "
                         "specified")
-                # Instructions for making predilution
-                worksheet.cell(row=2, column=1).value = "Predilution"
-                worksheet.cell(row=2, column=1).alignment = header_alignment
-                worksheet.cell(row=2, column=1).font = header_font
-                worksheet.merge_cells(start_row=2,
-                                      end_row=2,
-                                      start_column=1,
-                                      end_column=3)
+                if self.cell_od600_measure_from_dilution:
+                    # Instructions for making predilution
+                    worksheet.cell(row=2, column=1).value = "Predilution"
+                    worksheet.cell(row=2, column=1).alignment = header_alignment
+                    worksheet.cell(row=2, column=1).font = header_font
+                    worksheet.merge_cells(start_row=2,
+                                          end_row=2,
+                                          start_column=1,
+                                          end_column=3)
 
-                worksheet.cell(row=3, column=1).value = "Predilution factor"
-                worksheet.cell(row=3, column=2).value = self.cell_predilution
-                worksheet.cell(row=3, column=3).value = "x"
+                    worksheet.cell(row=3, column=1).value = "Predilution factor"
+                    worksheet.cell(row=3, column=2).value = self.cell_predilution
+                    worksheet.cell(row=3, column=3).value = "x"
 
-                cell_vol = self.cell_predilution_vol / \
-                    float(self.cell_predilution)
-                media_vol = self.cell_predilution_vol - cell_vol
-                worksheet.cell(row=4, column=1).value = "Media volume"
-                worksheet.cell(row=4, column=2).value = media_vol
-                worksheet.cell(row=4, column=3).value = "µL"
+                    cell_vol = self.cell_predilution_vol / \
+                        float(self.cell_predilution)
+                    media_vol = self.cell_predilution_vol - cell_vol
+                    worksheet.cell(row=4, column=1).value = "Media volume"
+                    worksheet.cell(row=4, column=2).value = media_vol
+                    worksheet.cell(row=4, column=3).value = "µL"
 
-                worksheet.cell(row=5, column=1).value = "Preculture volume"
-                worksheet.cell(row=5, column=2).value = cell_vol
-                worksheet.cell(row=5, column=3).value = "µL"
+                    worksheet.cell(row=5, column=1).value = \
+                        "Preculture/aliquot volume"
+                    worksheet.cell(row=5, column=2).value = cell_vol
+                    worksheet.cell(row=5, column=3).value = "µL"
 
-                worksheet.cell(row=6, column=1).value = "Predilution OD600"
-                worksheet.cell(row=6, column=2).fill = plate_fill[0]
+                    worksheet.cell(row=6, column=1).value = "Predilution OD600"
+                    worksheet.cell(row=6, column=2).fill = plate_fill[0]
 
-                # Instructions for inoculating into plate media
-                worksheet.cell(row=7, column=1).value = "Inoculation"
-                worksheet.cell(row=7, column=1).alignment = header_alignment
-                worksheet.cell(row=7, column=1).font = header_font
-                worksheet.merge_cells(start_row=7,
-                                      end_row=7,
-                                      start_column=1,
-                                      end_column=3)
+                    # Instructions for inoculating into plate media
+                    worksheet.cell(row=7, column=1).value = "Inoculation"
+                    worksheet.cell(row=7, column=1).alignment = header_alignment
+                    worksheet.cell(row=7, column=1).font = header_font
+                    worksheet.merge_cells(start_row=7,
+                                          end_row=7,
+                                          start_column=1,
+                                          end_column=3)
 
-                worksheet.cell(row=8, column=1).value = "Target OD600"
-                worksheet.cell(row=8, column=2).value = self.cell_initial_od600
+                    worksheet.cell(row=8, column=1).value = "Target OD600"
+                    worksheet.cell(row=8, column=2).value = \
+                        self.cell_initial_od600
 
-                worksheet.cell(row=9, column=1).value = "Predilution volume"
-                worksheet.cell(row=9, column=2).value = "={}/B6".format(
-                    self.total_media_vol*self.cell_initial_od600)
-                worksheet.cell(row=9, column=3).value = "µL"
+                    worksheet.cell(row=9, column=1).value = "Predilution volume"
+                    worksheet.cell(row=9, column=2).value = "={}/B6".format(
+                        self.total_media_vol*self.cell_initial_od600)
+                    worksheet.cell(row=9, column=3).value = "µL"
 
-                worksheet.cell(row=10, column=1).value = \
-                    "Add into {:.2f}mL media, ".format(self.total_media_vol/1000.) + \
-                    "and distribute into plate wells."
+                    worksheet.cell(row=10, column=1).value = \
+                        "Add into {:.2f}mL media, ".format(
+                            self.total_media_vol/1000.) + \
+                        "and distribute into plate wells."
+                else:
+                    # Instructions for making predilution
+                    worksheet.cell(row=2, column=1).value = "Predilution"
+                    worksheet.cell(row=2, column=1).alignment = header_alignment
+                    worksheet.cell(row=2, column=1).font = header_font
+                    worksheet.merge_cells(start_row=2,
+                                          end_row=2,
+                                          start_column=1,
+                                          end_column=3)
+
+                    worksheet.cell(row=3, column=1).value = \
+                        "Preculture/aliquot OD600"
+                    worksheet.cell(row=3, column=2).fill = plate_fill[0]
+
+                    worksheet.cell(row=4, column=1).value = \
+                        "Predilution factor"
+                    worksheet.cell(row=4, column=2).value = \
+                        self.cell_predilution
+                    worksheet.cell(row=4, column=3).value = "x"
+
+                    cell_vol = self.cell_predilution_vol / \
+                        float(self.cell_predilution)
+                    media_vol = self.cell_predilution_vol - cell_vol
+                    worksheet.cell(row=5, column=1).value = "Media volume"
+                    worksheet.cell(row=5, column=2).value = media_vol
+                    worksheet.cell(row=5, column=3).value = "µL"
+
+                    worksheet.cell(row=6, column=1).value = \
+                        "Preculture/aliquot volume"
+                    worksheet.cell(row=6, column=2).value = cell_vol
+                    worksheet.cell(row=6, column=3).value = "µL"
+
+                    # Instructions for inoculating into plate media
+                    worksheet.cell(row=7, column=1).value = "Inoculation"
+                    worksheet.cell(row=7, column=1).alignment = header_alignment
+                    worksheet.cell(row=7, column=1).font = header_font
+                    worksheet.merge_cells(start_row=7,
+                                          end_row=7,
+                                          start_column=1,
+                                          end_column=3)
+
+                    worksheet.cell(row=8, column=1).value = "Target OD600"
+                    worksheet.cell(row=8, column=2).value = \
+                        self.cell_initial_od600
+
+                    worksheet.cell(row=9, column=1).value = "Predilution volume"
+                    worksheet.cell(row=9, column=2).value = "={}/B3".format(
+                        self.total_media_vol * self.cell_initial_od600 * \
+                            self.cell_predilution)
+                    worksheet.cell(row=9, column=3).value = "µL"
+
+                    worksheet.cell(row=10, column=1).value = \
+                        "Add into {:.2f}mL media, ".format(
+                            self.total_media_vol/1000.) + \
+                        "and distribute into plate wells."
             else:
-                worksheet.cell(row=2, column=1).value = "Preculture OD600"
+                worksheet.cell(row=2, column=1).value = \
+                    "Preculture/aliquot OD600"
                 worksheet.cell(row=2, column=2).fill = plate_fill[0]
 
                 worksheet.cell(row=3, column=1).value = "Target OD600"
                 worksheet.cell(row=3, column=2).value = self.cell_initial_od600
 
-                worksheet.cell(row=4, column=1).value = "Preculture volume"
+                worksheet.cell(row=4, column=1).value = \
+                    "Preculture/aliquot volume"
                 worksheet.cell(row=4, column=2).value = "={}/B2".format(
                     self.total_media_vol*self.cell_initial_od600)
                 worksheet.cell(row=4, column=3).value = "µL"
 
                 worksheet.cell(row=5, column=1).value = \
-                    "Add into {:.2f}mL media, ".format(self.total_media_vol/1000.) + \
+                    "Add into {:.2f}mL media, ".format(
+                        self.total_media_vol/1000.) + \
                     "and distribute into plate wells."
 
         elif self.cell_setup_method=='fixed_volume':
@@ -576,7 +657,8 @@ class Plate(object):
                 worksheet.cell(row=4, column=2).value = media_vol
                 worksheet.cell(row=4, column=3).value = "µL"
 
-                worksheet.cell(row=5, column=1).value = "Preculture volume"
+                worksheet.cell(row=5, column=1).value = \
+                    "Preculture/aliquot volume"
                 worksheet.cell(row=5, column=2).value = cell_vol
                 worksheet.cell(row=5, column=3).value = "µL"
 
@@ -594,16 +676,19 @@ class Plate(object):
                 worksheet.cell(row=7, column=3).value = "µL"
 
                 worksheet.cell(row=8, column=1).value = \
-                    "Add into {:.2f}mL media, ".format(self.total_media_vol/1000.) + \
+                    "Add into {:.2f}mL media, ".format(
+                        self.total_media_vol/1000.) + \
                     "and distribute into plate wells."
             else:
                 # Instructions for inoculating into plate media
-                worksheet.cell(row=2, column=1).value = "Preculture volume"
+                worksheet.cell(row=2, column=1).value = \
+                    "Preculture/aliquot volume"
                 worksheet.cell(row=2, column=2).value = self.cell_shot_vol
                 worksheet.cell(row=2, column=3).value = "µL"
 
                 worksheet.cell(row=3, column=1).value = \
-                    "Add into {:.2f}mL media, ".format(self.total_media_vol/1000.) + \
+                    "Add into {:.2f}mL media, ".format(
+                        self.total_media_vol/1000.) + \
                     "and distribute into plate wells."
 
         elif self.cell_setup_method=='fixed_dilution':
@@ -642,7 +727,8 @@ class Plate(object):
                 worksheet.cell(row=4, column=2).value = media_vol
                 worksheet.cell(row=4, column=3).value = "µL"
 
-                worksheet.cell(row=5, column=1).value = "Preculture volume"
+                worksheet.cell(row=5, column=1).value = \
+                    "Preculture/aliquot volume"
                 worksheet.cell(row=5, column=2).value = cell_vol
                 worksheet.cell(row=5, column=3).value = "µL"
 
@@ -662,18 +748,21 @@ class Plate(object):
                 worksheet.cell(row=7, column=3).value = "µL"
 
                 worksheet.cell(row=8, column=1).value = \
-                    "Add into {:.2f}mL media, ".format(self.total_media_vol/1000.) + \
+                    "Add into {:.2f}mL media, ".format(
+                        self.total_media_vol/1000.) + \
                     "and distribute into plate wells."
             else:
                 cell_shot_vol = self.total_media_vol / \
                     float(self.cell_total_dilution)
                 # Instructions for inoculating into plate media
-                worksheet.cell(row=2, column=1).value = "Preculture volume"
+                worksheet.cell(row=2, column=1).value = \
+                    "Preculture/aliquot volume"
                 worksheet.cell(row=2, column=2).value = cell_shot_vol
                 worksheet.cell(row=2, column=3).value = "µL"
 
                 worksheet.cell(row=3, column=1).value = \
-                    "Add into {:.2f}mL media, ".format(self.total_media_vol/1000.) + \
+                    "Add into {:.2f}mL media, ".format(
+                        self.total_media_vol/1000.) + \
                     "and distribute into plate wells."
 
         else:
@@ -720,23 +809,26 @@ class Plate(object):
         # Add cell info
         plate_info['Strain'] = self.cell_strain_name
         if self.cell_setup_method=='fixed_od600':
-            plate_info['Preculture Dilution'] = self.cell_predilution
+            plate_info['Preculture/Aliquot Dilution'] = self.cell_predilution
             plate_info['Initial OD600'] = self.cell_initial_od600
         elif self.cell_setup_method=='fixed_volume':
-            plate_info['Preculture Dilution'] = self.cell_predilution
+            plate_info['Preculture/Aliquot Dilution'] = self.cell_predilution
             plate_info['Cell Inoculated Vol.'] = self.cell_shot_vol
         elif self.cell_setup_method=='fixed_dilution':
-            plate_info['Preculture Dilution'] = self.cell_predilution
+            plate_info['Preculture/Aliquot Dilution'] = self.cell_predilution
             plate_info['Total Cell Dilution'] = self.cell_total_dilution
 
+        # Add plate resource data
+        for k, v in six.iteritems(self.resources):
+            # Check that length is appropriate, and add to plate_info
+            if len(v) != self.n_plates:
+                raise ValueError(
+                    "{} resources of type {} specified, should be {}".format(
+                        len(v), k, self.n_plates))
+            plate_info[k] = v[0]
+
         # Add additional plate metadata
-        # The following try-catch block is needed to ensure compatibility with
-        # both python2 and python3.
-        try:
-            items = self.metadata.iteritems()
-        except AttributeError:
-            items = self.metadata.items()
-        for k, v in items:
+        for k, v in six.iteritems(self.metadata):
             plate_info[k] = v
 
         # Prepare well info
@@ -746,13 +838,7 @@ class Plate(object):
             self.samples_to_measure)
 
         # Add inducer info
-        # The following try-catch block is needed to ensure compatibility with
-        # both python2 and python3.
-        try:
-            items = self.inducers.iteritems()
-        except AttributeError:
-            items = self.inducers.items()
-        for apply_to, inducers in items:
+        for apply_to, inducers in six.iteritems(self.inducers):
             for inducer in inducers:
                 if apply_to=='rows':
                     for column in inducer.doses_table.columns:
@@ -826,6 +912,9 @@ class PlateArray(Plate):
         Number of rows and columns in each plate.        
     n_rows, n_cols : int
         Total number of rows and columns in the plate array.
+    n_plates : int
+        Number of physical plates handled by this object. Returns
+        ``array_n_rows * array_n_cols``.
     samples_to_measure : int
         Number of samples to be measured.
     sample_media_vol : float
@@ -839,45 +928,41 @@ class PlateArray(Plate):
         be one of the following: "fixed_od600", "fixed_volume", or
         "fixed_dilution".
     cell_predilution : float
-        Dilution factor for the cell preculture before inoculating.
+        Dilution factor for the cell preculture/aliquot before inoculating.
     cell_predilution_vol : float
-        Volume of diluted preculture to make in µL.
+        Volume of diluted preculture/aliquot to make in µL.
+    cell_od600_measure_from_dilution : bool
+        If True, the OD600 of the diluted preculture/aliquot is measured
+        and used to calculate volumes. If False, the OD600 of the undiluted
+        preculture/aliquot is used instead. Only used if cell_setup_method`
+        is "fixed_od600" and `cell_predilution` is greater than one.
+        Default: True.
     cell_initial_od600 : float
         Target initial OD600 for inoculating cells. Only used if
         `cell_setup_method` is "fixed_od600".
     cell_shot_vol : float
-        Volume of diluted preculture to inoculate in media. Only used if
-        `cell_setup_method` is "fixed_volume".
+        Volume of diluted preculture/aliquot to inoculate in media. Only
+        used if `cell_setup_method` is "fixed_volume".
     cell_total_dilution : float
-        Total dilution from preculture to be inoculated in the media. Only
-        used if `cell_setup_method` is "fixed_dilution".
+        Total dilution from preculture/aliquot to be inoculated in the
+        media. Only used if `cell_setup_method` is "fixed_dilution".
+    resources : OrderedDict
+        Names of per-plate resources, in a ``key: value`` format, where
+        ``value`` is a list of length ``n_plates``. The ClosedPlate
+        instance returned by ``close_plates()`` will include this
+        information in its ``samples_table`` attribute. In it, a column
+        with name ``key`` will be created, and all rows will be set to
+        the element of ``value`` corresponding to the specific plate.
     metadata : OrderedDict
-        Additional information about the array, in a ``key: value`` format.
-        ClosedPlate instances returned by ``close_plates()`` will include
-        this information in their ``samples_table`` attribute. In them, a
-        column with name ``key`` will be created, and all rows will be
-        set to ``value``.
+        Additional information about the plate array, in a ``key: value``
+        format. ClosedPlate instances returned by ``close_plates()`` will
+        include this information in their ``samples_table`` attribute. In
+        them, a column with name ``key`` will be created, and all rows will
+        be set to ``value``.
     inducers : OrderedDict
         Keys in this dictionary represent how each inducer is applied
         ("rows", "cols", "wells", "media"), and the values are lists of
         inducers to be applied as specified by the key.
-
-    Methods
-    -------
-    apply_inducer_media_vol
-        Get the media volume to which an inducer will be applied.
-    apply_inducer_n_shots
-        Get number of samples that each inducer dose will be applied to.
-    apply_inducer
-        Apply an inducer to the plate.
-    save_rep_setup_instructions
-        Calculate and save instructions for the Replicate Setup stage.
-    add_inducer_setup_instructions
-        Add sheet with inducer pipetting instructions to specified workbook.
-    add_cell_setup_instructions
-        Add sheet with cell inoculation instructions to specified workbook.
-    close_plates
-        Generate ``ClosedPlate`` objects for each plate in the array.
 
     """
     def __init__(self,
@@ -911,9 +996,13 @@ class PlateArray(Plate):
         self.cell_setup_method = None
         self.cell_predilution = 1
         self.cell_predilution_vol = None
+        self.cell_od600_measure_from_dilution = True
         self.cell_initial_od600 = None
         self.cell_shot_vol = None
         self.cell_total_dilution = None
+
+        # Initialize plate resources dictionary
+        self.resources = collections.OrderedDict()
 
         # Initialize metadata dictionary
         self.metadata = collections.OrderedDict()
@@ -936,6 +1025,14 @@ class PlateArray(Plate):
         
         """
         return self.array_n_cols*self.plate_n_cols
+
+    @property
+    def n_plates(self):
+        """
+        Number of physical plates handled by this object.
+
+        """
+        return self.array_n_rows*self.array_n_cols
 
     def save_rep_setup_instructions(self, file_name=None, workbook=None):
         """
@@ -962,7 +1059,7 @@ class PlateArray(Plate):
         if workbook is None:
             # Create and remove empty sheet created by default
             workbook = openpyxl.Workbook()
-            workbook.remove_sheet(workbook.active)
+            workbook.remove(workbook.active)
             save_workbook = True
         else:
             save_workbook = False
@@ -1036,6 +1133,7 @@ class PlateArray(Plate):
         # Initialize inducer instructions table
         ind_layout = []
         ind_layout_rows = self.n_rows + len(inducers_rows) + \
+            len(inducers_rows) + len(inducers_cols) + len(inducers_wells) + \
             len(inducers_media) + 1
         ind_layout_cols = self.n_cols + len(inducers_cols)
         for i in range(ind_layout_rows):
@@ -1044,8 +1142,8 @@ class PlateArray(Plate):
         # Add well coordinates
         for i in range(self.n_rows):
             for j in range(self.n_cols):
-                array_i = i/(self.plate_n_rows)
-                array_j = j/(self.plate_n_cols)
+                array_i = i//(self.plate_n_rows)
+                array_j = j//(self.plate_n_cols)
                 plate_i = i%(self.plate_n_rows)
                 plate_j = j%(self.plate_n_cols)
                 row = i + len(inducers_rows)
@@ -1076,11 +1174,24 @@ class PlateArray(Plate):
                     col = j + len(inducers_cols)
                     ind_layout[row][col] += "\n{}".format(
                         inducer.doses_table.index[i*self.n_cols + j])
-        # Add information about inducers added to the media
-        for l, inducer in enumerate(inducers_media):
-            row = self.n_rows + len(inducers_rows) + 1 + l
-            ind_layout[row][0] = "Add {:.2f}µL of {} to media".format(
-                inducer.shot_vol, inducer.name)
+        # Add volume of each inducer to add
+        current_row = self.n_rows + len(inducers_rows) + 1
+        for inducer in inducers_rows:
+            ind_layout[current_row][0] = "Add {:.2f}µL of {} to each well.".\
+            format(inducer.shot_vol, inducer.name)
+            current_row += 1
+        for inducer in inducers_cols:
+            ind_layout[current_row][0] = "Add {:.2f}µL of {} to each well.".\
+            format(inducer.shot_vol, inducer.name)
+            current_row += 1
+        for inducer in inducers_wells:
+            ind_layout[current_row][0] = "Add {:.2f}µL of {} to each well.".\
+            format(inducer.shot_vol, inducer.name)
+            current_row += 1
+        for inducer in inducers_media:
+            ind_layout[current_row][0] = "Add {:.2f}µL of {} to media.".\
+            format(inducer.shot_vol, inducer.name)
+            current_row += 1
 
         # Plate area
         plate_min_row = len(inducers_rows)
@@ -1098,8 +1209,8 @@ class PlateArray(Plate):
                 # Apply styles
                 if (i >= plate_min_row) and (i < plate_max_row) and\
                         (j >= plate_min_col) and (j < plate_max_col):
-                    array_i = (i - plate_min_row) / self.plate_n_rows
-                    array_j = (j - plate_min_col) / self.plate_n_cols
+                    array_i = (i - plate_min_row) // self.plate_n_rows
+                    array_j = (j - plate_min_col) // self.plate_n_cols
                     cell.fill = plate_fill[(array_i + array_j)%2]
                     cell.border = plate_border
                     cell.alignment = plate_alignment
@@ -1126,34 +1237,49 @@ class PlateArray(Plate):
             plates in the array, i.e., ``array_n_rows * array_n_cols``.
 
         """
-        # Prepare plate info
-        # Plate info will be the same on all plates, so it can be made once.
-        plate_info = collections.OrderedDict()
 
-        # Add plate array name
-        plate_info["Plate Array"] = self.name
+        # Check length of plate resource data
+        for k, v in six.iteritems(self.resources):
+            if len(v) != self.n_plates:
+                raise ValueError(
+                    "{} resources of type {} specified, should be {}".format(
+                        len(v), k, self.n_plates))
 
-        # Add cell info
-        plate_info['Strain'] = self.cell_strain_name
-        if self.cell_setup_method=='fixed_od600':
-            plate_info['Preculture Dilution'] = self.cell_predilution
-            plate_info['Initial OD600'] = self.cell_initial_od600
-        elif self.cell_setup_method=='fixed_volume':
-            plate_info['Preculture Dilution'] = self.cell_predilution
-            plate_info['Cell Inoculated Vol.'] = self.cell_shot_vol
-        elif self.cell_setup_method=='fixed_dilution':
-            plate_info['Preculture Dilution'] = self.cell_predilution
-            plate_info['Total Cell Dilution'] = self.cell_total_dilution
+        # Prepare plate info per plate
+        plates_info = [[collections.OrderedDict()
+                        for array_j in range(self.array_n_cols)]
+                        for array_i in range(self.array_n_rows)]
 
-        # Add additional plate metadata
-        # The following try-catch block is needed to ensure compatibility with
-        # both python2 and python3.
-        try:
-            items = self.metadata.iteritems()
-        except AttributeError:
-            items = self.metadata.items()
-        for k, v in items:
-            plate_info[k] = v
+        for array_i in range(self.array_n_rows):
+            for array_j in range(self.array_n_cols):
+                # Select appropriate plate info dictionary
+                plate_info = plates_info[array_i][array_j]
+
+                # Add plate array name
+                plate_info["Plate Array"] = self.name
+
+                # Add cell info
+                plate_info['Strain'] = self.cell_strain_name
+                if self.cell_setup_method=='fixed_od600':
+                    plate_info['Preculture/Aliquot Dilution'] = \
+                        self.cell_predilution
+                    plate_info['Initial OD600'] = self.cell_initial_od600
+                elif self.cell_setup_method=='fixed_volume':
+                    plate_info['Preculture/Aliquot Dilution'] = \
+                        self.cell_predilution
+                    plate_info['Cell Inoculated Vol.'] = self.cell_shot_vol
+                elif self.cell_setup_method=='fixed_dilution':
+                    plate_info['Preculture/Aliquot Dilution'] = \
+                        self.cell_predilution
+                    plate_info['Total Cell Dilution'] = self.cell_total_dilution
+
+                # Add plate resource data
+                for k, v in six.iteritems(self.resources):
+                    plate_info[k] = v[array_i*self.array_n_cols + array_j]
+
+                # Add additional plate metadata
+                for k, v in six.iteritems(self.metadata):
+                    plate_info[k] = v
 
         # Prepare well info
         # Well info will be prepared for all the wells in the array. Later,
@@ -1171,13 +1297,7 @@ class PlateArray(Plate):
             self.samples_to_measure)
 
         # Add inducer info
-        # The following try-catch block is needed to ensure compatibility with
-        # both python2 and python3.
-        try:
-            items = self.inducers.iteritems()
-        except AttributeError:
-            items = self.inducers.items()
-        for apply_to, inducers in items:
+        for apply_to, inducers in six.iteritems(self.inducers):
             for inducer in inducers:
                 if apply_to=='rows':
                     for column in inducer.doses_table.columns:
@@ -1209,13 +1329,17 @@ class PlateArray(Plate):
 
         # Create closed plate objects
         closed_plates = []
-        for i in range(self.array_n_rows):
-            for j in range(self.array_n_cols):
+        for array_i in range(self.array_n_rows):
+            for array_j in range(self.array_n_cols):
                 # Get plate name
-                plate_name = self.plate_names[i*self.array_n_cols + j]
+                plate_name = self.plate_names[
+                    array_i*self.array_n_cols + array_j]
+                # Get plate info
+                plate_info = plates_info[array_i][array_j]
                 # Filter well info
-                well_info = well_info_array[(well_info_array['Array Row']==i+1)\
-                                       & (well_info_array['Array Column']==j+1)]
+                well_info = well_info_array[
+                    (well_info_array['Array Row'] == array_i + 1) &\
+                    (well_info_array['Array Column'] == array_j + 1)]
                 # Drop columns "Array Row" and "Array Column"
                 well_info = well_info.drop('Array Row', axis=1)
                 well_info = well_info.drop('Array Column', axis=1)
@@ -1223,10 +1347,10 @@ class PlateArray(Plate):
                 well_info.reset_index(drop=True, inplace=True)
                 # Create closed plate
                 closed_plate = ClosedPlate(name=plate_name,
-                                   n_rows=self.plate_n_rows,
-                                   n_cols=self.plate_n_cols,
-                                   plate_info=plate_info,
-                                   well_info=well_info)
+                                           n_rows=self.plate_n_rows,
+                                           n_cols=self.plate_n_cols,
+                                           plate_info=plate_info,
+                                           well_info=well_info)
                 closed_plates.append(closed_plate)
 
         return closed_plates
@@ -1281,11 +1405,6 @@ class ClosedPlate(object):
         the contents in `well_info` are copied into `samples_table` without
         modification.
 
-    Methods
-    -------
-    update_samples_table
-        Updates `samples_table` from all other attributes.
-
     """
     def __init__(self,
                  name,
@@ -1325,13 +1444,7 @@ class ClosedPlate(object):
 
         # Add plate information
         if self.plate_info is not None:
-            # The following try-catch block is needed to ensure compatibility
-            # with both python2 and python3.
-            try:
-                items = self.plate_info.iteritems()
-            except AttributeError:
-                items = self.plate_info.items()
-            for k, v in items:
+            for k, v in six.iteritems(self.plate_info):
                 samples_table[k] = v
 
         # Add row and column numbers
