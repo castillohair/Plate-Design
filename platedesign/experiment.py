@@ -56,6 +56,10 @@ class Experiment(object):
         Number of replicates.
     randomize_inducers : bool
         Whether to randomize inducer concentrations for each replicate.
+    n_replicates_extra_inducer : int
+        Number of extra replicates for which to prepare inducer. For
+        example, if `n_replicates` is 3 and `n_replicates_extra_inducer` is
+        2, inducer will be prepared for 5 replicates.
     plate_resources : dict
         Names of per-plate resources (e.g. slots in an incubator,
         temperature sensors, optogenetic devices, etc), in a ``key: value``
@@ -99,6 +103,7 @@ class Experiment(object):
         # Initialize properties
         self.n_replicates = 3
         self.randomize_inducers = False
+        self.n_replicates_extra_inducer = 0
         self.plate_resources = collections.OrderedDict()
         self.randomize_plate_resources = False
         self.measurement_order = 'Plate'
@@ -222,8 +227,10 @@ class Experiment(object):
                 # and replicates
                 n_shots = sum([a['plate'].apply_inducer_n_shots(apply_to)
                                for a in ind_applications])
-                inducer.set_vol_from_shots(n_shots=n_shots,
-                                           n_replicates=self.n_replicates)
+                inducer.set_vol_from_shots(
+                    n_shots=n_shots,
+                    n_replicates=self.n_replicates + \
+                        self.n_replicates_extra_inducer)
 
             # Save files
             inducer.save_exp_setup_instructions(workbook=wb_exp_setup)
