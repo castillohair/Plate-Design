@@ -175,7 +175,6 @@ class TestExperiment(unittest.TestCase):
         # Check summary table
         summary_table = get_dataframe_from_worksheet(wb["Summary"])
         summary_table_exp = pandas.DataFrame()
-        summary_table_exp['Plate Array'] = [None]
         summary_table_exp['Plate'] = ['P1']
         summary_table_exp['Strain'] = ['Test Strain 1']
         pandas.util.testing.assert_frame_equal(summary_table,
@@ -306,7 +305,6 @@ class TestExperiment(unittest.TestCase):
             # Check summary table
             summary_table = get_dataframe_from_worksheet(wb["Summary"])
             summary_table_exp = pandas.DataFrame()
-            summary_table_exp['Plate Array'] = [None]
             summary_table_exp['Plate'] = ['P1']
             summary_table_exp['Strain'] = ['Test Strain 1']
             pandas.util.testing.assert_frame_equal(summary_table,
@@ -429,7 +427,6 @@ class TestExperiment(unittest.TestCase):
             # Check summary table
             summary_table = get_dataframe_from_worksheet(wb["Summary"])
             summary_table_exp = pandas.DataFrame()
-            summary_table_exp['Plate Array'] = [None]
             summary_table_exp['Plate'] = ['P1']
             summary_table_exp['Strain'] = ['Test Strain 1']
             pandas.util.testing.assert_frame_equal(summary_table,
@@ -581,7 +578,6 @@ class TestExperiment(unittest.TestCase):
             # Check summary table
             summary_table = get_dataframe_from_worksheet(wb["Summary"])
             summary_table_exp = pandas.DataFrame()
-            summary_table_exp['Plate Array'] = [None, None, None]
             summary_table_exp['Plate'] = ['P1', 'P2', 'P3']
             summary_table_exp['Strain'] = ['Test Strain 1',
                                            'Test Strain 2',
@@ -775,7 +771,6 @@ class TestExperiment(unittest.TestCase):
             # Check summary table
             summary_table = get_dataframe_from_worksheet(wb["Summary"])
             summary_table_exp = pandas.DataFrame()
-            summary_table_exp['Plate Array'] = [None, None, None]
             summary_table_exp['Plate'] = ['P1', 'P2', 'P3']
             summary_table_exp['Strain'] = ['Test Strain 1',
                                            'Test Strain 2',

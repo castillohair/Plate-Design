@@ -262,6 +262,7 @@ class Experiment(object):
             summary_table = pandas.DataFrame(columns=['Plate Array',
                                                       'Plate',
                                                       'Strain'])
+            # Add plate and plate array names
             for p in self.plates:
                 if hasattr(p, 'plate_names'):
                     # Plate array
@@ -272,6 +273,10 @@ class Experiment(object):
                     # Single plate
                     summary_table.loc[len(summary_table)] = \
                         [None, p.name, p.cell_strain_name]
+            # Discard "Plate Array" column if empty
+            if summary_table['Plate Array'].isnull().values.all():
+                summary_table.drop('Plate Array', axis=1, inplace=True)
+            # Save
             writer = pandas.ExcelWriter('temp', engine='openpyxl')
             writer.book = wb_rep_setup
             summary_table.to_excel(writer,
