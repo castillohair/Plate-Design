@@ -163,6 +163,30 @@ class Experiment(object):
                     "{} resources of type {} specified, should be {} or more".\
                         format(len(v), k, n_closed_plates))
 
+        # Check that pre-specified plate resources are not repeated or absent
+        for k, v in six.iteritems(self.plate_resources):
+            v = v.copy()
+            for plate in self.plates:
+                # If resource not specified, continue
+                if k not in plate.resources:
+                    continue
+                # As many resources as plates should be specified
+                if len(plate.resources[k]) != plate.n_plates:
+                    raise ValueError(
+                        "{} resources of type {} specified ".format(
+                            len(plate.resources[k]), k) + \
+                        "for plate {}. Should be {}".format(
+                            plate.name, plate.n_plates))
+                # Remove specified resource from resource list. If not possible,
+                # resource is not available or not specified.
+                for r in plate.resources[k]:
+                    try:
+                        v.remove(r)
+                    except ValueError:
+                        raise ValueError(
+                            "resource {} of type {} on plate {} not found".\
+                                format(r, k, plate.name))
+
         # Create folders for each replicate, if necessary
         if self.n_replicates > 1:
             replicate_folders = [os.path.join(path,
@@ -245,6 +269,9 @@ class Experiment(object):
         if self.n_replicates > 1 and len(wb_exp_setup.worksheets) > 0:
             wb_exp_setup.save(filename=wb_exp_setup_filename)
 
+        # Before replicates, store original resources specified by plates
+        original_plates_resources = [p.resources.copy() for p in self.plates]
+
         # Iterate over replicates
         for replicate_idx in range(self.n_replicates):
             ###
@@ -304,17 +331,45 @@ class Experiment(object):
                 for k, v in six.iteritems(plate_resources_ind):
                     random.shuffle(v)
 
+            # Modify indices to account for pre-specified resources
+            for k, v in six.iteritems(self.plate_resources):
+                resource_shift = 0
+                # Make a copy of the resource list, and reorganize it
+                # using the shuffled indices
+                i_rep = plate_resources_ind[k]
+                v_rep = [v[i] for i in i_rep]
+                for plate, original_plate_resources in \
+                        zip(self.plates, original_plates_resources):
+                    # If plate does not pre-specify resources, continue
+                    if k not in original_plate_resources:
+                        # Increase counter
+                        resource_shift += plate.n_plates
+                        continue
+                    # Search for pre-specified resource, and swap its position
+                    # to match plate.
+                    for r in original_plate_resources[k]:
+                        r_ind = v_rep.index(r)
+                        # Swap resource index
+                        v_rep[resource_shift], v_rep[r_ind] = \
+                            v_rep[r_ind], v_rep[resource_shift]
+                        i_rep[resource_shift], i_rep[r_ind] = \
+                            i_rep[r_ind], i_rep[resource_shift]
+                        # Increase counter
+                        resource_shift += 1
+                # Store modified indices
+                plate_resources_ind[k] = i_rep
+
             # Assign resources to plates
-            resource_shift = 0
-            for plate in self.plates:
-                for k, v in six.iteritems(self.plate_resources):
-                    # Make a copy of the resource list, and reorganize it
-                    # using the shuffled indices
-                    v_rep = [v[i] for i in plate_resources_ind[k]]
+            for k, v in six.iteritems(self.plate_resources):
+                resource_shift = 0
+                # Make a copy of the resource list, and reorganize it
+                # using the shuffled indices
+                v_rep = [v[i] for i in plate_resources_ind[k]]
+                for plate in self.plates:
                     # Copy resources
                     plate.resources[k] = v_rep[resource_shift: \
                                                resource_shift + plate.n_plates]
-                resource_shift += plate.n_plates
+                    resource_shift += plate.n_plates
 
             # Generate and save replicate setup information
             for plate in self.plates:
