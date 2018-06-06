@@ -595,7 +595,7 @@ class TestChemicalInducer(unittest.TestCase):
         with self.assertRaises(ValueError):
             iptg.set_gradient(min=1e-6, max=1e-3, n=10, scale='symlog')
 
-    def test_set_vol_from_shots_single_rep(self):
+    def test_set_vol_from_shots_single_rep_1(self):
         iptg = platedesign.inducer.ChemicalInducer(
             name='IPTG',
             units=u'µM')
@@ -608,6 +608,36 @@ class TestChemicalInducer(unittest.TestCase):
         # Check attributes
         self.assertEqual(iptg.replicate_vol, None)
         self.assertEqual(iptg.total_vol, 30)
+
+    def test_set_vol_from_shots_single_rep_2(self):
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        iptg.concentrations = numpy.linspace(0,1,11)
+        # Shot volume and safety factor should be set
+        iptg.shot_vol = 5.
+        iptg.vol_safety_factor = 1.2
+        # Call function to set functions
+        iptg.set_vol_from_shots(n_shots=6)
+        # Check attributes
+        self.assertEqual(iptg.replicate_vol, None)
+        self.assertEqual(iptg.total_vol, 36)
+
+    def test_set_vol_from_shots_single_rep_safety_nsig(self):
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        iptg.concentrations = numpy.linspace(0,1,11)
+        # Set number of significant digits to round to
+        iptg.vol_safety_nsig = 1
+        # Shot volume and safety factor should be set
+        iptg.shot_vol = 5.
+        iptg.vol_safety_factor = 1.2
+        # Call function to set functions
+        iptg.set_vol_from_shots(n_shots=6)
+        # Check attributes
+        self.assertEqual(iptg.replicate_vol, None)
+        self.assertEqual(iptg.total_vol, 40)
 
     def test_set_vol_from_shots_single_rep_with_minimum_1(self):
         iptg = platedesign.inducer.ChemicalInducer(
@@ -681,6 +711,22 @@ class TestChemicalInducer(unittest.TestCase):
         iptg.set_vol_from_shots(n_shots=5, n_replicates=5)
         # Check attributes
         self.assertEqual(iptg.replicate_vol, 30)
+        self.assertEqual(iptg.total_vol, 180)
+
+    def test_set_vol_from_shots_many_reps_safety_nsig(self):
+        iptg = platedesign.inducer.ChemicalInducer(
+            name='IPTG',
+            units=u'µM')
+        iptg.concentrations = numpy.linspace(0,1,11)
+        # Set number of significant digits to round to
+        iptg.vol_safety_nsig = 1
+        # Shot volume and safety factor should be set
+        iptg.shot_vol = 5.
+        iptg.vol_safety_factor = 1.2
+        # Call function to set functions
+        iptg.set_vol_from_shots(n_shots=5, n_replicates=5)
+        # Check attributes
+        self.assertEqual(iptg.replicate_vol, 30)
         self.assertEqual(iptg.total_vol, 200)
 
     def test_set_vol_from_shots_many_reps_with_minimum_1(self):
@@ -697,7 +743,7 @@ class TestChemicalInducer(unittest.TestCase):
         iptg.set_vol_from_shots(n_shots=5, n_replicates=5)
         # Check attributes
         self.assertEqual(iptg.replicate_vol, 30)
-        self.assertEqual(iptg.total_vol, 200)
+        self.assertEqual(iptg.total_vol, 180)
 
     def test_set_vol_from_shots_many_reps_with_minimum_2(self):
         iptg = platedesign.inducer.ChemicalInducer(
@@ -729,7 +775,7 @@ class TestChemicalInducer(unittest.TestCase):
         iptg.set_vol_from_shots(n_shots=5, n_replicates=5)
         # Check attributes
         self.assertEqual(iptg.replicate_vol, 40)
-        self.assertEqual(iptg.total_vol, 300)
+        self.assertEqual(iptg.total_vol, 240)
 
     def test_set_vol_from_shots_many_reps_with_minimum_4(self):
         iptg = platedesign.inducer.ChemicalInducer(
@@ -1091,8 +1137,8 @@ class TestChemicalInducer(unittest.TestCase):
         # Call function to set volumes
         iptg.set_vol_from_shots(n_shots=6, n_replicates=5)
         # Check attributes
-        self.assertEqual(iptg.replicate_vol, 40)
-        self.assertEqual(iptg.total_vol, 300)
+        self.assertEqual(iptg.replicate_vol, 36)
+        self.assertEqual(iptg.total_vol, 220)
         # Set concentrations from gradient
         iptg.set_gradient(min=0.5,
                           max=500,
@@ -1110,8 +1156,8 @@ class TestChemicalInducer(unittest.TestCase):
                                              numpy.log10(500),
                                              5))
         d = numpy.array([1., 100., 100., 10., 1., 1.])
-        ind = numpy.round(500*c/5*600/1e6*d, decimals=2)
-        water = numpy.round(600 - ind, decimals=1)
+        ind = numpy.round(500*c/5*440/1e6*d, decimals=2)
+        water = numpy.round(440 - ind, decimals=1)
         actual_conc = 1e6/d*ind/(ind + water)*5/500.
         # Expected dataframe
         df = pandas.DataFrame()
@@ -1119,7 +1165,7 @@ class TestChemicalInducer(unittest.TestCase):
         df[u'Stock dilution'] = d
         df[u'Inducer volume (µL)'] = ind
         df[u'Water volume (µL)'] = water
-        df[u'Total volume (µL)'] = 600.
+        df[u'Total volume (µL)'] = 440.
         df[u'Aliquot IDs'] = ["I001, I002", "I003, I004", "I005, I006",
                               "I007, I008", "I009, I010", "I011, I012"]
         # Add two empty rows
@@ -1130,7 +1176,7 @@ class TestChemicalInducer(unittest.TestCase):
         df.set_value(
             len(c) + 1,
             u'IPTG Concentration (µM)',
-            u'Distribute in aliquots of {} µL.'.format(40.))
+            u'Distribute in aliquots of {} µL.'.format(36.))
         # Test for equality
         pandas.util.testing.assert_frame_equal(df_in_file, df)
 
@@ -2308,7 +2354,7 @@ class TestChemicalGeneExpression(unittest.TestCase):
         with self.assertRaises(ValueError):
             rr.set_gradient(min=30, max=1000, n=21, scale='symlog')
 
-    def test_set_vol_from_shots_single_rep(self):
+    def test_set_vol_from_shots_single_rep_1(self):
         rr = platedesign.inducer.ChemicalGeneExpression(
             name='RR',
             units='MEFL',
@@ -2325,6 +2371,42 @@ class TestChemicalGeneExpression(unittest.TestCase):
         self.assertEqual(rr.replicate_vol, None)
         self.assertEqual(rr.total_vol, 30)
 
+    def test_set_vol_from_shots_single_rep_2(self):
+        rr = platedesign.inducer.ChemicalGeneExpression(
+            name='RR',
+            units='MEFL',
+            inducer_name='IPTG',
+            inducer_units=u'µM',
+            hill_params={'y0': 10, 'dy':1000, 'K': 50, 'n': 2})
+        rr.expression_levels = numpy.logspace(1,3,11)
+        # Shot volume and safety factor should be set
+        rr.shot_vol = 5.
+        rr.vol_safety_factor = 1.2
+        # Call function to set functions
+        rr.set_vol_from_shots(n_shots=6)
+        # Check attributes
+        self.assertEqual(rr.replicate_vol, None)
+        self.assertEqual(rr.total_vol, 36)
+
+    def test_set_vol_from_shots_single_rep_safety_nsig(self):
+        rr = platedesign.inducer.ChemicalGeneExpression(
+            name='RR',
+            units='MEFL',
+            inducer_name='IPTG',
+            inducer_units=u'µM',
+            hill_params={'y0': 10, 'dy':1000, 'K': 50, 'n': 2})
+        rr.expression_levels = numpy.logspace(1,3,11)
+        # Set number of significant digits to round up to
+        rr.vol_safety_nsig = 1
+        # Shot volume and safety factor should be set
+        rr.shot_vol = 5.
+        rr.vol_safety_factor = 1.2
+        # Call function to set functions
+        rr.set_vol_from_shots(n_shots=6)
+        # Check attributes
+        self.assertEqual(rr.replicate_vol, None)
+        self.assertEqual(rr.total_vol, 40)
+
     def test_set_vol_from_shots_many_reps(self):
         rr = platedesign.inducer.ChemicalGeneExpression(
             name='RR',
@@ -2340,7 +2422,7 @@ class TestChemicalGeneExpression(unittest.TestCase):
         rr.set_vol_from_shots(n_shots=5, n_replicates=5)
         # Check attributes
         self.assertEqual(rr.replicate_vol, 30)
-        self.assertEqual(rr.total_vol, 200)
+        self.assertEqual(rr.total_vol, 180)
 
     def test_shuffle(self):
         rr = platedesign.inducer.ChemicalGeneExpression(
@@ -2839,8 +2921,8 @@ class TestChemicalGeneExpression(unittest.TestCase):
         # Call function to set volumes
         rr.set_vol_from_shots(n_shots=6, n_replicates=5)
         # Check attributes
-        self.assertEqual(rr.replicate_vol, 40)
-        self.assertEqual(rr.total_vol, 300)
+        self.assertEqual(rr.replicate_vol, 36)
+        self.assertEqual(rr.total_vol, 220)
         # Set concentrations from gradient
         rr.set_gradient(min=10,
                         max=1000,
@@ -2858,9 +2940,9 @@ class TestChemicalGeneExpression(unittest.TestCase):
                               K=50.,
                               n=2,
                               y=numpy.logspace(1,3,6))
-        d = numpy.array([1., 10., 10., 10., 1., 1.])
-        ind = numpy.round(500*c/5*600/1e6*d, decimals=2)
-        water = numpy.round(600 - ind, decimals=1)
+        d = numpy.array([1., 10., 10., 10., 10., 1.])
+        ind = numpy.round(500*c/5*440/1e6*d, decimals=2)
+        water = numpy.round(440 - ind, decimals=1)
         actual_conc = 1e6/d*ind/(ind + water)*5/500.
         # Expected dataframe
         df = pandas.DataFrame()
@@ -2868,7 +2950,7 @@ class TestChemicalGeneExpression(unittest.TestCase):
         df[u'Stock dilution'] = d
         df[u'Inducer volume (µL)'] = ind
         df[u'Water volume (µL)'] = water
-        df[u'Total volume (µL)'] = 600.
+        df[u'Total volume (µL)'] = 440.
         df[u'Aliquot IDs'] = ["R001, R002", "R003, R004", "R005, R006",
                               "R007, R008", "R009, R010", "R011, R012"]
         # Add two empty rows
@@ -2879,7 +2961,7 @@ class TestChemicalGeneExpression(unittest.TestCase):
         df.set_value(
             len(c) + 1,
             u'IPTG Concentration (µM)',
-            u'Distribute in aliquots of {} µL.'.format(40.))
+            u'Distribute in aliquots of {} µL.'.format(36.))
         # Test for equality
         pandas.util.testing.assert_frame_equal(df_in_file, df)
 

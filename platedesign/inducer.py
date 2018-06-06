@@ -292,6 +292,9 @@ class ChemicalInducer(ChemicalInducerBase):
     vol_safety_factor : float
         Safety factor used when calculating the total inducer volume to
         prepare.
+    vol_safety_nsig : int
+        Number of significant digits to round up to when calculating the
+        total inducer volume to prepare.
     min_stock_vol : float
         Minimum volume of stock inducer to use when preparing dilutions
         during the experiment setup stage.
@@ -342,6 +345,7 @@ class ChemicalInducer(ChemicalInducerBase):
 
         # Initialize secondary properties used for calculations
         self.vol_safety_factor = 1.2
+        self.vol_safety_nsig = 2
         self.min_stock_vol = 1.5
         self.max_stock_vol = 20.
         self.stock_dilution_step = 10.
@@ -465,7 +469,8 @@ class ChemicalInducer(ChemicalInducerBase):
         # Calculate volume with safety factor for a replicate
         inducer_rep_vol = n_shots*self.shot_vol
         inducer_rep_vol = inducer_rep_vol*self.vol_safety_factor
-        inducer_rep_vol = platedesign.math._ceil_log(inducer_rep_vol)
+        inducer_rep_vol = platedesign.math._ceil_log(inducer_rep_vol,
+                                                     self.vol_safety_nsig)
         # Compare to minimum and set, if necessary
         inducer_rep_vol = max(inducer_rep_vol, self.min_replicate_vol)
 
@@ -474,7 +479,8 @@ class ChemicalInducer(ChemicalInducerBase):
             self.total_vol = inducer_rep_vol*n_replicates
             # Apply safety factor and round again
             self.total_vol = platedesign.math._ceil_log(
-                self.total_vol*self.vol_safety_factor)
+                self.total_vol*self.vol_safety_factor,
+                self.vol_safety_nsig)
             # Store aliquot volume
             self.replicate_vol = inducer_rep_vol
         else:

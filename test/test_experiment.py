@@ -126,7 +126,7 @@ class TestExperiment(unittest.TestCase):
         iptg = platedesign.inducer.ChemicalInducer(name='IPTG', units=u'µM')
         iptg.stock_conc = 1e6
         iptg.shot_vol = 5.
-        iptg.concentrations = [0, 2, 8, 16, 64, 500]
+        iptg.concentrations = [0, 2, 8, 20, 50, 500]
         exp.add_inducer(iptg)
         # Plate
         plate = platedesign.plate.Plate('P1', n_rows=4, n_cols=6)
@@ -146,7 +146,7 @@ class TestExperiment(unittest.TestCase):
         # calculations
         self.assertEqual(iptg.media_vol, 500)
         self.assertIsNone(iptg.replicate_vol)
-        self.assertEqual(iptg.total_vol, 30)
+        self.assertEqual(iptg.total_vol, 24)
 
         # Check that appropriate excel files exist
         self.assertTrue(os.path.isfile(os.path.join(self.temp_dir, 
@@ -219,9 +219,9 @@ class TestExperiment(unittest.TestCase):
         numpy.testing.assert_array_equal(
             samples_table['Column'].values,
             [(i%6 + 1) for i in range(24)])
-        numpy.testing.assert_array_equal(
+        numpy.testing.assert_almost_equal(
             samples_table[u'IPTG Concentration (µM)'].values,
-            numpy.tile([0, 2, 8, 16, 64, 500], 4))
+            numpy.tile(iptg.concentrations, 4))
 
     def test_one_inducer_many_replicates(self):
         # Experiment with one inducer and many replicates
@@ -250,8 +250,8 @@ class TestExperiment(unittest.TestCase):
         # Check that inducers have the right number of replicates for their
         # calculations
         self.assertEqual(iptg.media_vol, 500)
-        self.assertEqual(iptg.replicate_vol, 30)
-        self.assertEqual(iptg.total_vol, 200)
+        self.assertEqual(iptg.replicate_vol, 24)
+        self.assertEqual(iptg.total_vol, 87)
 
         # Check that appropriate excel files exist
         self.assertTrue(os.path.isfile(os.path.join(self.temp_dir, 
@@ -353,9 +353,9 @@ class TestExperiment(unittest.TestCase):
             numpy.testing.assert_array_equal(
                 samples_table['Column'].values,
                 [(i%6 + 1) for i in range(24)])
-            numpy.testing.assert_array_equal(
+            numpy.testing.assert_almost_equal(
                 samples_table[u'IPTG Concentration (µM)'].values,
-                numpy.tile([0, 2, 8, 16, 64, 500], 4))
+                numpy.tile(iptg.concentrations, 4))
 
     def test_one_plate_two_inducers(self):
         # Experiment with two inducers
@@ -390,11 +390,11 @@ class TestExperiment(unittest.TestCase):
         # Check that inducers have the right number of replicates for their
         # calculations
         self.assertEqual(iptg.media_vol, 500)
-        self.assertEqual(iptg.replicate_vol, 30)
-        self.assertEqual(iptg.total_vol, 200)
+        self.assertEqual(iptg.replicate_vol, 24)
+        self.assertEqual(iptg.total_vol, 87)
         self.assertEqual(xyl.media_vol, 500)
-        self.assertEqual(xyl.replicate_vol, 40)
-        self.assertEqual(xyl.total_vol, 200)
+        self.assertEqual(xyl.replicate_vol, 36)
+        self.assertEqual(xyl.total_vol, 130)
 
         # Check sheet names of experiment setup file
         wb = openpyxl.load_workbook(filename=os.path.join(
@@ -475,12 +475,12 @@ class TestExperiment(unittest.TestCase):
             numpy.testing.assert_array_equal(
                 samples_table['Column'].values,
                 [(i%6 + 1) for i in range(24)])
-            numpy.testing.assert_array_equal(
+            numpy.testing.assert_almost_equal(
                 samples_table[u'IPTG Concentration (µM)'].values,
-                numpy.tile([0, 2, 8, 16, 64, 500], 4))
-            numpy.testing.assert_array_equal(
+                numpy.tile(iptg.concentrations, 4))
+            numpy.testing.assert_almost_equal(
                 samples_table['Xylose Concentration (%)'].values,
-                numpy.repeat([0.0, 0.005, 0.05, 0.05], 6))
+                numpy.repeat(xyl.concentrations, 6))
 
     def test_three_plates_two_inducers(self):
         # Two inducer, three plate experiment
@@ -538,11 +538,11 @@ class TestExperiment(unittest.TestCase):
         # Check that inducers have the right number of replicates for their
         # calculations
         self.assertEqual(iptg.media_vol, 500)
-        self.assertEqual(iptg.replicate_vol, 30)
-        self.assertEqual(iptg.total_vol, 200)
+        self.assertEqual(iptg.replicate_vol, 24)
+        self.assertEqual(iptg.total_vol, 87)
         self.assertEqual(xyl.media_vol, 500)
-        self.assertEqual(xyl.replicate_vol, 80)
-        self.assertEqual(xyl.total_vol, 300)
+        self.assertEqual(xyl.replicate_vol, 72)
+        self.assertEqual(xyl.total_vol, 260)
 
         # Check sheet names of experiment setup file
         wb = openpyxl.load_workbook(filename=os.path.join(
@@ -644,16 +644,16 @@ class TestExperiment(unittest.TestCase):
             numpy.testing.assert_array_equal(
                 samples_table['Column'].values,
                 [(i%6 + 1) for i in range(52)])
-            numpy.testing.assert_array_equal(
+            numpy.testing.assert_almost_equal(
                 samples_table[u'IPTG Concentration (µM)'].values,
                 numpy.concatenate((
-                    numpy.tile([0, 2, 8, 16, 64, 500], 4),
+                    numpy.tile(iptg.concentrations, 4),
                     [numpy.nan]*28)))
-            numpy.testing.assert_array_equal(
+            numpy.testing.assert_almost_equal(
                 samples_table['Xylose Concentration (%)'].values,
                 numpy.concatenate((
-                    numpy.repeat([0.0, 0.005, 0.05, 0.05], 6),
-                    numpy.repeat([0.0, 0.005, 0.05, 0.05], 6),
+                    numpy.repeat(xyl.concentrations, 6),
+                    numpy.repeat(xyl.concentrations, 6),
                     [numpy.nan]*4)))
 
     def test_three_plates_two_inducers_randomize(self):
@@ -714,11 +714,11 @@ class TestExperiment(unittest.TestCase):
         # Check that inducers have the right number of replicates for their
         # calculations
         self.assertEqual(iptg.media_vol, 500)
-        self.assertEqual(iptg.replicate_vol, 30)
-        self.assertEqual(iptg.total_vol, 200)
+        self.assertEqual(iptg.replicate_vol, 24)
+        self.assertEqual(iptg.total_vol, 87)
         self.assertEqual(xyl.media_vol, 500)
-        self.assertEqual(xyl.replicate_vol, 80)
-        self.assertEqual(xyl.total_vol, 300)
+        self.assertEqual(xyl.replicate_vol, 72)
+        self.assertEqual(xyl.total_vol, 260)
 
         # Check sheet names of experiment setup file
         wb = openpyxl.load_workbook(filename=os.path.join(
@@ -810,6 +810,9 @@ class TestExperiment(unittest.TestCase):
                                     ws_2=wb_exp['Cells for Plate P3'])
 
         # Check replicate measurement files
+        # Unshuffle inducers
+        iptg.unshuffle()
+        xyl.unshuffle()
         for rep_idx in range(3):
             wb = openpyxl.load_workbook(filename=os.path.join(
                 self.temp_dir,
@@ -840,16 +843,16 @@ class TestExperiment(unittest.TestCase):
             numpy.testing.assert_array_equal(
                 samples_table['Column'].values,
                 [(i%6 + 1) for i in range(52)])
-            iptg_conc = [0, 2, 8, 16, 64, 500]
-            iptg_conc = [iptg_conc[idx] for idx in iptg_shuffled_idx[rep_idx]]
-            xyl_conc = [0.0, 0.005, 0.05, 0.05]
-            xyl_conc = [xyl_conc[idx] for idx in xyl_shuffled_idx[rep_idx]]
-            numpy.testing.assert_array_equal(
+            iptg_conc = [iptg.concentrations[idx]
+                         for idx in iptg_shuffled_idx[rep_idx]]
+            xyl_conc = [xyl.concentrations[idx]
+                        for idx in xyl_shuffled_idx[rep_idx]]
+            numpy.testing.assert_almost_equal(
                 samples_table[u'IPTG Concentration (µM)'].values,
                 numpy.concatenate((
                     numpy.tile(iptg_conc, 4),
                     [numpy.nan]*28)))
-            numpy.testing.assert_array_equal(
+            numpy.testing.assert_almost_equal(
                 samples_table['Xylose Concentration (%)'].values,
                 numpy.concatenate((
                     numpy.repeat(xyl_conc, 6),
@@ -910,11 +913,11 @@ class TestExperiment(unittest.TestCase):
         # Check that inducers have the right number of replicates for their
         # calculations
         self.assertEqual(iptg.media_vol, 500)
-        self.assertEqual(iptg.replicate_vol, 50)
-        self.assertEqual(iptg.total_vol, 200)
+        self.assertEqual(iptg.replicate_vol, 48)
+        self.assertEqual(iptg.total_vol, 180)
         self.assertEqual(xyl.media_vol, 500)
-        self.assertEqual(xyl.replicate_vol, 80)
-        self.assertEqual(xyl.total_vol, 300)
+        self.assertEqual(xyl.replicate_vol, 72)
+        self.assertEqual(xyl.total_vol, 260)
 
         # Check sheet names of experiment setup file
         wb = openpyxl.load_workbook(filename=os.path.join(
@@ -1019,7 +1022,7 @@ class TestExperiment(unittest.TestCase):
                     numpy.tile(iptg.concentrations[:6], 4),
                     numpy.tile(iptg.concentrations[6:], 4),
                     [numpy.nan]*4)))
-            numpy.testing.assert_array_equal(
+            numpy.testing.assert_almost_equal(
                 samples_table['Xylose Concentration (%)'].values,
                 numpy.concatenate((
                     numpy.repeat(xyl.concentrations[:4], 6),
@@ -1083,11 +1086,11 @@ class TestExperiment(unittest.TestCase):
         # Check that inducers have the right number of replicates for their
         # calculations
         self.assertEqual(iptg.media_vol, 500)
-        self.assertEqual(iptg.replicate_vol, 50)
-        self.assertEqual(iptg.total_vol, 300)
+        self.assertEqual(iptg.replicate_vol, 48)
+        self.assertEqual(iptg.total_vol, 290)
         self.assertEqual(xyl.media_vol, 500)
-        self.assertEqual(xyl.replicate_vol, 80)
-        self.assertEqual(xyl.total_vol, 500)
+        self.assertEqual(xyl.replicate_vol, 72)
+        self.assertEqual(xyl.total_vol, 440)
 
         # Check sheet names of experiment setup file
         wb = openpyxl.load_workbook(filename=os.path.join(
@@ -1192,7 +1195,7 @@ class TestExperiment(unittest.TestCase):
                     numpy.tile(iptg.concentrations[:6], 4),
                     numpy.tile(iptg.concentrations[6:], 4),
                     [numpy.nan]*4)))
-            numpy.testing.assert_array_equal(
+            numpy.testing.assert_almost_equal(
                 samples_table['Xylose Concentration (%)'].values,
                 numpy.concatenate((
                     numpy.repeat(xyl.concentrations[:4], 6),
@@ -1261,11 +1264,11 @@ class TestExperiment(unittest.TestCase):
         # Check that inducers have the right number of replicates for their
         # calculations
         self.assertEqual(iptg.media_vol, 500)
-        self.assertEqual(iptg.replicate_vol, 50)
-        self.assertEqual(iptg.total_vol, 200)
+        self.assertEqual(iptg.replicate_vol, 48)
+        self.assertEqual(iptg.total_vol, 180)
         self.assertEqual(xyl.media_vol, 500)
-        self.assertEqual(xyl.replicate_vol, 80)
-        self.assertEqual(xyl.total_vol, 300)
+        self.assertEqual(xyl.replicate_vol, 72)
+        self.assertEqual(xyl.total_vol, 260)
 
         # Check sheet names of experiment setup file
         wb = openpyxl.load_workbook(filename=os.path.join(
@@ -1386,7 +1389,7 @@ class TestExperiment(unittest.TestCase):
                     numpy.tile(iptg.concentrations[:6], 4),
                     numpy.tile(iptg.concentrations[6:], 4),
                     [numpy.nan]*4)))
-            numpy.testing.assert_array_equal(
+            numpy.testing.assert_almost_equal(
                 samples_table['Xylose Concentration (%)'].values,
                 numpy.concatenate((
                     numpy.repeat(xyl.concentrations[:4], 6),
@@ -1456,11 +1459,11 @@ class TestExperiment(unittest.TestCase):
         # Check that inducers have the right number of replicates for their
         # calculations
         self.assertEqual(iptg.media_vol, 500)
-        self.assertEqual(iptg.replicate_vol, 50)
-        self.assertEqual(iptg.total_vol, 200)
+        self.assertEqual(iptg.replicate_vol, 48)
+        self.assertEqual(iptg.total_vol, 180)
         self.assertEqual(xyl.media_vol, 500)
-        self.assertEqual(xyl.replicate_vol, 80)
-        self.assertEqual(xyl.total_vol, 300)
+        self.assertEqual(xyl.replicate_vol, 72)
+        self.assertEqual(xyl.total_vol, 260)
 
         # Check sheet names of experiment setup file
         wb = openpyxl.load_workbook(filename=os.path.join(
@@ -1594,7 +1597,7 @@ class TestExperiment(unittest.TestCase):
                     numpy.tile(iptg.concentrations[:6], 4),
                     numpy.tile(iptg.concentrations[6:], 4),
                     [numpy.nan]*4)))
-            numpy.testing.assert_array_equal(
+            numpy.testing.assert_almost_equal(
                 samples_table['Xylose Concentration (%)'].values,
                 numpy.concatenate((
                     numpy.repeat(xyl.concentrations[:4], 6),
@@ -1665,11 +1668,11 @@ class TestExperiment(unittest.TestCase):
         # Check that inducers have the right number of replicates for their
         # calculations
         self.assertEqual(iptg.media_vol, 500)
-        self.assertEqual(iptg.replicate_vol, 50)
-        self.assertEqual(iptg.total_vol, 200)
+        self.assertEqual(iptg.replicate_vol, 48)
+        self.assertEqual(iptg.total_vol, 180)
         self.assertEqual(xyl.media_vol, 500)
-        self.assertEqual(xyl.replicate_vol, 80)
-        self.assertEqual(xyl.total_vol, 300)
+        self.assertEqual(xyl.replicate_vol, 72)
+        self.assertEqual(xyl.total_vol, 260)
 
         # Check sheet names of experiment setup file
         wb = openpyxl.load_workbook(filename=os.path.join(
@@ -1861,7 +1864,728 @@ class TestExperiment(unittest.TestCase):
             numpy.testing.assert_almost_equal(
                 samples_table[u'IPTG Concentration (µM)'].values,
                 iptg_exp)
+            numpy.testing.assert_almost_equal(
+                samples_table['Xylose Concentration (%)'].values,
+                xyl_exp)
+
+    def test_plate_array_two_inducers_prespecified_resources_error_1(self):
+        # Two inducer, three plate experiment
+        exp = platedesign.experiment.Experiment()
+        exp.n_replicates = 3
+        exp.plate_resources['Location'] = ['Stack 1-1',
+                                           'Stack 1-2',
+                                           'Stack 1-3',
+                                           'Stack 1-4',
+                                           'Stack 1-5',
+                                           'Stack 1-6']
+        exp.randomize_plate_resources = True
+        exp.measurement_order = 'Location'
+        # Inducer
+        iptg = platedesign.inducer.ChemicalInducer(name='IPTG', units=u'µM')
+        iptg.stock_conc = 1e6
+        iptg.shot_vol = 5.
+        iptg.concentrations = [ 0,   0.5,  1,   2,   4,   8,
+                               16,  32,   64, 128, 256, 500]
+        exp.add_inducer(iptg)
+        xyl = platedesign.inducer.ChemicalInducer(name='Xylose', units='%')
+        xyl.stock_conc = 50.
+        xyl.shot_vol = 5.
+        xyl.concentrations = [0.0,  0.0005, 0.001, 0.005,
+                              0.01, 0.05,   0.1,   0.5]
+        exp.add_inducer(xyl)
+
+        # Plates
+        platearray = platedesign.plate.PlateArray(
+            'PA1',
+            array_n_rows=2,
+            array_n_cols=2,
+            plate_names=['P{}'.format(i+1) for i in range(4)],
+            plate_n_rows=4,
+            plate_n_cols=6)
+        platearray.cell_strain_name = 'Test Strain 1'
+        platearray.total_media_vol = 16000.*4
+        platearray.sample_media_vol = 500.
+        platearray.cell_setup_method = 'fixed_volume'
+        platearray.cell_predilution = 100
+        platearray.cell_predilution_vol = 1000
+        platearray.cell_shot_vol = 5
+        platearray.resources['Location'] = ['Stack 1-1',
+                                            'Stack 1-2',
+                                            'Stack 1-3',
+                                            'Stack 1-4',
+                                            'Stack 1-5']
+        platearray.apply_inducer(inducer=iptg, apply_to='rows')
+        platearray.apply_inducer(inducer=xyl, apply_to='cols')
+        exp.add_plate(platearray)
+
+        plate5 = platedesign.plate.Plate('P5', n_rows=4, n_cols=6)
+        plate5.samples_to_measure = 4
+        plate5.cell_strain_name = 'Autofluorescence Strain'
+        plate5.total_media_vol = 16000.
+        plate5.sample_media_vol = 500.
+        plate5.cell_setup_method = 'fixed_volume'
+        plate5.cell_predilution = 10
+        plate5.cell_predilution_vol = 1000
+        plate5.cell_shot_vol = 5
+        exp.add_plate(plate5)
+
+        # Generate experiment files
+        errmsg = "5 resources of type Location specified for plate PA1. " +\
+            "Should be 4"
+        with six.assertRaisesRegex(self, ValueError, errmsg):
+            exp.generate(path=self.temp_dir)
+
+    def test_plate_array_two_inducers_prespecified_resources_error_2(self):
+        # Two inducer, three plate experiment
+        exp = platedesign.experiment.Experiment()
+        exp.n_replicates = 3
+        exp.plate_resources['Location'] = ['Stack 1-1',
+                                           'Stack 1-2',
+                                           'Stack 1-3',
+                                           'Stack 1-4',
+                                           'Stack 1-5',
+                                           'Stack 1-6']
+        exp.randomize_plate_resources = True
+        exp.measurement_order = 'Location'
+        # Inducer
+        iptg = platedesign.inducer.ChemicalInducer(name='IPTG', units=u'µM')
+        iptg.stock_conc = 1e6
+        iptg.shot_vol = 5.
+        iptg.concentrations = [ 0,   0.5,  1,   2,   4,   8,
+                               16,  32,   64, 128, 256, 500]
+        exp.add_inducer(iptg)
+        xyl = platedesign.inducer.ChemicalInducer(name='Xylose', units='%')
+        xyl.stock_conc = 50.
+        xyl.shot_vol = 5.
+        xyl.concentrations = [0.0,  0.0005, 0.001, 0.005,
+                              0.01, 0.05,   0.1,   0.5]
+        exp.add_inducer(xyl)
+
+        # Plates
+        platearray = platedesign.plate.PlateArray(
+            'PA1',
+            array_n_rows=2,
+            array_n_cols=2,
+            plate_names=['P{}'.format(i+1) for i in range(4)],
+            plate_n_rows=4,
+            plate_n_cols=6)
+        platearray.cell_strain_name = 'Test Strain 1'
+        platearray.total_media_vol = 16000.*4
+        platearray.sample_media_vol = 500.
+        platearray.cell_setup_method = 'fixed_volume'
+        platearray.cell_predilution = 100
+        platearray.cell_predilution_vol = 1000
+        platearray.cell_shot_vol = 5
+        platearray.resources['Location'] = ['Stack 1-1',
+                                            'Stack 1-2',
+                                            'Stack 2-3',
+                                            'Stack 1-4']
+        platearray.apply_inducer(inducer=iptg, apply_to='rows')
+        platearray.apply_inducer(inducer=xyl, apply_to='cols')
+        exp.add_plate(platearray)
+
+        plate5 = platedesign.plate.Plate('P5', n_rows=4, n_cols=6)
+        plate5.samples_to_measure = 4
+        plate5.cell_strain_name = 'Autofluorescence Strain'
+        plate5.total_media_vol = 16000.
+        plate5.sample_media_vol = 500.
+        plate5.cell_setup_method = 'fixed_volume'
+        plate5.cell_predilution = 10
+        plate5.cell_predilution_vol = 1000
+        plate5.cell_shot_vol = 5
+        exp.add_plate(plate5)
+
+        # Generate experiment files
+        errmsg = "resource Stack 2-3 of type Location on plate PA1 not found"
+        with six.assertRaisesRegex(self, ValueError, errmsg):
+            exp.generate(path=self.temp_dir)
+
+    def test_plate_array_two_inducers_prespecified_resources_error_3(self):
+        # Two inducer, three plate experiment
+        exp = platedesign.experiment.Experiment()
+        exp.n_replicates = 3
+        exp.plate_resources['Location'] = ['Stack 1-1',
+                                           'Stack 1-2',
+                                           'Stack 1-3',
+                                           'Stack 1-4']
+        exp.randomize_plate_resources = True
+        exp.measurement_order = 'Location'
+        # Inducer
+        iptg = platedesign.inducer.ChemicalInducer(name='IPTG', units=u'µM')
+        iptg.stock_conc = 1e6
+        iptg.shot_vol = 5.
+        iptg.concentrations = [ 0,   0.5,  1,   2,   4,   8,
+                               16,  32,   64, 128, 256, 500]
+        exp.add_inducer(iptg)
+        xyl = platedesign.inducer.ChemicalInducer(name='Xylose', units='%')
+        xyl.stock_conc = 50.
+        xyl.shot_vol = 5.
+        xyl.concentrations = [0.0,  0.0005, 0.001, 0.005,
+                              0.01, 0.05,   0.1,   0.5]
+        exp.add_inducer(xyl)
+
+        # Plates
+        platearray = platedesign.plate.PlateArray(
+            'PA1',
+            array_n_rows=2,
+            array_n_cols=2,
+            plate_names=['P{}'.format(i+1) for i in range(4)],
+            plate_n_rows=4,
+            plate_n_cols=6)
+        platearray.cell_strain_name = 'Test Strain 1'
+        platearray.total_media_vol = 16000.*4
+        platearray.sample_media_vol = 500.
+        platearray.cell_setup_method = 'fixed_volume'
+        platearray.cell_predilution = 100
+        platearray.cell_predilution_vol = 1000
+        platearray.cell_shot_vol = 5
+        platearray.apply_inducer(inducer=iptg, apply_to='rows')
+        platearray.apply_inducer(inducer=xyl, apply_to='cols')
+        exp.add_plate(platearray)
+
+        plate5 = platedesign.plate.Plate('P5', n_rows=4, n_cols=6)
+        plate5.samples_to_measure = 4
+        plate5.cell_strain_name = 'Autofluorescence Strain'
+        plate5.total_media_vol = 16000.
+        plate5.sample_media_vol = 500.
+        plate5.cell_setup_method = 'fixed_volume'
+        plate5.cell_predilution = 10
+        plate5.cell_predilution_vol = 1000
+        plate5.cell_shot_vol = 5
+        plate5.resources['Location'] = ['Stack 1-1']
+        exp.add_plate(plate5)
+
+        # Generate experiment files
+        errmsg = "4 resources of type Location specified, should be 5 or more"
+        with six.assertRaisesRegex(self, ValueError, errmsg):
+            exp.generate(path=self.temp_dir)
+
+    def test_plate_array_two_inducers_prespecified_resources_1(self):
+        # Two inducer, three plate experiment
+        exp = platedesign.experiment.Experiment()
+        exp.n_replicates = 3
+        exp.plate_resources['Location'] = ['Stack 1-1',
+                                           'Stack 1-2',
+                                           'Stack 1-3',
+                                           'Stack 1-4',
+                                           'Stack 1-5',
+                                           'Stack 1-6']
+        exp.randomize_plate_resources = True
+        exp.measurement_order = 'Location'
+        # Inducer
+        iptg = platedesign.inducer.ChemicalInducer(name='IPTG', units=u'µM')
+        iptg.stock_conc = 1e6
+        iptg.shot_vol = 5.
+        iptg.concentrations = [ 0,   0.5,  1,   2,   4,   8,
+                               16,  32,   64, 128, 256, 500]
+        exp.add_inducer(iptg)
+        xyl = platedesign.inducer.ChemicalInducer(name='Xylose', units='%')
+        xyl.stock_conc = 50.
+        xyl.shot_vol = 5.
+        xyl.concentrations = [0.0,  0.0005, 0.001, 0.005,
+                              0.01, 0.05,   0.1,   0.5]
+        exp.add_inducer(xyl)
+
+        # Plates
+        platearray = platedesign.plate.PlateArray(
+            'PA1',
+            array_n_rows=2,
+            array_n_cols=2,
+            plate_names=['P{}'.format(i+1) for i in range(4)],
+            plate_n_rows=4,
+            plate_n_cols=6)
+        platearray.cell_strain_name = 'Test Strain 1'
+        platearray.total_media_vol = 16000.*4
+        platearray.sample_media_vol = 500.
+        platearray.cell_setup_method = 'fixed_volume'
+        platearray.cell_predilution = 100
+        platearray.cell_predilution_vol = 1000
+        platearray.cell_shot_vol = 5
+        platearray.apply_inducer(inducer=iptg, apply_to='rows')
+        platearray.apply_inducer(inducer=xyl, apply_to='cols')
+        exp.add_plate(platearray)
+
+        plate5 = platedesign.plate.Plate('P5', n_rows=4, n_cols=6)
+        plate5.samples_to_measure = 4
+        plate5.cell_strain_name = 'Autofluorescence Strain'
+        plate5.total_media_vol = 16000.
+        plate5.sample_media_vol = 500.
+        plate5.cell_setup_method = 'fixed_volume'
+        plate5.cell_predilution = 10
+        plate5.cell_predilution_vol = 1000
+        plate5.cell_shot_vol = 5
+        plate5.resources['Location'] = ['Stack 1-6']
+        exp.add_plate(plate5)
+
+        # Generate experiment files
+        exp.generate(path=self.temp_dir)
+
+        # Check that inducers have the right number of replicates for their
+        # calculations
+        self.assertEqual(iptg.media_vol, 500)
+        self.assertEqual(iptg.replicate_vol, 48)
+        self.assertEqual(iptg.total_vol, 180)
+        self.assertEqual(xyl.media_vol, 500)
+        self.assertEqual(xyl.replicate_vol, 72)
+        self.assertEqual(xyl.total_vol, 260)
+
+        # Check sheet names of experiment setup file
+        wb = openpyxl.load_workbook(filename=os.path.join(
+            self.temp_dir,
+            'experiment_setup.xlsx'))
+        self.assertEqual(wb.sheetnames, ["IPTG", "Xylose"])
+        # Check proper inducer preparation instructions
+        # Instructions will be compared to the ones generated by the inducer
+        # class directly.
+        file_name = os.path.join(self.temp_dir, 'IPTG_test.xlsx')
+        iptg.save_exp_setup_instructions(file_name=file_name)
+        wb_exp = openpyxl.load_workbook(file_name)
+        assert_worksheets_equal(self, ws_1=wb['IPTG'], ws_2=wb_exp['IPTG'])
+
+        file_name = os.path.join(self.temp_dir, 'Xylose_test.xlsx')
+        xyl.save_exp_setup_instructions(file_name=file_name)
+        wb_exp = openpyxl.load_workbook(file_name)
+        assert_worksheets_equal(self, ws_1=wb['Xylose'], ws_2=wb_exp['Xylose'])
+
+        # Check replicate setup files
+        if six.PY2:
+            location_idx = [[1, 2, 4, 3, 5],
+                            [1, 3, 0, 4, 5],
+                            [1, 4, 0, 3, 5]]
+        elif six.PY3:
+            location_idx = [[2, 3, 4, 0, 5],
+                            [0, 1, 2, 4, 5],
+                            [2, 0, 4, 3, 5]]
+        locations = ['Stack 1-1',
+                     'Stack 1-2',
+                     'Stack 1-3',
+                     'Stack 1-4',
+                     'Stack 1-5',
+                     'Stack 1-6']
+        plates = ['P1', 'P2', 'P3', 'P4', 'P5']
+        samples = [24, 24, 24, 24, 4]
+        for rep_idx in range(3):
+            wb = openpyxl.load_workbook(filename=os.path.join(
+                self.temp_dir,
+                'replicate_{:03d}'.format(rep_idx+1),
+                'replicate_{:03d}_setup.xlsx'.format(rep_idx+1),))
+            self.assertEqual(wb.sheetnames, ["Summary",
+                                             "Inducers for Plate Array PA1",
+                                             "Cells for Plate Array PA1",
+                                             "Cells for Plate P5",
+                                             "Plate Resources"
+                                             ])
+            # Check summary table
+            summary_table = get_dataframe_from_worksheet(wb["Summary"])
+            summary_table_exp = pandas.DataFrame()
+            summary_table_exp['Plate Array'] = ['PA1', 'PA1', 'PA1', 'PA1', None,]
+            summary_table_exp['Plate'] = ['P1', 'P2', 'P3', 'P4', 'P5']
+            summary_table_exp['Strain'] = ['Test Strain 1',
+                                           'Test Strain 1',
+                                           'Test Strain 1',
+                                           'Test Strain 1',
+                                           'Autofluorescence Strain',]
+            pandas.util.testing.assert_frame_equal(summary_table,
+                                                   summary_table_exp)
+            # Check proper plate setup instructions
+            # Instructions will be compared to the ones generated by the plate
+            # class directly
+            file_name = os.path.join(self.temp_dir, 'plate_rep.xlsx')
+
+            platearray.save_rep_setup_instructions(file_name=file_name)
+            wb_exp = openpyxl.load_workbook(file_name)
+            assert_worksheets_equal(self, 
+                                    ws_1=wb['Inducers for Plate Array PA1'],
+                                    ws_2=wb_exp['Inducers for Plate Array PA1'])
+            assert_worksheets_equal(self, 
+                                    ws_1=wb['Cells for Plate Array PA1'],
+                                    ws_2=wb_exp['Cells for Plate Array PA1'])
+
+            plate5.save_rep_setup_instructions(file_name=file_name)
+            wb_exp = openpyxl.load_workbook(file_name)
+            assert_worksheets_equal(self, 
+                                    ws_1=wb['Cells for Plate P5'],
+                                    ws_2=wb_exp['Cells for Plate P5'])
+            # Check resources table
+            resources_table = get_dataframe_from_worksheet(wb["Plate Resources"])
+            resources_table_exp = pandas.DataFrame()
+            locations_unsorted = [locations[i] for i in location_idx[rep_idx]]
+            plates_rep = [plates[i] for i in numpy.argsort(locations_unsorted)]
+            locations_rep = [locations_unsorted[i]
+                             for i in numpy.argsort(locations_unsorted)]
+            resources_table_exp['Plate'] = plates_rep
+            resources_table_exp['Location'] = locations_rep
+            pandas.util.testing.assert_frame_equal(resources_table,
+                                                   resources_table_exp)
+
+        # Check replicate measurement files
+        for rep_idx in range(3):
+            wb = openpyxl.load_workbook(filename=os.path.join(
+                self.temp_dir,
+                'replicate_{:03d}'.format(rep_idx+1),
+                'replicate_{:03d}_measurement.xlsx'.format(rep_idx+1),))
+            self.assertEqual(wb.sheetnames, ["Samples",
+                                             ])
+            # Calculate locations, plate order, and number of samples
+            locations_unsorted = [locations[i] for i in location_idx[rep_idx]]
+            plates_rep = [plates[i] for i in numpy.argsort(locations_unsorted)]
+            locations_rep = [locations_unsorted[i]
+                             for i in numpy.argsort(locations_unsorted)]
+            samples_rep = [samples[i]
+                           for i in numpy.argsort(locations_unsorted)]
+            # Calculate expected values in samples table
+            plate_exp = []
+            plate_array_exp = []
+            locations_exp = []
+            strain_exp = []
+            pre_dilution_exp = []
+            cell_vol_exp = []
+            rows_exp = []
+            cols_exp = []
+            iptg_exp = []
+            xyl_exp = []
+            for plate, location, n_samples in \
+                    zip(plates_rep, locations_rep, samples_rep):
+                # Define values that depend on plate
+                if plate=="P5":
+                    plate_array = None
+                    strain = "Autofluorescence Strain"
+                    pre_dilution = 10
+                    cell_vol = 5
+                    rows = numpy.array([1,1,1,1])
+                    cols = numpy.array([1,2,3,4])
+                    iptg_conc = [numpy.nan]*4
+                    xyl_conc = [numpy.nan]*4
+                else:
+                    plate_array = "PA1"
+                    strain = "Test Strain 1"
+                    pre_dilution = 100
+                    cell_vol = 5
+                    rows = numpy.repeat(numpy.arange(4) + 1, 6)
+                    cols = numpy.tile(numpy.arange(6) + 1, 4)
+                    if plate=="P1":
+                        iptg_conc = numpy.tile(iptg.concentrations[:6], 4)
+                        xyl_conc = numpy.repeat(xyl.concentrations[:4], 6)
+                    elif plate=="P2":
+                        iptg_conc = numpy.tile(iptg.concentrations[6:], 4)
+                        xyl_conc = numpy.repeat(xyl.concentrations[:4], 6)
+                    elif plate=="P3":
+                        iptg_conc = numpy.tile(iptg.concentrations[:6], 4)
+                        xyl_conc = numpy.repeat(xyl.concentrations[4:], 6)
+                    elif plate=="P4":
+                        iptg_conc = numpy.tile(iptg.concentrations[6:], 4)
+                        xyl_conc = numpy.repeat(xyl.concentrations[4:], 6)
+                # Add to lists
+                plate_exp.extend([plate]*n_samples)
+                plate_array_exp.extend([plate_array]*n_samples)
+                locations_exp.extend([location]*n_samples)
+                strain_exp.extend([strain]*n_samples)
+                pre_dilution_exp.extend([pre_dilution]*n_samples)
+                cell_vol_exp.extend([cell_vol]*n_samples)
+                rows_exp.extend(rows)
+                cols_exp.extend(cols)
+                iptg_exp.extend(iptg_conc)
+                xyl_exp.extend(xyl_conc)
+            # Check samples table
+            samples_table = get_dataframe_from_worksheet(wb["Samples"])
+            self.assertEqual(len(samples_table.columns), 11)
             numpy.testing.assert_array_equal(
+                samples_table['ID'].values,
+                ["S{:04d}".format(i+1) for i in range(100)])
+            numpy.testing.assert_array_equal(
+                samples_table['Plate'].values,
+                plate_exp)
+            numpy.testing.assert_array_equal(
+                samples_table['Plate Array'].values,
+                plate_array_exp)
+            numpy.testing.assert_array_equal(
+                samples_table['Location'].values,
+                locations_exp)
+            numpy.testing.assert_array_equal(
+                samples_table['Strain'].values,
+                strain_exp)
+            numpy.testing.assert_array_equal(
+                samples_table['Preculture/Aliquot Dilution'].values,
+                pre_dilution_exp)
+            numpy.testing.assert_array_equal(
+                samples_table['Cell Inoculated Vol.'].values,
+                cell_vol_exp)
+            numpy.testing.assert_array_equal(
+                samples_table['Row'].values,
+                rows_exp)
+            numpy.testing.assert_array_equal(
+                samples_table['Column'].values,
+                cols_exp)
+            numpy.testing.assert_almost_equal(
+                samples_table[u'IPTG Concentration (µM)'].values,
+                iptg_exp)
+            numpy.testing.assert_almost_equal(
+                samples_table['Xylose Concentration (%)'].values,
+                xyl_exp)
+        
+    def test_plate_array_two_inducers_prespecified_resources_2(self):
+        # Two inducer, three plate experiment
+        exp = platedesign.experiment.Experiment()
+        exp.n_replicates = 3
+        exp.plate_resources['Location'] = ['Stack 1-1',
+                                           'Stack 1-2',
+                                           'Stack 1-3',
+                                           'Stack 1-4',
+                                           'Stack 1-5',
+                                           'Stack 1-6']
+        exp.randomize_plate_resources = True
+        exp.measurement_order = 'Location'
+        # Inducer
+        iptg = platedesign.inducer.ChemicalInducer(name='IPTG', units=u'µM')
+        iptg.stock_conc = 1e6
+        iptg.shot_vol = 5.
+        iptg.concentrations = [ 0,   0.5,  1,   2,   4,   8,
+                               16,  32,   64, 128, 256, 500]
+        exp.add_inducer(iptg)
+        xyl = platedesign.inducer.ChemicalInducer(name='Xylose', units='%')
+        xyl.stock_conc = 50.
+        xyl.shot_vol = 5.
+        xyl.concentrations = [0.0,  0.0005, 0.001, 0.005,
+                              0.01, 0.05,   0.1,   0.5]
+        exp.add_inducer(xyl)
+
+        # Plates
+        platearray = platedesign.plate.PlateArray(
+            'PA1',
+            array_n_rows=2,
+            array_n_cols=2,
+            plate_names=['P{}'.format(i+1) for i in range(4)],
+            plate_n_rows=4,
+            plate_n_cols=6)
+        platearray.cell_strain_name = 'Test Strain 1'
+        platearray.total_media_vol = 16000.*4
+        platearray.sample_media_vol = 500.
+        platearray.cell_setup_method = 'fixed_volume'
+        platearray.cell_predilution = 100
+        platearray.cell_predilution_vol = 1000
+        platearray.cell_shot_vol = 5
+        platearray.resources['Location'] = ['Stack 1-6',
+                                            'Stack 1-2',
+                                            'Stack 1-3',
+                                            'Stack 1-1',]
+        platearray.apply_inducer(inducer=iptg, apply_to='rows')
+        platearray.apply_inducer(inducer=xyl, apply_to='cols')
+        exp.add_plate(platearray)
+
+        plate5 = platedesign.plate.Plate('P5', n_rows=4, n_cols=6)
+        plate5.samples_to_measure = 4
+        plate5.cell_strain_name = 'Autofluorescence Strain'
+        plate5.total_media_vol = 16000.
+        plate5.sample_media_vol = 500.
+        plate5.cell_setup_method = 'fixed_volume'
+        plate5.cell_predilution = 10
+        plate5.cell_predilution_vol = 1000
+        plate5.cell_shot_vol = 5
+        exp.add_plate(plate5)
+
+        # Generate experiment files
+        exp.generate(path=self.temp_dir)
+
+        # Check that inducers have the right number of replicates for their
+        # calculations
+        self.assertEqual(iptg.media_vol, 500)
+        self.assertEqual(iptg.replicate_vol, 48)
+        self.assertEqual(iptg.total_vol, 180)
+        self.assertEqual(xyl.media_vol, 500)
+        self.assertEqual(xyl.replicate_vol, 72)
+        self.assertEqual(xyl.total_vol, 260)
+
+        # Check sheet names of experiment setup file
+        wb = openpyxl.load_workbook(filename=os.path.join(
+            self.temp_dir,
+            'experiment_setup.xlsx'))
+        self.assertEqual(wb.sheetnames, ["IPTG", "Xylose"])
+        # Check proper inducer preparation instructions
+        # Instructions will be compared to the ones generated by the inducer
+        # class directly.
+        file_name = os.path.join(self.temp_dir, 'IPTG_test.xlsx')
+        iptg.save_exp_setup_instructions(file_name=file_name)
+        wb_exp = openpyxl.load_workbook(file_name)
+        assert_worksheets_equal(self, ws_1=wb['IPTG'], ws_2=wb_exp['IPTG'])
+
+        file_name = os.path.join(self.temp_dir, 'Xylose_test.xlsx')
+        xyl.save_exp_setup_instructions(file_name=file_name)
+        wb_exp = openpyxl.load_workbook(file_name)
+        assert_worksheets_equal(self, ws_1=wb['Xylose'], ws_2=wb_exp['Xylose'])
+
+        # Check replicate setup files
+        if six.PY2:
+            location_idx = [[5, 1, 2, 0, 4],
+                            [5, 1, 2, 0, 3],
+                            [5, 1, 2, 0, 3]]
+        elif six.PY3:
+            location_idx = [[5, 1, 2, 0, 4],
+                            [5, 1, 2, 0, 4],
+                            [5, 1, 2, 0, 3]]
+        locations = ['Stack 1-1',
+                     'Stack 1-2',
+                     'Stack 1-3',
+                     'Stack 1-4',
+                     'Stack 1-5',
+                     'Stack 1-6']
+        plates = ['P1', 'P2', 'P3', 'P4', 'P5']
+        samples = [24, 24, 24, 24, 4]
+        for rep_idx in range(3):
+            wb = openpyxl.load_workbook(filename=os.path.join(
+                self.temp_dir,
+                'replicate_{:03d}'.format(rep_idx+1),
+                'replicate_{:03d}_setup.xlsx'.format(rep_idx+1),))
+            self.assertEqual(wb.sheetnames, ["Summary",
+                                             "Inducers for Plate Array PA1",
+                                             "Cells for Plate Array PA1",
+                                             "Cells for Plate P5",
+                                             "Plate Resources"
+                                             ])
+            # Check summary table
+            summary_table = get_dataframe_from_worksheet(wb["Summary"])
+            summary_table_exp = pandas.DataFrame()
+            summary_table_exp['Plate Array'] = ['PA1', 'PA1', 'PA1', 'PA1', None,]
+            summary_table_exp['Plate'] = ['P1', 'P2', 'P3', 'P4', 'P5']
+            summary_table_exp['Strain'] = ['Test Strain 1',
+                                           'Test Strain 1',
+                                           'Test Strain 1',
+                                           'Test Strain 1',
+                                           'Autofluorescence Strain',]
+            pandas.util.testing.assert_frame_equal(summary_table,
+                                                   summary_table_exp)
+            # Check proper plate setup instructions
+            # Instructions will be compared to the ones generated by the plate
+            # class directly
+            file_name = os.path.join(self.temp_dir, 'plate_rep.xlsx')
+
+            platearray.save_rep_setup_instructions(file_name=file_name)
+            wb_exp = openpyxl.load_workbook(file_name)
+            assert_worksheets_equal(self, 
+                                    ws_1=wb['Inducers for Plate Array PA1'],
+                                    ws_2=wb_exp['Inducers for Plate Array PA1'])
+            assert_worksheets_equal(self, 
+                                    ws_1=wb['Cells for Plate Array PA1'],
+                                    ws_2=wb_exp['Cells for Plate Array PA1'])
+
+            plate5.save_rep_setup_instructions(file_name=file_name)
+            wb_exp = openpyxl.load_workbook(file_name)
+            assert_worksheets_equal(self, 
+                                    ws_1=wb['Cells for Plate P5'],
+                                    ws_2=wb_exp['Cells for Plate P5'])
+            # Check resources table
+            resources_table = get_dataframe_from_worksheet(wb["Plate Resources"])
+            resources_table_exp = pandas.DataFrame()
+            locations_unsorted = [locations[i] for i in location_idx[rep_idx]]
+            plates_rep = [plates[i] for i in numpy.argsort(locations_unsorted)]
+            locations_rep = [locations_unsorted[i]
+                             for i in numpy.argsort(locations_unsorted)]
+            resources_table_exp['Plate'] = plates_rep
+            resources_table_exp['Location'] = locations_rep
+            pandas.util.testing.assert_frame_equal(resources_table,
+                                                   resources_table_exp)
+
+        # Check replicate measurement files
+        for rep_idx in range(3):
+            wb = openpyxl.load_workbook(filename=os.path.join(
+                self.temp_dir,
+                'replicate_{:03d}'.format(rep_idx+1),
+                'replicate_{:03d}_measurement.xlsx'.format(rep_idx+1),))
+            self.assertEqual(wb.sheetnames, ["Samples",
+                                             ])
+            # Calculate locations, plate order, and number of samples
+            locations_unsorted = [locations[i] for i in location_idx[rep_idx]]
+            plates_rep = [plates[i] for i in numpy.argsort(locations_unsorted)]
+            locations_rep = [locations_unsorted[i]
+                             for i in numpy.argsort(locations_unsorted)]
+            samples_rep = [samples[i]
+                           for i in numpy.argsort(locations_unsorted)]
+            # Calculate expected values in samples table
+            plate_exp = []
+            plate_array_exp = []
+            locations_exp = []
+            strain_exp = []
+            pre_dilution_exp = []
+            cell_vol_exp = []
+            rows_exp = []
+            cols_exp = []
+            iptg_exp = []
+            xyl_exp = []
+            for plate, location, n_samples in \
+                    zip(plates_rep, locations_rep, samples_rep):
+                # Define values that depend on plate
+                if plate=="P5":
+                    plate_array = None
+                    strain = "Autofluorescence Strain"
+                    pre_dilution = 10
+                    cell_vol = 5
+                    rows = numpy.array([1,1,1,1])
+                    cols = numpy.array([1,2,3,4])
+                    iptg_conc = [numpy.nan]*4
+                    xyl_conc = [numpy.nan]*4
+                else:
+                    plate_array = "PA1"
+                    strain = "Test Strain 1"
+                    pre_dilution = 100
+                    cell_vol = 5
+                    rows = numpy.repeat(numpy.arange(4) + 1, 6)
+                    cols = numpy.tile(numpy.arange(6) + 1, 4)
+                    if plate=="P1":
+                        iptg_conc = numpy.tile(iptg.concentrations[:6], 4)
+                        xyl_conc = numpy.repeat(xyl.concentrations[:4], 6)
+                    elif plate=="P2":
+                        iptg_conc = numpy.tile(iptg.concentrations[6:], 4)
+                        xyl_conc = numpy.repeat(xyl.concentrations[:4], 6)
+                    elif plate=="P3":
+                        iptg_conc = numpy.tile(iptg.concentrations[:6], 4)
+                        xyl_conc = numpy.repeat(xyl.concentrations[4:], 6)
+                    elif plate=="P4":
+                        iptg_conc = numpy.tile(iptg.concentrations[6:], 4)
+                        xyl_conc = numpy.repeat(xyl.concentrations[4:], 6)
+                # Add to lists
+                plate_exp.extend([plate]*n_samples)
+                plate_array_exp.extend([plate_array]*n_samples)
+                locations_exp.extend([location]*n_samples)
+                strain_exp.extend([strain]*n_samples)
+                pre_dilution_exp.extend([pre_dilution]*n_samples)
+                cell_vol_exp.extend([cell_vol]*n_samples)
+                rows_exp.extend(rows)
+                cols_exp.extend(cols)
+                iptg_exp.extend(iptg_conc)
+                xyl_exp.extend(xyl_conc)
+            # Check samples table
+            samples_table = get_dataframe_from_worksheet(wb["Samples"])
+            self.assertEqual(len(samples_table.columns), 11)
+            numpy.testing.assert_array_equal(
+                samples_table['ID'].values,
+                ["S{:04d}".format(i+1) for i in range(100)])
+            numpy.testing.assert_array_equal(
+                samples_table['Plate'].values,
+                plate_exp)
+            numpy.testing.assert_array_equal(
+                samples_table['Plate Array'].values,
+                plate_array_exp)
+            numpy.testing.assert_array_equal(
+                samples_table['Location'].values,
+                locations_exp)
+            numpy.testing.assert_array_equal(
+                samples_table['Strain'].values,
+                strain_exp)
+            numpy.testing.assert_array_equal(
+                samples_table['Preculture/Aliquot Dilution'].values,
+                pre_dilution_exp)
+            numpy.testing.assert_array_equal(
+                samples_table['Cell Inoculated Vol.'].values,
+                cell_vol_exp)
+            numpy.testing.assert_array_equal(
+                samples_table['Row'].values,
+                rows_exp)
+            numpy.testing.assert_array_equal(
+                samples_table['Column'].values,
+                cols_exp)
+            numpy.testing.assert_almost_equal(
+                samples_table[u'IPTG Concentration (µM)'].values,
+                iptg_exp)
+            numpy.testing.assert_almost_equal(
                 samples_table['Xylose Concentration (%)'].values,
                 xyl_exp)
 
@@ -1920,11 +2644,11 @@ class TestExperiment(unittest.TestCase):
         # Check that inducers have the right number of replicates for their
         # calculations
         self.assertEqual(iptg.media_vol, 500)
-        self.assertEqual(iptg.replicate_vol, 50)
-        self.assertEqual(iptg.total_vol, 200)
+        self.assertEqual(iptg.replicate_vol, 48)
+        self.assertEqual(iptg.total_vol, 180)
         self.assertEqual(xyl.media_vol, 500)
-        self.assertEqual(xyl.replicate_vol, 80)
-        self.assertEqual(xyl.total_vol, 300)
+        self.assertEqual(xyl.replicate_vol, 72)
+        self.assertEqual(xyl.total_vol, 260)
 
         # Check sheet names of experiment setup file
         wb = openpyxl.load_workbook(filename=os.path.join(
@@ -2030,7 +2754,7 @@ class TestExperiment(unittest.TestCase):
                     numpy.tile(iptg.concentrations[:6], 4),
                     numpy.tile(iptg.concentrations[6:], 4),
                     [numpy.nan]*4)))
-            numpy.testing.assert_array_equal(
+            numpy.testing.assert_almost_equal(
                 samples_table['Xylose Concentration (%)'].values,
                 numpy.concatenate((
                     numpy.repeat(xyl.concentrations[:4], 6),
@@ -2107,11 +2831,11 @@ class TestExperiment(unittest.TestCase):
         # Check that inducers have the right number of replicates for their
         # calculations
         self.assertEqual(iptg.media_vol, 500)
-        self.assertEqual(iptg.replicate_vol, 50)
-        self.assertEqual(iptg.total_vol, 200)
+        self.assertEqual(iptg.replicate_vol, 48)
+        self.assertEqual(iptg.total_vol, 180)
         self.assertEqual(xyl.media_vol, 500)
-        self.assertEqual(xyl.replicate_vol, 80)
-        self.assertEqual(xyl.total_vol, 300)
+        self.assertEqual(xyl.replicate_vol, 72)
+        self.assertEqual(xyl.total_vol, 260)
 
         # Check sheet names of experiment setup file
         wb = openpyxl.load_workbook(filename=os.path.join(
@@ -2217,7 +2941,7 @@ class TestExperiment(unittest.TestCase):
                     numpy.tile(iptg.concentrations[:6], 4),
                     numpy.tile(iptg.concentrations[6:], 4),
                     [numpy.nan]*4)))
-            numpy.testing.assert_array_equal(
+            numpy.testing.assert_almost_equal(
                 samples_table['Xylose Concentration (%)'].values,
                 numpy.concatenate((
                     numpy.repeat(xyl.concentrations[:4], 6),
@@ -2288,11 +3012,11 @@ class TestExperiment(unittest.TestCase):
         # Check that inducers have the right number of replicates for their
         # calculations
         self.assertEqual(iptg.media_vol, 500)
-        self.assertEqual(iptg.replicate_vol, 50)
-        self.assertEqual(iptg.total_vol, 200)
+        self.assertEqual(iptg.replicate_vol, 48)
+        self.assertEqual(iptg.total_vol, 180)
         self.assertEqual(xyl.media_vol, 500)
-        self.assertEqual(xyl.replicate_vol, 80)
-        self.assertEqual(xyl.total_vol, 300)
+        self.assertEqual(xyl.replicate_vol, 72)
+        self.assertEqual(xyl.total_vol, 260)
 
         # Check sheet names of experiment setup file
         wb = openpyxl.load_workbook(filename=os.path.join(
@@ -2411,7 +3135,7 @@ class TestExperiment(unittest.TestCase):
                     numpy.tile(iptg.concentrations[:6], 4),
                     numpy.tile(iptg.concentrations[6:], 4),
                     [numpy.nan]*4)))
-            numpy.testing.assert_array_equal(
+            numpy.testing.assert_almost_equal(
                 samples_table['Xylose Concentration (%)'].values,
                 numpy.concatenate((
                     numpy.repeat(xyl.concentrations[:4], 6),
