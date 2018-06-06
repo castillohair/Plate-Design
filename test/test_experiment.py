@@ -126,7 +126,7 @@ class TestExperiment(unittest.TestCase):
         iptg = platedesign.inducer.ChemicalInducer(name='IPTG', units=u'µM')
         iptg.stock_conc = 1e6
         iptg.shot_vol = 5.
-        iptg.concentrations = [0, 2, 8, 16, 64, 500]
+        iptg.concentrations = [0, 2, 8, 20, 50, 500]
         exp.add_inducer(iptg)
         # Plate
         plate = platedesign.plate.Plate('P1', n_rows=4, n_cols=6)
@@ -146,7 +146,7 @@ class TestExperiment(unittest.TestCase):
         # calculations
         self.assertEqual(iptg.media_vol, 500)
         self.assertIsNone(iptg.replicate_vol)
-        self.assertEqual(iptg.total_vol, 30)
+        self.assertEqual(iptg.total_vol, 24)
 
         # Check that appropriate excel files exist
         self.assertTrue(os.path.isfile(os.path.join(self.temp_dir, 
@@ -219,9 +219,9 @@ class TestExperiment(unittest.TestCase):
         numpy.testing.assert_array_equal(
             samples_table['Column'].values,
             [(i%6 + 1) for i in range(24)])
-        numpy.testing.assert_array_equal(
+        numpy.testing.assert_almost_equal(
             samples_table[u'IPTG Concentration (µM)'].values,
-            numpy.tile([0, 2, 8, 16, 64, 500], 4))
+            numpy.tile(iptg.concentrations, 4))
 
     def test_one_inducer_many_replicates(self):
         # Experiment with one inducer and many replicates
@@ -250,8 +250,8 @@ class TestExperiment(unittest.TestCase):
         # Check that inducers have the right number of replicates for their
         # calculations
         self.assertEqual(iptg.media_vol, 500)
-        self.assertEqual(iptg.replicate_vol, 30)
-        self.assertEqual(iptg.total_vol, 200)
+        self.assertEqual(iptg.replicate_vol, 24)
+        self.assertEqual(iptg.total_vol, 87)
 
         # Check that appropriate excel files exist
         self.assertTrue(os.path.isfile(os.path.join(self.temp_dir, 
@@ -353,9 +353,9 @@ class TestExperiment(unittest.TestCase):
             numpy.testing.assert_array_equal(
                 samples_table['Column'].values,
                 [(i%6 + 1) for i in range(24)])
-            numpy.testing.assert_array_equal(
+            numpy.testing.assert_almost_equal(
                 samples_table[u'IPTG Concentration (µM)'].values,
-                numpy.tile([0, 2, 8, 16, 64, 500], 4))
+                numpy.tile(iptg.concentrations, 4))
 
     def test_one_plate_two_inducers(self):
         # Experiment with two inducers
@@ -390,11 +390,11 @@ class TestExperiment(unittest.TestCase):
         # Check that inducers have the right number of replicates for their
         # calculations
         self.assertEqual(iptg.media_vol, 500)
-        self.assertEqual(iptg.replicate_vol, 30)
-        self.assertEqual(iptg.total_vol, 200)
+        self.assertEqual(iptg.replicate_vol, 24)
+        self.assertEqual(iptg.total_vol, 87)
         self.assertEqual(xyl.media_vol, 500)
-        self.assertEqual(xyl.replicate_vol, 40)
-        self.assertEqual(xyl.total_vol, 200)
+        self.assertEqual(xyl.replicate_vol, 36)
+        self.assertEqual(xyl.total_vol, 130)
 
         # Check sheet names of experiment setup file
         wb = openpyxl.load_workbook(filename=os.path.join(
@@ -475,12 +475,12 @@ class TestExperiment(unittest.TestCase):
             numpy.testing.assert_array_equal(
                 samples_table['Column'].values,
                 [(i%6 + 1) for i in range(24)])
-            numpy.testing.assert_array_equal(
+            numpy.testing.assert_almost_equal(
                 samples_table[u'IPTG Concentration (µM)'].values,
-                numpy.tile([0, 2, 8, 16, 64, 500], 4))
-            numpy.testing.assert_array_equal(
+                numpy.tile(iptg.concentrations, 4))
+            numpy.testing.assert_almost_equal(
                 samples_table['Xylose Concentration (%)'].values,
-                numpy.repeat([0.0, 0.005, 0.05, 0.05], 6))
+                numpy.repeat(xyl.concentrations, 6))
 
     def test_three_plates_two_inducers(self):
         # Two inducer, three plate experiment
@@ -538,11 +538,11 @@ class TestExperiment(unittest.TestCase):
         # Check that inducers have the right number of replicates for their
         # calculations
         self.assertEqual(iptg.media_vol, 500)
-        self.assertEqual(iptg.replicate_vol, 30)
-        self.assertEqual(iptg.total_vol, 200)
+        self.assertEqual(iptg.replicate_vol, 24)
+        self.assertEqual(iptg.total_vol, 87)
         self.assertEqual(xyl.media_vol, 500)
-        self.assertEqual(xyl.replicate_vol, 80)
-        self.assertEqual(xyl.total_vol, 300)
+        self.assertEqual(xyl.replicate_vol, 72)
+        self.assertEqual(xyl.total_vol, 260)
 
         # Check sheet names of experiment setup file
         wb = openpyxl.load_workbook(filename=os.path.join(
@@ -644,16 +644,16 @@ class TestExperiment(unittest.TestCase):
             numpy.testing.assert_array_equal(
                 samples_table['Column'].values,
                 [(i%6 + 1) for i in range(52)])
-            numpy.testing.assert_array_equal(
+            numpy.testing.assert_almost_equal(
                 samples_table[u'IPTG Concentration (µM)'].values,
                 numpy.concatenate((
-                    numpy.tile([0, 2, 8, 16, 64, 500], 4),
+                    numpy.tile(iptg.concentrations, 4),
                     [numpy.nan]*28)))
-            numpy.testing.assert_array_equal(
+            numpy.testing.assert_almost_equal(
                 samples_table['Xylose Concentration (%)'].values,
                 numpy.concatenate((
-                    numpy.repeat([0.0, 0.005, 0.05, 0.05], 6),
-                    numpy.repeat([0.0, 0.005, 0.05, 0.05], 6),
+                    numpy.repeat(xyl.concentrations, 6),
+                    numpy.repeat(xyl.concentrations, 6),
                     [numpy.nan]*4)))
 
     def test_three_plates_two_inducers_randomize(self):
@@ -714,11 +714,11 @@ class TestExperiment(unittest.TestCase):
         # Check that inducers have the right number of replicates for their
         # calculations
         self.assertEqual(iptg.media_vol, 500)
-        self.assertEqual(iptg.replicate_vol, 30)
-        self.assertEqual(iptg.total_vol, 200)
+        self.assertEqual(iptg.replicate_vol, 24)
+        self.assertEqual(iptg.total_vol, 87)
         self.assertEqual(xyl.media_vol, 500)
-        self.assertEqual(xyl.replicate_vol, 80)
-        self.assertEqual(xyl.total_vol, 300)
+        self.assertEqual(xyl.replicate_vol, 72)
+        self.assertEqual(xyl.total_vol, 260)
 
         # Check sheet names of experiment setup file
         wb = openpyxl.load_workbook(filename=os.path.join(
@@ -810,6 +810,9 @@ class TestExperiment(unittest.TestCase):
                                     ws_2=wb_exp['Cells for Plate P3'])
 
         # Check replicate measurement files
+        # Unshuffle inducers
+        iptg.unshuffle()
+        xyl.unshuffle()
         for rep_idx in range(3):
             wb = openpyxl.load_workbook(filename=os.path.join(
                 self.temp_dir,
@@ -840,16 +843,16 @@ class TestExperiment(unittest.TestCase):
             numpy.testing.assert_array_equal(
                 samples_table['Column'].values,
                 [(i%6 + 1) for i in range(52)])
-            iptg_conc = [0, 2, 8, 16, 64, 500]
-            iptg_conc = [iptg_conc[idx] for idx in iptg_shuffled_idx[rep_idx]]
-            xyl_conc = [0.0, 0.005, 0.05, 0.05]
-            xyl_conc = [xyl_conc[idx] for idx in xyl_shuffled_idx[rep_idx]]
-            numpy.testing.assert_array_equal(
+            iptg_conc = [iptg.concentrations[idx]
+                         for idx in iptg_shuffled_idx[rep_idx]]
+            xyl_conc = [xyl.concentrations[idx]
+                        for idx in xyl_shuffled_idx[rep_idx]]
+            numpy.testing.assert_almost_equal(
                 samples_table[u'IPTG Concentration (µM)'].values,
                 numpy.concatenate((
                     numpy.tile(iptg_conc, 4),
                     [numpy.nan]*28)))
-            numpy.testing.assert_array_equal(
+            numpy.testing.assert_almost_equal(
                 samples_table['Xylose Concentration (%)'].values,
                 numpy.concatenate((
                     numpy.repeat(xyl_conc, 6),
@@ -910,11 +913,11 @@ class TestExperiment(unittest.TestCase):
         # Check that inducers have the right number of replicates for their
         # calculations
         self.assertEqual(iptg.media_vol, 500)
-        self.assertEqual(iptg.replicate_vol, 50)
-        self.assertEqual(iptg.total_vol, 200)
+        self.assertEqual(iptg.replicate_vol, 48)
+        self.assertEqual(iptg.total_vol, 180)
         self.assertEqual(xyl.media_vol, 500)
-        self.assertEqual(xyl.replicate_vol, 80)
-        self.assertEqual(xyl.total_vol, 300)
+        self.assertEqual(xyl.replicate_vol, 72)
+        self.assertEqual(xyl.total_vol, 260)
 
         # Check sheet names of experiment setup file
         wb = openpyxl.load_workbook(filename=os.path.join(
@@ -1019,7 +1022,7 @@ class TestExperiment(unittest.TestCase):
                     numpy.tile(iptg.concentrations[:6], 4),
                     numpy.tile(iptg.concentrations[6:], 4),
                     [numpy.nan]*4)))
-            numpy.testing.assert_array_equal(
+            numpy.testing.assert_almost_equal(
                 samples_table['Xylose Concentration (%)'].values,
                 numpy.concatenate((
                     numpy.repeat(xyl.concentrations[:4], 6),
@@ -1083,11 +1086,11 @@ class TestExperiment(unittest.TestCase):
         # Check that inducers have the right number of replicates for their
         # calculations
         self.assertEqual(iptg.media_vol, 500)
-        self.assertEqual(iptg.replicate_vol, 50)
-        self.assertEqual(iptg.total_vol, 300)
+        self.assertEqual(iptg.replicate_vol, 48)
+        self.assertEqual(iptg.total_vol, 290)
         self.assertEqual(xyl.media_vol, 500)
-        self.assertEqual(xyl.replicate_vol, 80)
-        self.assertEqual(xyl.total_vol, 500)
+        self.assertEqual(xyl.replicate_vol, 72)
+        self.assertEqual(xyl.total_vol, 440)
 
         # Check sheet names of experiment setup file
         wb = openpyxl.load_workbook(filename=os.path.join(
@@ -1192,7 +1195,7 @@ class TestExperiment(unittest.TestCase):
                     numpy.tile(iptg.concentrations[:6], 4),
                     numpy.tile(iptg.concentrations[6:], 4),
                     [numpy.nan]*4)))
-            numpy.testing.assert_array_equal(
+            numpy.testing.assert_almost_equal(
                 samples_table['Xylose Concentration (%)'].values,
                 numpy.concatenate((
                     numpy.repeat(xyl.concentrations[:4], 6),
@@ -1261,11 +1264,11 @@ class TestExperiment(unittest.TestCase):
         # Check that inducers have the right number of replicates for their
         # calculations
         self.assertEqual(iptg.media_vol, 500)
-        self.assertEqual(iptg.replicate_vol, 50)
-        self.assertEqual(iptg.total_vol, 200)
+        self.assertEqual(iptg.replicate_vol, 48)
+        self.assertEqual(iptg.total_vol, 180)
         self.assertEqual(xyl.media_vol, 500)
-        self.assertEqual(xyl.replicate_vol, 80)
-        self.assertEqual(xyl.total_vol, 300)
+        self.assertEqual(xyl.replicate_vol, 72)
+        self.assertEqual(xyl.total_vol, 260)
 
         # Check sheet names of experiment setup file
         wb = openpyxl.load_workbook(filename=os.path.join(
@@ -1386,7 +1389,7 @@ class TestExperiment(unittest.TestCase):
                     numpy.tile(iptg.concentrations[:6], 4),
                     numpy.tile(iptg.concentrations[6:], 4),
                     [numpy.nan]*4)))
-            numpy.testing.assert_array_equal(
+            numpy.testing.assert_almost_equal(
                 samples_table['Xylose Concentration (%)'].values,
                 numpy.concatenate((
                     numpy.repeat(xyl.concentrations[:4], 6),
@@ -1456,11 +1459,11 @@ class TestExperiment(unittest.TestCase):
         # Check that inducers have the right number of replicates for their
         # calculations
         self.assertEqual(iptg.media_vol, 500)
-        self.assertEqual(iptg.replicate_vol, 50)
-        self.assertEqual(iptg.total_vol, 200)
+        self.assertEqual(iptg.replicate_vol, 48)
+        self.assertEqual(iptg.total_vol, 180)
         self.assertEqual(xyl.media_vol, 500)
-        self.assertEqual(xyl.replicate_vol, 80)
-        self.assertEqual(xyl.total_vol, 300)
+        self.assertEqual(xyl.replicate_vol, 72)
+        self.assertEqual(xyl.total_vol, 260)
 
         # Check sheet names of experiment setup file
         wb = openpyxl.load_workbook(filename=os.path.join(
@@ -1594,7 +1597,7 @@ class TestExperiment(unittest.TestCase):
                     numpy.tile(iptg.concentrations[:6], 4),
                     numpy.tile(iptg.concentrations[6:], 4),
                     [numpy.nan]*4)))
-            numpy.testing.assert_array_equal(
+            numpy.testing.assert_almost_equal(
                 samples_table['Xylose Concentration (%)'].values,
                 numpy.concatenate((
                     numpy.repeat(xyl.concentrations[:4], 6),
@@ -1665,11 +1668,11 @@ class TestExperiment(unittest.TestCase):
         # Check that inducers have the right number of replicates for their
         # calculations
         self.assertEqual(iptg.media_vol, 500)
-        self.assertEqual(iptg.replicate_vol, 50)
-        self.assertEqual(iptg.total_vol, 200)
+        self.assertEqual(iptg.replicate_vol, 48)
+        self.assertEqual(iptg.total_vol, 180)
         self.assertEqual(xyl.media_vol, 500)
-        self.assertEqual(xyl.replicate_vol, 80)
-        self.assertEqual(xyl.total_vol, 300)
+        self.assertEqual(xyl.replicate_vol, 72)
+        self.assertEqual(xyl.total_vol, 260)
 
         # Check sheet names of experiment setup file
         wb = openpyxl.load_workbook(filename=os.path.join(
@@ -1861,7 +1864,7 @@ class TestExperiment(unittest.TestCase):
             numpy.testing.assert_almost_equal(
                 samples_table[u'IPTG Concentration (µM)'].values,
                 iptg_exp)
-            numpy.testing.assert_array_equal(
+            numpy.testing.assert_almost_equal(
                 samples_table['Xylose Concentration (%)'].values,
                 xyl_exp)
 
@@ -2120,11 +2123,11 @@ class TestExperiment(unittest.TestCase):
         # Check that inducers have the right number of replicates for their
         # calculations
         self.assertEqual(iptg.media_vol, 500)
-        self.assertEqual(iptg.replicate_vol, 50)
-        self.assertEqual(iptg.total_vol, 200)
+        self.assertEqual(iptg.replicate_vol, 48)
+        self.assertEqual(iptg.total_vol, 180)
         self.assertEqual(xyl.media_vol, 500)
-        self.assertEqual(xyl.replicate_vol, 80)
-        self.assertEqual(xyl.total_vol, 300)
+        self.assertEqual(xyl.replicate_vol, 72)
+        self.assertEqual(xyl.total_vol, 260)
 
         # Check sheet names of experiment setup file
         wb = openpyxl.load_workbook(filename=os.path.join(
@@ -2316,7 +2319,7 @@ class TestExperiment(unittest.TestCase):
             numpy.testing.assert_almost_equal(
                 samples_table[u'IPTG Concentration (µM)'].values,
                 iptg_exp)
-            numpy.testing.assert_array_equal(
+            numpy.testing.assert_almost_equal(
                 samples_table['Xylose Concentration (%)'].values,
                 xyl_exp)
         
@@ -2386,11 +2389,11 @@ class TestExperiment(unittest.TestCase):
         # Check that inducers have the right number of replicates for their
         # calculations
         self.assertEqual(iptg.media_vol, 500)
-        self.assertEqual(iptg.replicate_vol, 50)
-        self.assertEqual(iptg.total_vol, 200)
+        self.assertEqual(iptg.replicate_vol, 48)
+        self.assertEqual(iptg.total_vol, 180)
         self.assertEqual(xyl.media_vol, 500)
-        self.assertEqual(xyl.replicate_vol, 80)
-        self.assertEqual(xyl.total_vol, 300)
+        self.assertEqual(xyl.replicate_vol, 72)
+        self.assertEqual(xyl.total_vol, 260)
 
         # Check sheet names of experiment setup file
         wb = openpyxl.load_workbook(filename=os.path.join(
@@ -2582,7 +2585,7 @@ class TestExperiment(unittest.TestCase):
             numpy.testing.assert_almost_equal(
                 samples_table[u'IPTG Concentration (µM)'].values,
                 iptg_exp)
-            numpy.testing.assert_array_equal(
+            numpy.testing.assert_almost_equal(
                 samples_table['Xylose Concentration (%)'].values,
                 xyl_exp)
 
@@ -2641,11 +2644,11 @@ class TestExperiment(unittest.TestCase):
         # Check that inducers have the right number of replicates for their
         # calculations
         self.assertEqual(iptg.media_vol, 500)
-        self.assertEqual(iptg.replicate_vol, 50)
-        self.assertEqual(iptg.total_vol, 200)
+        self.assertEqual(iptg.replicate_vol, 48)
+        self.assertEqual(iptg.total_vol, 180)
         self.assertEqual(xyl.media_vol, 500)
-        self.assertEqual(xyl.replicate_vol, 80)
-        self.assertEqual(xyl.total_vol, 300)
+        self.assertEqual(xyl.replicate_vol, 72)
+        self.assertEqual(xyl.total_vol, 260)
 
         # Check sheet names of experiment setup file
         wb = openpyxl.load_workbook(filename=os.path.join(
@@ -2751,7 +2754,7 @@ class TestExperiment(unittest.TestCase):
                     numpy.tile(iptg.concentrations[:6], 4),
                     numpy.tile(iptg.concentrations[6:], 4),
                     [numpy.nan]*4)))
-            numpy.testing.assert_array_equal(
+            numpy.testing.assert_almost_equal(
                 samples_table['Xylose Concentration (%)'].values,
                 numpy.concatenate((
                     numpy.repeat(xyl.concentrations[:4], 6),
@@ -2828,11 +2831,11 @@ class TestExperiment(unittest.TestCase):
         # Check that inducers have the right number of replicates for their
         # calculations
         self.assertEqual(iptg.media_vol, 500)
-        self.assertEqual(iptg.replicate_vol, 50)
-        self.assertEqual(iptg.total_vol, 200)
+        self.assertEqual(iptg.replicate_vol, 48)
+        self.assertEqual(iptg.total_vol, 180)
         self.assertEqual(xyl.media_vol, 500)
-        self.assertEqual(xyl.replicate_vol, 80)
-        self.assertEqual(xyl.total_vol, 300)
+        self.assertEqual(xyl.replicate_vol, 72)
+        self.assertEqual(xyl.total_vol, 260)
 
         # Check sheet names of experiment setup file
         wb = openpyxl.load_workbook(filename=os.path.join(
@@ -2938,7 +2941,7 @@ class TestExperiment(unittest.TestCase):
                     numpy.tile(iptg.concentrations[:6], 4),
                     numpy.tile(iptg.concentrations[6:], 4),
                     [numpy.nan]*4)))
-            numpy.testing.assert_array_equal(
+            numpy.testing.assert_almost_equal(
                 samples_table['Xylose Concentration (%)'].values,
                 numpy.concatenate((
                     numpy.repeat(xyl.concentrations[:4], 6),
@@ -3009,11 +3012,11 @@ class TestExperiment(unittest.TestCase):
         # Check that inducers have the right number of replicates for their
         # calculations
         self.assertEqual(iptg.media_vol, 500)
-        self.assertEqual(iptg.replicate_vol, 50)
-        self.assertEqual(iptg.total_vol, 200)
+        self.assertEqual(iptg.replicate_vol, 48)
+        self.assertEqual(iptg.total_vol, 180)
         self.assertEqual(xyl.media_vol, 500)
-        self.assertEqual(xyl.replicate_vol, 80)
-        self.assertEqual(xyl.total_vol, 300)
+        self.assertEqual(xyl.replicate_vol, 72)
+        self.assertEqual(xyl.total_vol, 260)
 
         # Check sheet names of experiment setup file
         wb = openpyxl.load_workbook(filename=os.path.join(
@@ -3132,7 +3135,7 @@ class TestExperiment(unittest.TestCase):
                     numpy.tile(iptg.concentrations[:6], 4),
                     numpy.tile(iptg.concentrations[6:], 4),
                     [numpy.nan]*4)))
-            numpy.testing.assert_array_equal(
+            numpy.testing.assert_almost_equal(
                 samples_table['Xylose Concentration (%)'].values,
                 numpy.concatenate((
                     numpy.repeat(xyl.concentrations[:4], 6),
