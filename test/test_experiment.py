@@ -38,6 +38,10 @@ def assert_worksheets_equal(test_case,
     # Verify contents
     for row_1, row_2 in zip(ws_1.rows, ws_2.rows):
         for cell_1, cell_2 in zip(row_1, row_2):
+            # Cells of type "MergedCell" do not have content. Skip.
+            if (type(cell_1) is openpyxl.cell.cell.MergedCell) and \
+                    (type(cell_2) is openpyxl.cell.cell.MergedCell):
+                continue
             test_case.assertEqual(cell_1.value, cell_2.value)
 
 def get_dataframe_from_worksheet(ws):

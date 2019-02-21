@@ -519,7 +519,7 @@ class Experiment(object):
                         # Read with pandas
                         samples_extra = pandas.read_excel(
                             self.measurement_template,
-                            sheetname="Samples")
+                            sheet_name="Samples")
                         # Extract first row
                         samples_extra = samples_extra.iloc[0]
                         # Add columns to samples_table

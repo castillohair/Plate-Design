@@ -1068,10 +1068,8 @@ class TestChemicalInducer(unittest.TestCase):
         # Add message in first column, last row
         df[u'IPTG Concentration (µM)'] = \
             df[u'IPTG Concentration (µM)'].astype('object')
-        df.set_value(
-            len(c) + 1,
-            u'IPTG Concentration (µM)',
-            u'Distribute in aliquots of {} µL.'.format(100.))
+        df.at[len(c) + 1, u'IPTG Concentration (µM)'] =\
+            u'Distribute in aliquots of {} µL.'.format(100.)
         # Test for equality
         pandas.util.testing.assert_frame_equal(df_in_file, df)
 
@@ -1118,10 +1116,8 @@ class TestChemicalInducer(unittest.TestCase):
         # Add message in first column, last row
         df[u'IPTG Concentration (µM)'] = \
             df[u'IPTG Concentration (µM)'].astype('object')
-        df.set_value(
-            len(c) + 1,
-            u'IPTG Concentration (µM)',
-            u'Distribute in aliquots of {} µL.'.format(100.))
+        df.at[len(c) + 1, u'IPTG Concentration (µM)'] =\
+            u'Distribute in aliquots of {} µL.'.format(100.)
         # Test for equality
         pandas.util.testing.assert_frame_equal(df_in_file, df)
 
@@ -1173,10 +1169,8 @@ class TestChemicalInducer(unittest.TestCase):
         # Add message in first column, last row
         df[u'IPTG Concentration (µM)'] = \
             df[u'IPTG Concentration (µM)'].astype('object')
-        df.set_value(
-            len(c) + 1,
-            u'IPTG Concentration (µM)',
-            u'Distribute in aliquots of {} µL.'.format(36.))
+        df.at[len(c) + 1, u'IPTG Concentration (µM)'] =\
+            u'Distribute in aliquots of {} µL.'.format(36.)
         # Test for equality
         pandas.util.testing.assert_frame_equal(df_in_file, df)
 
@@ -1216,10 +1210,8 @@ class TestChemicalInducer(unittest.TestCase):
         # Add message in first column, last row
         df[u'IPTG Concentration (µM)'] = \
             df[u'IPTG Concentration (µM)'].astype('object')
-        df.set_value(
-            len(c) + 1,
-            u'IPTG Concentration (µM)',
-            u'Distribute in aliquots of {} µL.'.format(6.))
+        df.at[len(c) + 1, u'IPTG Concentration (µM)'] =\
+            u'Distribute in aliquots of {} µL.'.format(6.)
         # Test for equality
         pandas.util.testing.assert_frame_equal(df_in_file, df)
 
@@ -1267,10 +1259,8 @@ class TestChemicalInducer(unittest.TestCase):
         # Add message in first column, last row
         df[u'IPTG Concentration (µM)'] = \
             df[u'IPTG Concentration (µM)'].astype('object')
-        df.set_value(
-            len(c) + 1,
-            u'IPTG Concentration (µM)',
-            u'Distribute in aliquots of {} µL.'.format(100.))
+        df.at[len(c) + 1, u'IPTG Concentration (µM)'] = \
+            u'Distribute in aliquots of {} µL.'.format(100.)
         # Test for equality
         pandas.util.testing.assert_frame_equal(df_in_wb, df)
 
@@ -2845,10 +2835,8 @@ class TestChemicalGeneExpression(unittest.TestCase):
         # Add message in first column, last row
         df[u'IPTG Concentration (µM)'] = \
             df[u'IPTG Concentration (µM)'].astype('object')
-        df.set_value(
-            len(c) + 1,
-            u'IPTG Concentration (µM)',
-            u'Distribute in aliquots of {} µL.'.format(100.))
+        df.at[len(c) + 1, u'IPTG Concentration (µM)'] =\
+            u'Distribute in aliquots of {} µL.'.format(100.)
         # Test for equality
         pandas.util.testing.assert_frame_equal(df_in_file, df)
 
@@ -2899,10 +2887,8 @@ class TestChemicalGeneExpression(unittest.TestCase):
         # Add message in first column, last row
         df[u'IPTG Concentration (µM)'] = \
             df[u'IPTG Concentration (µM)'].astype('object')
-        df.set_value(
-            len(c) + 1,
-            u'IPTG Concentration (µM)',
-            u'Distribute in aliquots of {} µL.'.format(100.))
+        df.at[len(c) + 1, u'IPTG Concentration (µM)'] =\
+            u'Distribute in aliquots of {} µL.'.format(100.)
         # Test for equality
         pandas.util.testing.assert_frame_equal(df_in_file, df)
 
@@ -2958,10 +2944,8 @@ class TestChemicalGeneExpression(unittest.TestCase):
         # Add message in first column, last row
         df[u'IPTG Concentration (µM)'] = \
             df[u'IPTG Concentration (µM)'].astype('object')
-        df.set_value(
-            len(c) + 1,
-            u'IPTG Concentration (µM)',
-            u'Distribute in aliquots of {} µL.'.format(36.))
+        df.at[len(c) + 1, u'IPTG Concentration (µM)'] =\
+            u'Distribute in aliquots of {} µL.'.format(36.)
         # Test for equality
         pandas.util.testing.assert_frame_equal(df_in_file, df)
 
@@ -3017,9 +3001,7 @@ class TestChemicalGeneExpression(unittest.TestCase):
         # Add message in first column, last row
         df[u'IPTG Concentration (µM)'] = \
             df[u'IPTG Concentration (µM)'].astype('object')
-        df.set_value(
-            len(c) + 1,
-            u'IPTG Concentration (µM)',
-            u'Distribute in aliquots of {} µL.'.format(100.))
+        df.at[len(c) + 1, u'IPTG Concentration (µM)'] =\
+            u'Distribute in aliquots of {} µL.'.format(100.)
         # Test for equality
         pandas.util.testing.assert_frame_equal(df_in_wb, df)

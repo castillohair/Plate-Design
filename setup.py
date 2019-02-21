@@ -70,8 +70,8 @@ setup(
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
         'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
     ],
 
     # What does your project relate to?
@@ -86,8 +86,8 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=['numpy>=1.12.1',
-                      'pandas>=0.20.2',
-                      'openpyxl>=2.4.9',
+                      'pandas>=0.21.0',
+                      'openpyxl>=2.6.0',
                       'six>=1.10.0',
                       'xlrd>=1.0.0'],
 

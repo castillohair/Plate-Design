@@ -5,3 +5,4 @@ Plate_Design.egg-info
 *.ipynb_checkpoints
 examples/*/replicate*
 examples/*/experiment_setup.xlsx
+*.DS_Store
