@@ -844,18 +844,18 @@ class Plate(object):
                     for column in inducer.doses_table.columns:
                         for i in range(self.n_rows):
                             for j in range(self.n_cols):
-                                well_info.set_value(
+                                well_info.at[
                                     well_info.index[i*self.n_cols + j],
-                                    column,
-                                    inducer.doses_table.iloc[j][column])
+                                    column] =\
+                                    inducer.doses_table.iloc[j][column]
                 elif apply_to=='cols':
                     for column in inducer.doses_table.columns:
                         for i in range(self.n_rows):
                             for j in range(self.n_cols):
-                                well_info.set_value(
+                                well_info.at[
                                     well_info.index[i*self.n_cols + j],
-                                    column,
-                                    inducer.doses_table.iloc[i][column])
+                                    column] =\
+                                    inducer.doses_table.iloc[i][column]
                 elif apply_to=='wells':
                     for column in inducer.doses_table.columns:
                         well_info.loc[samples_to_measure_bool, column] = \
@@ -1303,18 +1303,18 @@ class PlateArray(Plate):
                     for column in inducer.doses_table.columns:
                         for i in range(self.n_rows):
                             for j in range(self.n_cols):
-                                well_info_array.set_value(
+                                well_info_array.at[
                                     well_info_array.index[i*self.n_cols + j],
-                                    column,
-                                    inducer.doses_table.iloc[j][column])
+                                    column] =\
+                                    inducer.doses_table.iloc[j][column]
                 elif apply_to=='cols':
                     for column in inducer.doses_table.columns:
                         for i in range(self.n_rows):
                             for j in range(self.n_cols):
-                                well_info_array.set_value(
+                                well_info_array.at[
                                     well_info_array.index[i*self.n_cols + j],
-                                    column,
-                                    inducer.doses_table.iloc[i][column])
+                                    column] =\
+                                    inducer.doses_table.iloc[i][column]
                 elif apply_to=='wells':
                     for column in inducer.doses_table.columns:
                         well_info_array.loc[samples_to_measure_bool, column] = \
